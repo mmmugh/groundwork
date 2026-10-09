@@ -1,0 +1,60 @@
+# Copyright 2026 Groundwork contributors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# What runs on every push to a branch (D83, W-15): the Node suite, the Chromium page tests and the leak scans. Each step
+# calls a script under ci/, which runs the same command list on a Mac and on a runner. The whole suite is weekly.yml.
+# The branch filter, with no tag filter, means GitHub starts no run for a tag, so publishing a release starts none. A
+# pull request from a fork runs without the repository's secret; LEAKS_FORK_PR tells ci/quick.sh it is one (D102).
+name: quick
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  node:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020  # v7.0.0
+        with:
+          node-version: 25.9.0
+      - run: npm ci
+      - run: bash ci/setup.sh
+      - run: bash ci/quick.sh node
+  chromium:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020  # v7.0.0
+        with:
+          node-version: 25.9.0
+      - run: npm ci
+      - run: bash ci/setup.sh chromium
+      - run: bash ci/quick.sh chromium
+  leaks:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          fetch-depth: 0
+      - run: bash ci/quick.sh leaks
+        env:
+          LEAK_PATTERNS_LOCAL: ${{ secrets.LEAK_PATTERNS_LOCAL }}
+          LEAKS_FORK_PR: ${{ github.event.pull_request.head.repo.fork && '1' || '' }}

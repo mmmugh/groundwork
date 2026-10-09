@@ -1,0 +1,67 @@
+<!doctype html>
+<!--
+  Copyright 2026 Groundwork contributors.
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{title}}</title>
+<link rel="stylesheet" href="../app.css">
+</head>
+<body>
+<noscript><p class="nojava">This browser can't run the Java on this page. Groundwork runs Java in Chrome 119, Firefox 120 and Safari 18.2 (on iPhone and iPad, iOS 18.2) or newer. Everything else on the page works.</p></noscript>
+<p id="nojava" hidden>This browser can't run the Java on this page. Groundwork runs Java in Chrome 119, Firefox 120 and Safari 18.2 (on iPhone and iPad, iOS 18.2) or newer. Everything else on the page works.</p>
+<header class="top">
+<a class="home" href="../index.html">Groundwork</a>
+<span class="volume">{{volume}}</span>
+</header>
+<main>
+{{part}}
+{{body}}
+</main>
+<nav class="pager">
+<span class="prev">{{prev}}</span>
+<span class="next">{{next}}</span>
+</nav>
+<button class="scratch-tab" type="button" aria-controls="scratchpad" aria-expanded="false" hidden>Scratchpad</button>
+<section id="scratchpad" class="scratchpad" aria-label="jshell scratchpad" data-state="shut" hidden>
+<header>
+<span class="scratch-title">Scratchpad: jshell</span>
+<button type="button" class="scratch-cancel" hidden>Cancel</button>
+<button type="button" class="scratch-stop" hidden>Stop</button>
+<button type="button" class="scratch-new" hidden>New session</button>
+<button type="button" class="scratch-close" aria-label="Close the scratchpad">Close</button>
+</header>
+<p class="scratch-about">Java runs here, in your browser, one line at a time. In places, what it prints is worded differently from the JDK's own jshell. The first time you open it, it downloads about 30 MB. Over https or from localhost this browser keeps it (unless it is set not to keep site data), so later visits start sooner; from a plain http address it may download it again on each visit, and Safari and every browser on iPhone or iPad run Java there too slowly to start it (Safari on a Mac had not started it after four minutes): use https or localhost. It also keeps your last 100 entries for Up and Down. A session ends when you leave the page. Stop ends an entry that runs too long, and the session with it; at ...&gt;, Cancel drops an unfinished line.</p>
+<pre class="transcript" role="log" aria-label="jshell transcript"></pre>
+<p class="scratch-note" hidden></p>
+<div class="entry"><span class="caret"></span><textarea rows="1" wrap="off" spellcheck="false" autocapitalize="off" autocomplete="off" readonly aria-label="jshell input"></textarea></div>
+</section>
+<script type="module" src="../app.js"></script>
+<script nomodule>
+  (function () {
+    var message = document.getElementById("nojava").textContent;
+    var boxes = document.querySelectorAll(".box:not([data-kind=reference])");
+    for (var i = 0; i < boxes.length; i++) {
+      var p = document.createElement("p");
+      p.className = "nojava";
+      p.textContent = message;
+      boxes[i].appendChild(p);
+    }
+  })();
+</script>
+</body>
+</html>

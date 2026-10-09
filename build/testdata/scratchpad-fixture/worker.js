@@ -1,0 +1,1 @@
+scratchpad fixture: worker.js

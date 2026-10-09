@@ -1,0 +1,54 @@
+# Copyright 2026 Groundwork contributors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# The whole suite, weekly (D83): quick's Node list plus the front end's breaks, and every browser test in each of the
+# three engines (a matrix, one engine per job, so the 2 GiB tests never share a runner). What only the Mac runs
+# (check-observations, the prefs plist hash) is ci/everything.sh. Each step calls a script under ci/.
+#
+# GitHub disables a scheduled workflow after 60 days without repository activity; a push, or a run by hand
+# (workflow_dispatch), or re-enabling it on the Actions tab, starts the schedule again.
+name: weekly
+on:
+  schedule:
+    - cron: "17 6 * * 1"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  node:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020  # v7.0.0
+        with:
+          node-version: 25.9.0
+      - run: npm ci
+      - run: bash ci/setup.sh
+      - run: bash ci/weekly.sh node
+  browsers:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      matrix:
+        engine: [chromium, webkit, firefox]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020  # v7.0.0
+        with:
+          node-version: 25.9.0
+      - run: npm ci
+      - run: bash ci/setup.sh ${{ matrix.engine }}
+      - run: bash ci/weekly.sh ${{ matrix.engine }}

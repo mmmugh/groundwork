@@ -1,0 +1,770 @@
+# Copyright 2026 Groundwork contributors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# F3. Input. System.in on Wasm GC reads bytes from one host import, teavmConsole.getcharStdin()
+# (0..255, -1 = end of input); the host decides the source (a buffer known up front today; a blocking
+# interactive source later). IO.readln() / IO.readln(String) (JDK 25) and a java.util.Scanner subset
+# (next, nextLine, nextInt, nextLong, nextDouble, nextBoolean, hasNext*, close; Scanner(InputStream),
+# Scanner(String)) with JDK semantics. UTF-8 is decoded by hand (Utf8InputDecoder) because
+# InputStreamReader's charset machinery does not build for Wasm GC in TeaVM 0.13.1.
+#
+# Applies to: github.com/konsoletyper/teavm tag 0.13.1 (b3a245b7)
+
+diff --git a/classlib/src/main/java/org/teavm/classlib/impl/console/Utf8InputDecoder.java b/classlib/src/main/java/org/teavm/classlib/impl/console/Utf8InputDecoder.java
+new file mode 100644
+index 0000000..12a47c4
+--- /dev/null
++++ b/classlib/src/main/java/org/teavm/classlib/impl/console/Utf8InputDecoder.java
+@@ -0,0 +1,76 @@
++/*
++ *  Copyright 2026 Groundwork contributors.
++ *
++ *  Licensed under the Apache License, Version 2.0 (the "License");
++ *  you may not use this file except in compliance with the License.
++ *  You may obtain a copy of the License at
++ *
++ *       http://www.apache.org/licenses/LICENSE-2.0
++ *
++ *  Unless required by applicable law or agreed to in writing, software
++ *  distributed under the License is distributed on an "AS IS" BASIS,
++ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++ *  See the License for the specific language governing permissions and
++ *  limitations under the License.
++ */
++package org.teavm.classlib.impl.console;
++
++import java.io.IOException;
++import java.io.InputStream;
++
++/**
++ * teavm-fork: decodes UTF-8 bytes from an InputStream into UTF-16 chars, one char at a time,
++ * reading no more bytes than needed. Used instead of InputStreamReader, whose charset machinery
++ * (TByteBuffer/TCharBuffer with @JSByRef) does not build for Wasm GC in TeaVM 0.13.1.
++ * Malformed input becomes U+FFFD, like the JDK's default REPLACE action.
++ */
++public final class Utf8InputDecoder {
++    private final InputStream in;
++    private int pendingLowSurrogate = -1;
++
++    public Utf8InputDecoder(InputStream in) {
++        this.in = in;
++    }
++
++    /** @return the next UTF-16 char, or -1 at end of input. */
++    public int read() throws IOException {
++        if (pendingLowSurrogate >= 0) {
++            int c = pendingLowSurrogate;
++            pendingLowSurrogate = -1;
++            return c;
++        }
++        int b = in.read();
++        if (b < 0) {
++            return -1;
++        }
++        if (b < 0x80) {
++            return b;
++        }
++        int extra;
++        int code;
++        if ((b & 0xE0) == 0xC0) {
++            extra = 1;
++            code = b & 0x1F;
++        } else if ((b & 0xF0) == 0xE0) {
++            extra = 2;
++            code = b & 0x0F;
++        } else if ((b & 0xF8) == 0xF0) {
++            extra = 3;
++            code = b & 0x07;
++        } else {
++            return 0xFFFD;
++        }
++        for (int i = 0; i < extra; ++i) {
++            int next = in.read();
++            if (next < 0 || (next & 0xC0) != 0x80) {
++                return 0xFFFD;
++            }
++            code = (code << 6) | (next & 0x3F);
++        }
++        if (code >= 0x10000) {
++            pendingLowSurrogate = Character.lowSurrogate(code);
++            return Character.highSurrogate(code);
++        }
++        return code;
++    }
++}
+diff --git a/classlib/src/main/java/org/teavm/classlib/java/lang/TConsoleInputStream.java b/classlib/src/main/java/org/teavm/classlib/java/lang/TConsoleInputStream.java
+index b7a9f0a..31699ca 100644
+--- a/classlib/src/main/java/org/teavm/classlib/java/lang/TConsoleInputStream.java
++++ b/classlib/src/main/java/org/teavm/classlib/java/lang/TConsoleInputStream.java
+@@ -16,17 +16,69 @@
+ package org.teavm.classlib.java.lang;
+ 
+ import java.io.IOException;
++import org.teavm.classlib.PlatformDetector;
+ import org.teavm.classlib.java.io.TEOFException;
+ import org.teavm.classlib.java.io.TInputStream;
++import org.teavm.interop.Import;
+ 
+ class TConsoleInputStream extends TInputStream {
++    // teavm-fork: on Wasm GC, System.in reads bytes from the host through one import,
++    // teavmConsole.getcharStdin() -> 0..255, or -1 at end of input. The host decides where bytes come
++    // from: a buffer known up front (automated checks), or later a blocking interactive source
++    // (e.g. Atomics.wait on a SharedArrayBuffer inside a Worker). Other platforms keep the old
++    // behavior (EOFException). If the host provides no import, the program fails to instantiate
++    // only when it actually uses System.in.
++    private boolean closed;
++
++    @Import(module = "teavmConsole", name = "getcharStdin")
++    private static native int getcharStdin();
++
+     @Override
+-    public int read(byte[] b) throws IOException {
++    public int read() throws IOException {
++        if (PlatformDetector.isWebAssemblyGC()) {
++            if (closed) {
++                throw new IOException("Stream closed");
++            }
++            int b = getcharStdin();
++            return b < 0 ? -1 : b & 0xFF;
++        }
+         throw new TEOFException();
+     }
+ 
+     @Override
+-    public int read() throws IOException {
+-        throw new TEOFException();
++    public int read(byte[] b) throws IOException {
++        return read(b, 0, b.length);
++    }
++
++    @Override
++    public int read(byte[] b, int off, int len) throws IOException {
++        if (!PlatformDetector.isWebAssemblyGC()) {
++            throw new TEOFException();
++        }
++        if (len == 0) {
++            return 0;
++        }
++        // Like a terminal: return at most one line per call, so an interactive source is never asked
++        // for more bytes than the program has consumed.
++        int first = read();
++        if (first < 0) {
++            return -1;
++        }
++        b[off] = (byte) first;
++        int count = 1;
++        while (count < len && first != '\n') {
++            int next = read();
++            if (next < 0) {
++                break;
++            }
++            b[off + count++] = (byte) next;
++            first = next;
++        }
++        return count;
++    }
++
++    @Override
++    public void close() throws IOException {
++        closed = true;
+     }
+ }
+diff --git a/classlib/src/main/java/org/teavm/classlib/java/lang/TIO.java b/classlib/src/main/java/org/teavm/classlib/java/lang/TIO.java
+index 0c1c596..b880aa5 100644
+--- a/classlib/src/main/java/org/teavm/classlib/java/lang/TIO.java
++++ b/classlib/src/main/java/org/teavm/classlib/java/lang/TIO.java
+@@ -15,7 +15,20 @@
+  */
+ package org.teavm.classlib.java.lang;
+ 
++import java.io.IOException;
++import java.io.UncheckedIOException;
++import org.teavm.classlib.impl.console.Utf8InputDecoder;
++
+ public final class TIO {
++    // teavm-fork: readln() / readln(String) (JDK 25, JEP 512) read System.in as UTF-8.
++    // Line terminators match BufferedReader.readLine (the JDK's implementation): \n, \r, \r\n.
++    // Difference from the JDK: the JDK wraps System.in in an 8 KiB BufferedReader, so when input is
++    // piped it may read ahead past the line; this reads exactly one line, so mixing IO.readln with a
++    // Scanner behaves as it does on an interactive terminal.
++    private static Utf8InputDecoder decoder;
++    private static Object decoderSource;
++    private static boolean skipLF;
++
+     private TIO() {
+         throw new Error();
+     }
+@@ -30,5 +43,40 @@ public final class TIO {
+ 
+     public static void print(Object obj) {
+         System.out.print(obj);
++        System.out.flush();
++    }
++
++    public static String readln(String prompt) {
++        print(prompt);
++        return readln();
++    }
++
++    public static String readln() {
++        try {
++            if (decoder == null || decoderSource != System.in) {
++                decoderSource = System.in;
++                decoder = new Utf8InputDecoder(System.in);
++                skipLF = false;
++            }
++            StringBuilder sb = new StringBuilder();
++            int c = decoder.read();
++            if (skipLF && c == '\n') {
++                c = decoder.read();
++            }
++            skipLF = false;
++            if (c < 0) {
++                return null;
++            }
++            while (c >= 0 && c != '\n' && c != '\r') {
++                sb.append((char) c);
++                c = decoder.read();
++            }
++            if (c == '\r') {
++                skipLF = true;
++            }
++            return sb.toString();
++        } catch (IOException e) {
++            throw new UncheckedIOException(e);
++        }
+     }
+ }
+diff --git a/classlib/src/main/java/org/teavm/classlib/java/util/TInputMismatchException.java b/classlib/src/main/java/org/teavm/classlib/java/util/TInputMismatchException.java
+new file mode 100644
+index 0000000..f061741
+--- /dev/null
++++ b/classlib/src/main/java/org/teavm/classlib/java/util/TInputMismatchException.java
+@@ -0,0 +1,28 @@
++/*
++ *  Copyright 2026 Groundwork contributors.
++ *
++ *  Licensed under the Apache License, Version 2.0 (the "License");
++ *  you may not use this file except in compliance with the License.
++ *  You may obtain a copy of the License at
++ *
++ *       http://www.apache.org/licenses/LICENSE-2.0
++ *
++ *  Unless required by applicable law or agreed to in writing, software
++ *  distributed under the License is distributed on an "AS IS" BASIS,
++ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++ *  See the License for the specific language governing permissions and
++ *  limitations under the License.
++ */
++package org.teavm.classlib.java.util;
++
++public class TInputMismatchException extends TNoSuchElementException {
++    private static final long serialVersionUID = 8811230760997066428L;
++
++    public TInputMismatchException() {
++        super();
++    }
++
++    public TInputMismatchException(String message) {
++        super(message);
++    }
++}
+diff --git a/classlib/src/main/java/org/teavm/classlib/java/util/TScanner.java b/classlib/src/main/java/org/teavm/classlib/java/util/TScanner.java
+new file mode 100644
+index 0000000..71f69f1
+--- /dev/null
++++ b/classlib/src/main/java/org/teavm/classlib/java/util/TScanner.java
+@@ -0,0 +1,482 @@
++/*
++ *  Copyright 2026 Groundwork contributors.
++ *
++ *  Licensed under the Apache License, Version 2.0 (the "License");
++ *  you may not use this file except in compliance with the License.
++ *  You may obtain a copy of the License at
++ *
++ *       http://www.apache.org/licenses/LICENSE-2.0
++ *
++ *  Unless required by applicable law or agreed to in writing, software
++ *  distributed under the License is distributed on an "AS IS" BASIS,
++ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++ *  See the License for the specific language governing permissions and
++ *  limitations under the License.
++ */
++package org.teavm.classlib.java.util;
++
++import java.io.Closeable;
++import java.io.IOException;
++import java.io.InputStream;
++import java.util.Iterator;
++import java.util.NoSuchElementException;
++import org.teavm.classlib.impl.console.Utf8InputDecoder;
++
++/**
++ * teavm-fork: a subset of java.util.Scanner for first-course programs, with the JDK 25 behavior for
++ * the default whitespace delimiter and US-locale numbers:
++ * next, nextLine, nextInt, nextLong, nextDouble, nextBoolean, hasNext, hasNextLine, hasNextInt,
++ * hasNextLong, hasNextDouble, close; constructors Scanner(InputStream) and Scanner(String).
++ * As in the JDK: hasNextX() never consumes input, a token that fails nextX() is not consumed,
++ * nextLine() returns the rest of the current line (so nextInt() then nextLine() returns ""),
++ * line terminators are \r\n, \n, \r,  ,  , \u0085.
++ * Not implemented: custom delimiters/patterns (useDelimiter, findInLine, skip), radix and locale
++ * variants, hex floating point input, Unicode (non-ASCII) digits.
++ * Input is read lazily one line at a time (never ahead of what the program asks for), which is how
++ * the JDK behaves on an interactive terminal; with piped input the JDK reads ahead in 1 KiB chunks.
++ */
++public final class TScanner implements Iterator<String>, Closeable {
++    private static final int COMPACT_THRESHOLD = 8192;
++    private final Utf8InputDecoder decoder;
++    private final Closeable source;
++    private final StringBuilder buf = new StringBuilder();
++    private int pos;
++    private boolean eof;
++    private boolean closed;
++    private int tokenStart;
++
++    public TScanner(InputStream source) {
++        if (source == null) {
++            throw new NullPointerException();
++        }
++        this.decoder = new Utf8InputDecoder(source);
++        this.source = source;
++    }
++
++    public TScanner(String source) {
++        if (source == null) {
++            throw new NullPointerException();
++        }
++        this.decoder = null;
++        this.source = null;
++        buf.append(source);
++        eof = true;
++    }
++
++    // Reads the next line of input (up to and including '\n') into the buffer.
++    private boolean fill() {
++        if (eof) {
++            return false;
++        }
++        boolean any = false;
++        try {
++            while (true) {
++                int c = decoder.read();
++                if (c < 0) {
++                    eof = true;
++                    break;
++                }
++                buf.append((char) c);
++                any = true;
++                if (c == '\n') {
++                    break;
++                }
++            }
++        } catch (IOException e) {
++            eof = true;
++        }
++        return any;
++    }
++
++    private void ensureOpen() {
++        if (closed) {
++            throw new IllegalStateException("Scanner closed");
++        }
++        if (pos > COMPACT_THRESHOLD && pos * 2 > buf.length()) {
++            buf.delete(0, pos);
++            pos = 0;
++        }
++    }
++
++    private boolean isDelimiter(int index) {
++        return Character.isWhitespace(buf.charAt(index));
++    }
++
++    // Finds the next token without consuming anything. Returns its end index (tokenStart is set),
++    // or -1 if the input has no more tokens.
++    private int findToken() {
++        int i = pos;
++        while (true) {
++            while (i < buf.length() && isDelimiter(i)) {
++                i++;
++            }
++            if (i < buf.length()) {
++                break;
++            }
++            if (!fill()) {
++                return -1;
++            }
++        }
++        tokenStart = i;
++        int j = i;
++        while (true) {
++            while (j < buf.length() && !isDelimiter(j)) {
++                j++;
++            }
++            if (j < buf.length() || !fill()) {
++                break;
++            }
++        }
++        return j;
++    }
++
++    @Override
++    public boolean hasNext() {
++        ensureOpen();
++        return findToken() >= 0;
++    }
++
++    @Override
++    public String next() {
++        ensureOpen();
++        int end = findToken();
++        if (end < 0) {
++            throw new NoSuchElementException();
++        }
++        String token = buf.substring(tokenStart, end);
++        pos = end;
++        return token;
++    }
++
++    @Override
++    public void remove() {
++        throw new UnsupportedOperationException();
++    }
++
++    public boolean hasNextLine() {
++        ensureOpen();
++        return pos < buf.length() || fill();
++    }
++
++    public String nextLine() {
++        ensureOpen();
++        int i = pos;
++        while (true) {
++            while (i < buf.length()) {
++                char c = buf.charAt(i);
++                if (c == '\n' || c == '\r' || c == ' ' || c == ' ' || c == '\u0085') {
++                    String line = buf.substring(pos, i);
++                    int next = i + 1;
++                    if (c == '\r') {
++                        if (next >= buf.length()) {
++                            fill();
++                        }
++                        if (next < buf.length() && buf.charAt(next) == '\n') {
++                            next++;
++                        }
++                    }
++                    pos = next;
++                    return line;
++                }
++                i++;
++            }
++            if (!fill()) {
++                break;
++            }
++        }
++        if (pos >= buf.length()) {
++            throw new NoSuchElementException("No line found");
++        }
++        String line = buf.substring(pos);
++        pos = buf.length();
++        return line;
++    }
++
++    // ---- integers -------------------------------------------------------------------------------
++
++    private String peekIntegerDigits() {
++        int end = findToken();
++        if (end < 0) {
++            return null;
++        }
++        return integerDigits(buf.substring(tokenStart, end));
++    }
++
++    // JDK integer pattern (US locale): [-+]? (digits | grouped digits "1,234,567"); returns the token
++    // with grouping removed, or null if the token is not an integer.
++    private static String integerDigits(String token) {
++        int i = 0;
++        StringBuilder sb = new StringBuilder();
++        if (i < token.length() && (token.charAt(i) == '-' || token.charAt(i) == '+')) {
++            if (token.charAt(i) == '-') {
++                sb.append('-');
++            }
++            i++;
++        }
++        String numeral = token.substring(i);
++        String digits = numeralDigits(numeral);
++        if (digits == null || digits.length() != numeral.length() - countCommas(numeral)) {
++            return null;
++        }
++        return sb.append(digits).toString();
++    }
++
++    private static int countCommas(String s) {
++        int n = 0;
++        for (int i = 0; i < s.length(); ++i) {
++            if (s.charAt(i) == ',') {
++                n++;
++            }
++        }
++        return n;
++    }
++
++    // numeral := digit+ | [1-9] digit? digit? (',' digit digit digit)+ ; returns digits without commas
++    private static String numeralDigits(String s) {
++        if (s.isEmpty()) {
++            return null;
++        }
++        if (s.indexOf(',') < 0) {
++            for (int i = 0; i < s.length(); ++i) {
++                if (!isAsciiDigit(s.charAt(i))) {
++                    return null;
++                }
++            }
++            return s;
++        }
++        int firstComma = s.indexOf(',');
++        if (firstComma < 1 || firstComma > 3 || s.charAt(0) == '0') {
++            return null;
++        }
++        StringBuilder sb = new StringBuilder();
++        for (int i = 0; i < firstComma; ++i) {
++            if (!isAsciiDigit(s.charAt(i))) {
++                return null;
++            }
++            sb.append(s.charAt(i));
++        }
++        int i = firstComma;
++        while (i < s.length()) {
++            // each group is exactly ",ddd"
++            if (s.charAt(i) != ',' || i + 3 >= s.length()) {
++                return null;
++            }
++            for (int k = 1; k <= 3; ++k) {
++                if (!isAsciiDigit(s.charAt(i + k))) {
++                    return null;
++                }
++                sb.append(s.charAt(i + k));
++            }
++            i += 4;
++        }
++        return sb.toString();
++    }
++
++    private static boolean isAsciiDigit(char c) {
++        return c >= '0' && c <= '9';
++    }
++
++    public boolean hasNextInt() {
++        ensureOpen();
++        String digits = peekIntegerDigits();
++        if (digits == null) {
++            return false;
++        }
++        try {
++            Integer.parseInt(digits);
++            return true;
++        } catch (NumberFormatException e) {
++            return false;
++        }
++    }
++
++    public int nextInt() {
++        ensureOpen();
++        int end = findToken();
++        if (end < 0) {
++            throw new NoSuchElementException();
++        }
++        String digits = integerDigits(buf.substring(tokenStart, end));
++        if (digits == null) {
++            throw new TInputMismatchException();
++        }
++        try {
++            int value = Integer.parseInt(digits);
++            pos = end;
++            return value;
++        } catch (NumberFormatException e) {
++            throw new TInputMismatchException(e.getMessage());
++        }
++    }
++
++    public boolean hasNextLong() {
++        ensureOpen();
++        String digits = peekIntegerDigits();
++        if (digits == null) {
++            return false;
++        }
++        try {
++            Long.parseLong(digits);
++            return true;
++        } catch (NumberFormatException e) {
++            return false;
++        }
++    }
++
++    public long nextLong() {
++        ensureOpen();
++        int end = findToken();
++        if (end < 0) {
++            throw new NoSuchElementException();
++        }
++        String digits = integerDigits(buf.substring(tokenStart, end));
++        if (digits == null) {
++            throw new TInputMismatchException();
++        }
++        try {
++            long value = Long.parseLong(digits);
++            pos = end;
++            return value;
++        } catch (NumberFormatException e) {
++            throw new TInputMismatchException(e.getMessage());
++        }
++    }
++
++    // ---- floating point -------------------------------------------------------------------------
++
++    // JDK float pattern (US locale, without hex floats): [-+]? ( NaN | Infinity | ∞ |
++    // numeral ( '.' digit* )? exponent? | '.' digit+ exponent? ); returns a Double.parseDouble string.
++    private static String floatText(String token) {
++        int i = 0;
++        String sign = "";
++        if (i < token.length() && (token.charAt(i) == '-' || token.charAt(i) == '+')) {
++            sign = token.charAt(i) == '-' ? "-" : "";
++            i++;
++        }
++        String rest = token.substring(i);
++        if (rest.equals("NaN")) {
++            return "NaN";
++        }
++        if (rest.equals("Infinity") || rest.equals("∞")) {
++            return sign + "Infinity";
++        }
++        int exp = -1;
++        for (int k = 0; k < rest.length(); ++k) {
++            char c = rest.charAt(k);
++            if (c == 'e' || c == 'E') {
++                exp = k;
++                break;
++            }
++        }
++        String mantissa = exp >= 0 ? rest.substring(0, exp) : rest;
++        String exponent = exp >= 0 ? rest.substring(exp + 1) : null;
++        if (exponent != null) {
++            int e = 0;
++            if (e < exponent.length() && (exponent.charAt(e) == '+' || exponent.charAt(e) == '-')) {
++                e++;
++            }
++            if (e >= exponent.length()) {
++                return null;
++            }
++            for (; e < exponent.length(); ++e) {
++                if (!isAsciiDigit(exponent.charAt(e))) {
++                    return null;
++                }
++            }
++        }
++        int dot = mantissa.indexOf('.');
++        String intPart = dot >= 0 ? mantissa.substring(0, dot) : mantissa;
++        String fracPart = dot >= 0 ? mantissa.substring(dot + 1) : "";
++        String intDigits;
++        if (intPart.isEmpty()) {
++            if (dot < 0 || fracPart.isEmpty()) {
++                return null;
++            }
++            intDigits = "0";
++        } else {
++            intDigits = numeralDigits(intPart);
++            if (intDigits == null || intDigits.length() != intPart.length() - countCommas(intPart)) {
++                return null;
++            }
++        }
++        for (int k = 0; k < fracPart.length(); ++k) {
++            if (!isAsciiDigit(fracPart.charAt(k))) {
++                return null;
++            }
++        }
++        StringBuilder sb = new StringBuilder(sign).append(intDigits);
++        if (!fracPart.isEmpty()) {
++            sb.append('.').append(fracPart);
++        }
++        if (exponent != null) {
++            sb.append('e').append(exponent);
++        }
++        return sb.toString();
++    }
++
++    public boolean hasNextDouble() {
++        ensureOpen();
++        int end = findToken();
++        return end >= 0 && floatText(buf.substring(tokenStart, end)) != null;
++    }
++
++    public double nextDouble() {
++        ensureOpen();
++        int end = findToken();
++        if (end < 0) {
++            throw new NoSuchElementException();
++        }
++        String text = floatText(buf.substring(tokenStart, end));
++        if (text == null) {
++            throw new TInputMismatchException();
++        }
++        try {
++            double value = Double.parseDouble(text);
++            pos = end;
++            return value;
++        } catch (NumberFormatException e) {
++            throw new TInputMismatchException(e.getMessage());
++        }
++    }
++
++    // ---- boolean --------------------------------------------------------------------------------
++
++    public boolean hasNextBoolean() {
++        ensureOpen();
++        int end = findToken();
++        if (end < 0) {
++            return false;
++        }
++        String token = buf.substring(tokenStart, end);
++        return token.equalsIgnoreCase("true") || token.equalsIgnoreCase("false");
++    }
++
++    public boolean nextBoolean() {
++        ensureOpen();
++        int end = findToken();
++        if (end < 0) {
++            throw new NoSuchElementException();
++        }
++        String token = buf.substring(tokenStart, end);
++        if (!token.equalsIgnoreCase("true") && !token.equalsIgnoreCase("false")) {
++            throw new TInputMismatchException();
++        }
++        pos = end;
++        return token.equalsIgnoreCase("true");
++    }
++
++    @Override
++    public void close() {
++        if (closed) {
++            return;
++        }
++        closed = true;
++        if (source != null) {
++            try {
++                source.close();
++            } catch (IOException e) {
++                // ignored, as in the JDK (recorded there as ioException())
++            }
++        }
++    }
++}

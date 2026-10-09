@@ -1,0 +1,254 @@
+# Observations: exceptions
+
+Sessions run: exceptions-1 (56 entries: the built-in uncaught exceptions at top level—arithmetic, null pointer, index, string index, number format, class cast, argument and state exceptions with and without a message, a custom class, checked exceptions, causes and cause chains, newline messages, initializer failures, assert, Error subclasses and many library failures), exceptions-2 (61 entries: exceptions from nested user methods, instance methods, constructors, static initializers, lambdas and streams, records, a toString that throws, StackOverflowError, try/catch/finally, printStackTrace and stored exceptions), exceptions-3 (78 entries: undeclared names and classes in methods, classes and initializers, multi-line statements and line numbers, local-variable and parameter names in null pointer messages, nested, anonymous, enum and interface frames, custom exception classes, overflow and collection errors, assertions and stderr) and exceptions-4 (68 entries: line numbers inside methods with comments and blank lines, redefinition, `/list` and `/vars` after exceptions, overloads, class and static frames, caused-by chains from user methods, caught exceptions, and a batch of library exceptions). Every session ran on the default engine and with `--execution local`, and the differences between the two are the LOCAL rules at the end.
+
+- RULE exceptions.1: An uncaught exception prints the header `|  Exception <fully qualified class>: <message>` and then one `|        at ...` line per frame; no value line follows and no `==>` is printed for the snippet. A top-level snippet's own frame is `at (#<snippet id>:<line in the snippet>)`, always the last frame.
+  - evidence: exceptions-1#0 real "|  Exception java.lang.ArithmeticException: / by zero\n|        at (#1:1)\n"
+  - evidence: exceptions-1#4 real "|  Exception java.lang.ArrayIndexOutOfBoundsException: Index 5 out of bounds for length 3\n|        at (#5:1)\n"
+  - evidence: exceptions-1#14 real "|  Exception java.lang.IllegalArgumentException: bad arg\n|        at (#15:1)\n"
+  - evidence: exceptions-1#20 real "|  Exception java.lang.Exception: checked\n|        at (#21:1)\n"
+- RULE exceptions.2: The `#` number in a top-level frame is the snippet id, which counts every snippet fed so far, including ones that threw (the next expression after a failure gets the next id). Commands such as `/list` do not use an id.
+  - evidence: exceptions-1#2 real "at (#3:1)"
+  - evidence: exceptions-1#55 real "before\n|  Exception java.lang.ArithmeticException: / by zero\n|        at (#56:1)\n"
+  - evidence: exceptions-4#6 real "|        at (#5:1)\n"
+  - evidence: exceptions-4#7 real "$6 ==> 7\n"
+- RULE exceptions.3: The line number after the colon is the line inside the snippet's own text (1-based), so in a multi-line snippet the frame points at the line that threw.
+  - evidence: exceptions-3#19 real "|  Exception java.lang.IllegalStateException: i is 2\n|        at (#16:3)\n"
+  - evidence: exceptions-3#20 real "|        at (#17:2)\n"
+  - evidence: exceptions-3#21 real "|        at (#18:2)\n"
+  - evidence: exceptions-3#22 real "one\ntwo\n|  Exception java.lang.NullPointerException: Cannot invoke \"Object.toString()\" because \"<local0>\" is null\n|        at (#19:5)\n"
+- RULE exceptions.4: When no message exists the header is the class name alone (no colon). An empty-string message prints the colon and a trailing space. A message that contains newlines is printed raw, so the header spans several lines before the first `at` line. Unicode and a 300-character message are printed whole, with no truncation or wrapping.
+  - evidence: exceptions-1#15 real "|  Exception java.lang.IllegalArgumentException\n|        at (#16:1)\n"
+  - evidence: exceptions-1#21 real "|  Exception java.io.IOException\n|        at (#22:1)\n"
+  - evidence: exceptions-3#52 real "|  Exception java.lang.RuntimeException: \n|        at (#49:1)\n"
+  - evidence: exceptions-1#25 real "|  Exception java.lang.RuntimeException: line1\nline2\n|        at (#26:1)\n"
+  - evidence: exceptions-3#53 real "|  Exception java.lang.RuntimeException: café 你好\n"
+  - evidence: exceptions-3#54 real "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\n|        at (#51:1)\n"
+- RULE exceptions.5: The message is whatever the exception's own message text is: the helpful NullPointerException messages, ArrayIndexOutOfBounds, ClassCast and the other built-in messages appear exactly as the JDK builds them.
+  - evidence: exceptions-1#13 real "|  Exception java.lang.ClassCastException: class java.lang.String cannot be cast to class java.lang.Integer (java.lang.String and java.lang.Integer are in module java.base of loader 'bootstrap')\n"
+  - evidence: exceptions-1#43 real "|  Exception java.lang.NegativeArraySizeException: -1\n"
+  - evidence: exceptions-1#45 real "|  Exception java.lang.ArrayStoreException: java.lang.Integer\n"
+  - evidence: exceptions-3#55 real "|  Exception java.lang.ArithmeticException: integer overflow\n|        at Math.addExact (Math.java:915)\n|        at (#52:1)\n"
+- RULE exceptions.6: Division and remainder by zero with ints and longs throw ArithmeticException `/ by zero`; double division by zero is no exception and shows Infinity.
+  - evidence: exceptions-3#56 real "|  Exception java.lang.ArithmeticException: / by zero\n|        at (#53:1)\n"
+  - evidence: exceptions-3#57 real "|  Exception java.lang.ArithmeticException: / by zero\n|        at (#54:1)\n"
+  - evidence: exceptions-3#58 real "$55 ==> Infinity\n"
+- RULE exceptions.7: Helpful NullPointerException messages name the null thing: a jshell variable appears as `REPL.$JShell$<n>.<name>` (field of a generated class), a local variable of a method or block as `<local0>`, a method parameter as `<parameter1>`, a chained field as `REPL.$JShell$29.nd.next`, an array element as `REPL.$JShell$54.sa[0]`, and a method result as `the return value of "..."`. The `<n>` the real tool prints differs from the `<n>` the public API's exception message carries for the same snippet (see the Surprises list).
+  - evidence: exceptions-1#2 real "|  Exception java.lang.NullPointerException: Cannot invoke \"String.length()\" because \"REPL.$JShell$3.s\" is null\n"
+  - evidence: exceptions-1#51 real "Cannot read the array length because \"REPL.$JShell$51.na\" is null"
+  - evidence: exceptions-1#52 real "Cannot load from int array because \"REPL.$JShell$51.na\" is null"
+  - evidence: exceptions-1#54 real "because \"REPL.$JShell$54.sa[0]\" is null"
+  - evidence: exceptions-3#24 real "Cannot invoke \"String.length()\" because \"<local0>\" is null\n|        at loc (#20:3)\n"
+  - evidence: exceptions-3#26 real "Cannot invoke \"String.length()\" because \"<parameter1>\" is null\n|        at plen (#22:1)\n|        at (#23:1)\n"
+  - evidence: exceptions-3#29 real "Cannot read field \"val\" because \"REPL.$JShell$29.nd.next\" is null"
+  - evidence: exceptions-3#30 real "Cannot assign field \"val\" because \"REPL.$JShell$29.nd.next\" is null"
+  - evidence: exceptions-3#32 real "because the return value of \"REPL.$JShell$32$Box.name()\" is null"
+  - evidence: exceptions-4#53 real "because the return value of \"java.util.Map.get(Object)\" is null"
+- RULE exceptions.8: NullPointerException has no message when thrown with no message by library code, and the thrown message is used when the code supplies one; `throw null` gets its own helpful message.
+  - evidence: exceptions-1#46 real "|  Exception java.lang.NullPointerException: must not be null\n|        at Objects.requireNonNull (Objects.java:246)\n|        at (#46:1)\n"
+  - evidence: exceptions-1#47 real "|  Exception java.lang.NullPointerException\n|        at Objects.requireNonNull (Objects.java:220)\n|        at (#47:1)\n"
+  - evidence: exceptions-1#30 real "Cannot throw exception because \"null\" is null"
+- RULE exceptions.9: Frames inside JDK code print as `at <SimpleClassName>.<method> (<File>.java:<line>)`: no package, no module, the nested-class `$` kept, and each frame on its own `|        at` line, innermost first, ending with the user's frame. charAt, substring, parseInt, parseDouble, List.get, Optional.get and others all follow this.
+  - evidence: exceptions-1#6 real "|  Exception java.lang.StringIndexOutOfBoundsException: Index 10 out of bounds for length 3\n|        at Preconditions$1.apply (Preconditions.java:55)\n|        at Preconditions$1.apply (Preconditions.java:52)\n|        at Preconditions$4.apply (Preconditions.java:213)\n|        at Preconditions$4.apply (Preconditions.java:210)\n|        at Preconditions.outOfBounds (Preconditions.java:98)\n|        at Preconditions.outOfBoundsCheckIndex (Preconditions.java:106)\n|        at Preconditions.checkIndex (Preconditions.java:302)\n|        at String.checkIndex (String.java:4904)\n|        at StringLatin1.charAt (StringLatin1.java:45)\n|        at String.charAt (String.java:1624)\n|        at (#7:1)\n"
+  - evidence: exceptions-1#7 real "|  Exception java.lang.StringIndexOutOfBoundsException: Range [5, 3) out of bounds for length 3\n|        at Preconditions$1.apply (Preconditions.java:55)"
+  - evidence: exceptions-1#9 real "|  Exception java.lang.NumberFormatException: For input string: \"abc\"\n|        at NumberFormatException.forInputString (NumberFormatException.java:67)\n|        at Integer.parseInt (Integer.java:565)\n|        at Integer.parseInt (Integer.java:662)\n|        at (#10:1)\n"
+  - evidence: exceptions-1#11 real "|        at FloatingDecimal.check (FloatingDecimal.java:2324)\n|        at FloatingDecimal.readJavaFormatString (FloatingDecimal.java:1928)\n|        at FloatingDecimal.parseDouble (FloatingDecimal.java:110)\n|        at Double.parseDouble (Double.java:971)\n"
+  - evidence: exceptions-1#38 real "|        at Preconditions.outOfBounds (Preconditions.java:100)\n|        at Preconditions.outOfBoundsCheckIndex (Preconditions.java:106)\n|        at Preconditions.checkIndex (Preconditions.java:302)\n|        at Objects.checkIndex (Objects.java:365)\n|        at ArrayList.get (ArrayList.java:428)\n|        at (#38:1)\n"
+  - evidence: exceptions-1#39 real "|        at ImmutableCollections$AbstractImmutableCollection.add (ImmutableCollections.java:164)"
+  - evidence: exceptions-4#61 real "|        at System.arraycopy (Native Method)\n"
+- RULE exceptions.10: The same library call can print different JDK frame lines for different arguments, because the frame lines are the real JDK stack: Integer.parseInt of an empty string reports line 542, of a non-numeric string line 565.
+  - evidence: exceptions-1#9 real "|        at Integer.parseInt (Integer.java:565)\n"
+  - evidence: exceptions-1#10 real "|        at Integer.parseInt (Integer.java:542)\n"
+- RULE exceptions.11: A method defined in jshell prints as `at <method> (#<id of the snippet that declared it>:<line in that declaration>)`, then the caller's frame, down to the top-level `at (#<id>:<line>)`. The line is relative to the declaration snippet, so it counts comment and blank lines inside the body. Frames list the innermost call first.
+  - evidence: exceptions-2#1 real "|  Exception java.lang.ArithmeticException: / by zero\n|        at div (#1:2)\n|        at (#2:1)\n"
+  - evidence: exceptions-2#5 real "in b\n|  Exception java.lang.ArrayIndexOutOfBoundsException: Index 2 out of bounds for length 1\n|        at c (#3:3)\n|        at b (#4:3)\n|        at a (#5:2)\n|        at (#6:1)\n"
+  - evidence: exceptions-2#8 real "|        at pick (#8:6)\n|        at (#9:1)\n"
+  - evidence: exceptions-4#1 real "|        at calc (#1:4)\n|        at (#2:1)\n"
+  - evidence: exceptions-4#19 real "|  Exception java.lang.IllegalStateException: bottom\n|        at down (#14:2)\n|        at down (#14:3)\n|        at down (#14:3)\n|        at down (#14:3)\n|        at (#15:1)\n"
+- RULE exceptions.12: After a method is redefined, a later exception shows the new declaration's snippet id and line; overloads print the same name on each frame, distinguished only by their declaration ids.
+  - evidence: exceptions-4#3 real "|        at calc (#3:2)\n|        at (#4:1)\n"
+  - evidence: exceptions-4#13 real "|        at sq (#7:1)\n|        at sq (#8:1)\n|        at (#9:1)\n"
+- RULE exceptions.13: Class members print as `at <Class>.<method> (#<class decl id>:<line>)`; a constructor is `<Class>.<init>`, a static initializer `<Class>.<clinit>`, a static method `<Class>.<method>`, a nested class method or constructor chain keeps the simple class name, an anonymous class prints as `1.run`, and a default method as `Greeter.hi`.
+  - evidence: exceptions-2#11 real "|        at Account.withdraw (#10:6)\n|        at (#12:1)\n"
+  - evidence: exceptions-2#14 real "|        at Strict.<init> (#14:3)\n|        at (#15:1)\n"
+  - evidence: exceptions-4#15 real "|        at Util.half (#10:3)\n|        at (#11:1)\n"
+  - evidence: exceptions-4#17 real "|        at Util.half (#10:3)\n|        at Svc.run (#12:2)\n|        at (#13:1)\n"
+  - evidence: exceptions-3#34 real "|  Exception REPL.$JShell$34$Outer$Inner: inner thrown\n|        at Outer.go (#30:5)\n"
+  - evidence: exceptions-3#36 real "|        at 1.run (#32:2)\n"
+  - evidence: exceptions-3#42 real "|        at Greeter.hi (#38:1)\n"
+- RULE exceptions.14: A record's public compact constructor failing prints `at <Record>.<init> (#id:line)`. A compact constructor without `public` is rejected at declaration time (an Error block), and the record is then not defined.
+  - evidence: exceptions-2#31 real "|  Exception java.lang.IllegalArgumentException: x must be >= 0\n|        at Pos2.<init> (#28:3)\n|        at (#29:1)\n"
+  - evidence: exceptions-2#27 real "|  Error:\n|  invalid canonical constructor in record Pos\n|    (attempting to assign stronger access privileges; was public)\n"
+  - evidence: exceptions-2#28 real "|    symbol:   class Pos\n"
+- RULE exceptions.15: A user-defined exception class prints under its generated name `REPL.$JShell$<n>$<Class>` (nested classes add `$<Inner>`), not the simple name, in the header; `<n>` is not the class's snippet id in the real tool.
+  - evidence: exceptions-1#19 real "|  Exception REPL.$JShell$20$MyEx: custom boom\n|        at (#20:1)\n"
+  - evidence: exceptions-3#46 real "|  Exception REPL.$JShell$46$AppException: app failed\n|        at (#43:1)\n"
+  - evidence: exceptions-2#45 real "|  Exception REPL.$JShell$46$MyErr: my error\n|        at (#43:1)\n"
+- RULE exceptions.16: The header message comes from getMessage(): an exception class overriding getMessage prints that text, while an overridden toString is ignored (the header is the generated class name with no message).
+  - evidence: exceptions-3#49 real "|  Exception REPL.$JShell$49$Odd: odd message\n"
+  - evidence: exceptions-3#51 real "|  Exception REPL.$JShell$51$Odder\n|        at (#48:1)\n"
+- RULE exceptions.17: Checked exceptions, plain Error subclasses, AssertionError, StackOverflowError, OutOfMemoryError and Throwable are all reported with the same `|  Exception <class>` header (the word is always "Exception"), with no compile-time check on a top-level `throw` of a checked exception, and a method declared `throws Exception` called from the top level also just reports.
+  - evidence: exceptions-1#31 real "|  Exception java.lang.Error: plain error\n"
+  - evidence: exceptions-1#32 real "|  Exception java.lang.AssertionError: assertion direct\n"
+  - evidence: exceptions-4#43 real "|  Exception java.lang.Throwable: throwable direct\n|        at (#39:1)\n"
+  - evidence: exceptions-4#48 real "|  Exception java.lang.OutOfMemoryError: fake oom\n"
+  - evidence: exceptions-3#44 real "|  Exception java.lang.Exception: risky\n|        at risky (#40:1)\n|        at (#41:1)\n"
+- RULE exceptions.18: An exception with a cause prints the outer exception and its frames, then `|  Caused by: <class>: <message>` (the cause's frames follow), and the cause's block always ends with a line `|        ...`. When the cause was created at the same place as the outer exception, only `|        ...` follows the Caused by line. A chain prints one `Caused by:` block per level in order, each ending with `...`.
+  - evidence: exceptions-1#22 real "|  Exception java.lang.RuntimeException: outer\n|        at (#23:1)\n|  Caused by: java.lang.IllegalStateException: inner\n|        ...\n"
+  - evidence: exceptions-1#23 real "|  Exception java.lang.RuntimeException: top\n|        at (#24:1)\n|  Caused by: java.lang.IllegalStateException: mid\n|        ...\n|  Caused by: java.lang.ArithmeticException: root\n|        ...\n"
+  - evidence: exceptions-1#24 real "|  Exception java.lang.RuntimeException: java.lang.IllegalStateException: inner\n|        at (#25:1)\n|  Caused by: java.lang.IllegalStateException: inner\n|        ...\n"
+  - evidence: exceptions-3#47 real "|  Exception REPL.$JShell$46$AppException: app failed\n|        at (#44:1)\n|  Caused by: java.lang.RuntimeException: db down\n|        ...\n"
+- RULE exceptions.19: A cause with frames of its own prints them (innermost first) before the closing `...`; frames the cause shares with the outer trace are elided.
+  - evidence: exceptions-2#49 real "|  Exception java.lang.IllegalStateException: wrapped\n|        at wrap (#46:5)\n|        at (#47:1)\n|  Caused by: java.lang.NumberFormatException: For input string: \"zz\"\n|        at NumberFormatException.forInputString (NumberFormatException.java:67)\n|        at Integer.parseInt (Integer.java:565)\n|        at Integer.parseInt (Integer.java:662)\n|        at wrap (#46:3)\n|        ...\n"
+  - evidence: exceptions-4#22 real "|  Exception java.lang.RuntimeException: wrapped\n|        at outer (#17:3)\n|        at (#18:1)\n|  Caused by: java.lang.IllegalArgumentException: deep cause\n|        at inner (#16:1)\n|        at outer (#17:2)\n|        ...\n"
+  - evidence: exceptions-4#24 real "|  Caused by: java.lang.RuntimeException: the cause\n|        at same (#19:2)\n|        ...\n"
+- RULE exceptions.20: Passing null as the cause prints no Caused by block. Suppressed exceptions (try-with-resources whose close also throws) are not printed: only the primary exception appears.
+  - evidence: exceptions-3#46 real "|  Exception REPL.$JShell$46$AppException: app failed\n|        at (#43:1)\n"
+  - evidence: exceptions-3#66 real "|  Exception java.lang.RuntimeException: body failed\n|        at (#63:1)\n"
+- RULE exceptions.21: An exception that is rethrown, or stored in a variable and thrown later, prints the frames it was created with, not the throw site: `throw kept;` shows the snippet id of the line that created `kept`.
+  - evidence: exceptions-4#27 events "\"value\":\"java.lang.RuntimeException: kept at creation\""
+  - evidence: exceptions-4#28 real "|  Exception java.lang.RuntimeException: kept at creation\n|        at (#23:1)\n"
+  - evidence: exceptions-4#26 real "|        at rethrow (#21:2)\n|        at (#22:1)\n"
+- RULE exceptions.22: A static initializer failure first reports ExceptionInInitializerError with no message, whose own frames are shown as `Caused by:` the real exception with the initializer frame (`<Class>.<clinit>`) and a closing `...`. It applies to a static field initializer, a static block, an enum constructor and a record's static field.
+  - evidence: exceptions-2#18 real "|  Exception java.lang.ExceptionInInitializerError\n|        at (#19:1)\n|  Caused by: java.lang.ArithmeticException: / by zero\n|        at Boom.<clinit> (#18:2)\n|        ...\n"
+  - evidence: exceptions-2#21 real "|  Exception java.lang.ExceptionInInitializerError\n|        at (#22:1)\n|  Caused by: java.lang.RuntimeException: static block\n|        at Boom2.<clinit> (#21:3)\n|        ...\n"
+  - evidence: exceptions-3#40 real "|  Caused by: java.lang.IllegalStateException: enum ctor\n|        at Bad.<init> (#36:1)\n|        at Bad.<clinit> (#36:1)\n|        ...\n"
+  - evidence: exceptions-4#45 real "|  Caused by: java.lang.ArithmeticException: / by zero\n|        at R.<clinit> (#40:1)\n|        ...\n"
+- RULE exceptions.23: Touching the class a second time reports a NoClassDefFoundError `Could not initialize class REPL.$JShell$<n>$<Class>` with a Caused by ExceptionInInitializerError whose message is `Exception java.lang.ArithmeticException: / by zero [in thread "main"]` and which lists the original `<clinit>` frame and the first call's top-level frame.
+  - evidence: exceptions-2#19 real "|  Exception java.lang.NoClassDefFoundError: Could not initialize class REPL.$JShell$19$Boom\n|        at (#20:1)\n|  Caused by: java.lang.ExceptionInInitializerError: Exception java.lang.ArithmeticException: / by zero [in thread \"main\"]\n|        at Boom.<clinit> (#18:2)\n|        at (#19:1)\n"
+- RULE exceptions.24: A lambda body prints as the frame `at lambda$do_it$$0 (#<id of the snippet holding the lambda>:<line>)`; between it and the user's frames the real JDK frames appear (stream pipeline, spliterator, collection forEach), and a user method that received the lambda appears between them.
+  - evidence: exceptions-2#23 real "|  Exception java.lang.ArithmeticException: / by zero\n|        at lambda$do_it$$0 (#24:1)\n|        at ap (#23:1)\n|        at (#24:1)\n"
+  - evidence: exceptions-2#24 real "|        at lambda$do_it$$0 (#25:1)\n|        at IntPipeline$4$1.accept (IntPipeline.java:246)\n|        at Streams$RangeIntSpliterator.forEachRemaining (Streams.java:104)\n|        at Spliterator$OfInt.forEachRemaining (Spliterator.java:710)\n|        at AbstractPipeline.copyInto (AbstractPipeline.java:570)\n|        at AbstractPipeline.wrapAndCopyInto (AbstractPipeline.java:560)\n|        at ReduceOps$ReduceOp.evaluateSequential (ReduceOps.java:921)\n|        at AbstractPipeline.evaluate (AbstractPipeline.java:265)\n|        at IntPipeline.reduce (IntPipeline.java:517)\n|        at IntPipeline.sum (IntPipeline.java:475)\n|        at (#25:1)\n"
+  - evidence: exceptions-2#25 real "10\n|  Exception java.lang.ArithmeticException: / by zero\n|        at lambda$do_it$$0 (#26:1)\n|        at ImmutableCollections$List12.forEach (ImmutableCollections.java:683)\n|        at (#26:1)\n"
+  - evidence: exceptions-2#26 real "|        at ReferencePipeline$3$1.accept (ReferencePipeline.java:214)\n|        at AbstractList$RandomAccessSpliterator.forEachRemaining (AbstractList.java:722)\n"
+- RULE exceptions.25: Output the snippet printed before it threw appears first, then the exception block; stdout, stderr and partial text without a trailing newline are all flushed before the `|  Exception` line (`partial|  Exception ...` runs together on one line).
+  - evidence: exceptions-2#5 real "in b\n|  Exception"
+  - evidence: exceptions-3#71 real "err first\n|  Exception java.lang.RuntimeException: after err\n"
+  - evidence: exceptions-4#41 real "partial|  Exception java.lang.RuntimeException: noisy\n|        at noisy (#36:1)\n|        at (#37:1)\n"
+  - evidence: exceptions-2#51 real "finally ran\n|  Exception java.lang.ArithmeticException: / by zero\n|        at (#49:1)\n"
+- RULE exceptions.26: When a variable declaration's initializer throws, the exception is reported and the variable still exists with its default value (0, false, null); a later `/vars` lists it. A failing initializer that calls a method, a constructor, or spans several lines behaves the same.
+  - evidence: exceptions-1#27 real "|  Exception java.lang.ArithmeticException: / by zero\n|        at (#28:1)\n"
+  - evidence: exceptions-1#28 real "v ==> 0\n"
+  - evidence: exceptions-1#29 real "|    int v = 0\n"
+  - evidence: exceptions-2#15 real "|        at Strict.<init> (#14:3)\n|        at (#16:1)\n"
+  - evidence: exceptions-2#16 real "st ==> null\n"
+  - evidence: exceptions-2#47 real "bad ==> 0\n"
+  - evidence: exceptions-3#76 real "|    int w = 0\n"
+- RULE exceptions.27: An expression snippet that throws (like `1 / 0` or `a[5]`) still consumes a temporary variable id, shown by `/vars` as a variable holding the type's default value (`int $1 = 0`, `char $7 = '\000'`, `String $8 = null`); the vars entry appears even though no `$n ==>` line was printed.
+  - evidence: exceptions-1#29 real "|    int $1 = 0\n|    String s = null\n|    int $3 = 0\n"
+  - evidence: exceptions-1#29 real "|    char $7 = '\\000'\n|    String $8 = null\n"
+  - evidence: exceptions-4#8 real "|    int $2 = 0\n|    int $4 = 0\n|    int $5 = 0\n|    int $6 = 7\n"
+- RULE exceptions.28: Statements are run in order on one line: when the first of two statements throws, the second is not run and its variable is never created, while a first statement's output still appears.
+  - evidence: exceptions-3#72 real "|  Exception java.lang.ArithmeticException: / by zero\n|        at (#70:1)\n"
+  - evidence: exceptions-3#73 real "|    symbol:   variable q\n"
+  - evidence: exceptions-1#55 real "before\n|  Exception"
+- RULE exceptions.29: Assertions are off: a failing `assert` prints nothing and does not run its side effect (`assert ea = true;` leaves `ea` false).
+  - evidence: exceptions-1#33 real= ""
+  - evidence: exceptions-3#68 real= ""
+  - evidence: exceptions-3#69 real "ea ==> false\n"
+  - evidence: exceptions-1#32 real "assertion direct"
+- RULE exceptions.30: A stack overflow from simple recursion prints `|  Exception java.lang.StackOverflowError` followed by exactly 1024 identical frame lines `|        at rec (#<id>:1)`; the output is 1025 lines and the top-level `at (#n:1)` frame is not printed. The session stays usable afterwards. User code can catch it.
+  - evidence: exceptions-2#42 real "|  Exception java.lang.StackOverflowError\n|        at rec (#39:1)\n|        at rec (#39:1)\n"
+  - evidence: exceptions-2#43 real "$41 ==> 2\n"
+  - evidence: exceptions-4#47 real "caught SO\n"
+  - evidence: exceptions-4#49 real "|  Exception java.lang.StackOverflowError\n|        at (#45:1)\n"
+- RULE exceptions.31: When displaying a value calls a toString that throws, the exception is swallowed and the display is an empty value: `bs ==> ` with nothing after the arrow; the variable is still created. Calling the same toString from user code (println, string concatenation) reports the exception with the user's `toString` frame and the JDK frames above it.
+  - evidence: exceptions-2#35 real "$33 ==> \n"
+  - evidence: exceptions-2#36 real "bs ==> \n"
+  - evidence: exceptions-2#37 real "bs ==> \n"
+  - evidence: exceptions-2#38 real "$36 ==> \n"
+  - evidence: exceptions-2#39 real "|  Exception java.lang.RuntimeException: no string for you\n|        at BadStr.toString (#32:2)\n|        at String.valueOf (String.java:4530)\n|        at PrintStream.println (PrintStream.java:1023)\n|        at (#37:1)\n"
+  - evidence: exceptions-2#40 real "|        at BadStr.toString (#32:2)\n|        at String.valueOf (String.java:4530)\n|        at (#38:1)\n"
+- RULE exceptions.32: An exception object that is merely created (not thrown) is a normal value: `$27 ==> java.lang.IllegalStateException: shown as value`, and a variable holding one displays the same way. A caught exception is silent unless the code prints it.
+  - evidence: exceptions-4#31 real "$27 ==> java.lang.IllegalStateException: shown as value\n"
+  - evidence: exceptions-2#58 real "ex ==> java.lang.IllegalStateException: kept\n"
+  - evidence: exceptions-4#32 real= ""
+  - evidence: exceptions-4#35 real "msg ==> \"For input string: \\\"k\\\"\"\n"
+  - evidence: exceptions-4#39 real "java.lang.RuntimeException: ste\n"
+- RULE exceptions.33: printStackTrace() writes the Java-format trace to the error stream (not the `|  Exception` format): `java.lang.X: msg` then tab-indented `at REPL.$JShell$<n>.do_it$($JShell$<n>.java:5)` frames and then ten more tab-indented frames (two reflection frames, then eight frames belonging to the default engine's helper process).
+  - evidence: exceptions-2#52 real "java.lang.RuntimeException: trace me\n\tat REPL.$JShell$54.do_it$($JShell$54.java:5)\n\tat java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:104)\n\tat java.base/java.lang.reflect.Method.invoke(Method.java:565)\n\tat jdk.jshell/jdk.jshell.execution.DirectExecutionControl.invoke(DirectExecutionControl.java:227)"
+  - evidence: exceptions-2#54 real "java.lang.ArrayIndexOutOfBoundsException: Index 3 out of bounds for length 1\n\tat REPL.$JShell$55.pst($JShell$55.java:6)\n\tat REPL.$JShell$56.do_it$($JShell$56.java:5)\n"
+  - evidence: exceptions-4#38 real "REPL.$JShell$34.ste($JShell$34.java:5)\n"
+  - evidence: exceptions-2#55 real "$53 ==> 11\n"
+- RULE exceptions.34: Library failures print their JDK frames and messages as the JDK builds them: ConcurrentModificationException, UnsupportedOperationException from immutable and fixed-size lists, IllegalArgumentException for a negative repeat, enum valueOf, duplicate Map.of keys, IllegalFormatConversionException, IllegalMonitorStateException, CloneNotSupportedException.
+  - evidence: exceptions-3#60 real "|  Exception java.util.ConcurrentModificationException\n|        at ArrayList$Itr.checkForComodification (ArrayList.java:1096)\n|        at ArrayList$Itr.next (ArrayList.java:1050)\n|        at (#57:1)\n"
+  - evidence: exceptions-3#61 real "|        at AbstractList.add (AbstractList.java:155)\n|        at AbstractList.add (AbstractList.java:113)\n"
+  - evidence: exceptions-3#62 real "|  Exception java.lang.IllegalArgumentException: count is negative: -1\n|        at String.repeat (String.java:4733)\n"
+  - evidence: exceptions-3#38 real "|  Exception java.lang.IllegalArgumentException: No enum constant REPL.$JShell$38.Color.BLUE\n|        at Enum.valueOf (Enum.java:293)\n|        at Color.valueOf (#34:1)\n|        at (#35:1)\n"
+  - evidence: exceptions-4#65 real "|  Exception java.lang.IllegalArgumentException: duplicate key: a\n"
+  - evidence: exceptions-4#60 real "|  Exception java.util.IllegalFormatConversionException: d != java.lang.String\n"
+  - evidence: exceptions-4#66 real "|  Exception java.lang.IllegalMonitorStateException: current thread is not owner\n"
+  - evidence: exceptions-4#67 real "|  Exception java.lang.CloneNotSupportedException: REPL.$JShell$64$$JShell$anonymous$$0\n|        at Object.clone (Native Method)\n|        at $0.c (#63:1)\n"
+- RULE exceptions.35: A method whose body names an undeclared variable or method is accepted with `|  created method f(), however, it cannot be invoked until variable missing is declared` (or `... until method h(int) is declared`); calling it prints `|  attempted to call method f() which cannot be invoked until variable missing is declared` and no `Exception` block or `at` frames.
+  - evidence: exceptions-3#0 real "|  created method f(), however, it cannot be invoked until variable missing is declared\n"
+  - evidence: exceptions-3#1 real "|  attempted to call method f() which cannot be invoked until variable missing is declared\n"
+  - evidence: exceptions-3#8 real "|  created method g(), however, it cannot be invoked until method h(int) is declared\n"
+  - evidence: exceptions-3#9 real "|  attempted to call method g() which cannot be invoked until method h(int) is declared\n"
+- RULE exceptions.36: A variable initializer that calls such a method prints the `attempted to call ...` line and the variable is still created with its default value (`x ==> 0`).
+  - evidence: exceptions-3#4 real "|  attempted to call method f() which cannot be invoked until variable missing is declared\n"
+  - evidence: exceptions-3#5 real "x ==> 0\n"
+  - evidence: exceptions-3#10 real "|  attempted to call method g() which cannot be invoked until method h(int) is declared\n"
+  - evidence: exceptions-3#76 real "|    int x = 0\n"
+- RULE exceptions.37: Once the missing name is declared, the declaration reports normally (`missing ==> 5`, `created method h(int)`) with no mention of the earlier method, and the earlier method works from then on.
+  - evidence: exceptions-3#6 real "missing ==> 5\n"
+  - evidence: exceptions-3#7 real "$7 ==> 6\n"
+  - evidence: exceptions-3#12 real "|  created method h(int)\n"
+  - evidence: exceptions-3#13 real "$12 ==> 4\n"
+- RULE exceptions.38: A class that uses an undeclared class is accepted with `|  created class A, however, it cannot be referenced until class B is declared`; constructing it before B exists is a compile error `cannot find symbol ... symbol:   class A` (the class cannot be referenced at all). After B is declared, A works. A method with an undeclared parameter type gets `created method m(Foo), however, it cannot be referenced until class Foo is declared` and calling it is a `cannot find symbol ... method m(<nulltype>)` error.
+  - evidence: exceptions-3#2 real "|  created class A, however, it cannot be referenced until class B is declared\n"
+  - evidence: exceptions-3#3 real "|  Error:\n|  cannot find symbol\n|    symbol:   class A\n|  new A()\n|      ^\n"
+  - evidence: exceptions-3#14 real "|    symbol:   class A\n"
+  - evidence: exceptions-3#16 real "$14 ==> true\n"
+  - evidence: exceptions-3#17 real "|  created method m(Foo), however, it cannot be referenced until class Foo is declared\n"
+  - evidence: exceptions-3#18 real "|    symbol:   method m(<nulltype>)\n"
+- RULE exceptions.39: The public API's events for the unresolved-method call carry an exception of type UnresolvedReferenceException (message `Attempt to use definition snippet with unresolved references in MethodSnippet:f/()int-int f() { return missing + 1; }`), and the declaration event of the dependent method shows status RECOVERABLE_DEFINED with the unresolved names; declaring the missing name later reports the method as VALID<-RECOVERABLE_DEFINED.
+  - evidence: exceptions-3#4 events "\"type\":\"UnresolvedReferenceException\""
+  - evidence: exceptions-3#8 events "RECOVERABLE_DEFINED"
+  - evidence: exceptions-3#6 events "\"status\":\"VALID\""
+- RULE exceptions.40: Declaring an exception-throwing call inside a `try` and catching it prints nothing at all (no value line); an uncaught exception inside the same snippet after a `finally` runs prints the finally output first.
+  - evidence: exceptions-4#32 real= ""
+  - evidence: exceptions-4#34 real= ""
+  - evidence: exceptions-2#50 real "caught For input string: \"q\"\n"
+- RULE exceptions.41: LOCAL (`--execution local`): every exception, trace and message above prints identically to the default engine, including the JDK frames, the user frames, the Caused by blocks and the 1024-frame StackOverflowError output. (Spot checks quoted below.)
+  - evidence: exceptions-1#0 local "|  Exception java.lang.ArithmeticException: / by zero\n|        at (#1:1)\n"
+  - evidence: exceptions-1#6 local "|        at String.charAt (String.java:1624)\n|        at (#7:1)\n"
+  - evidence: exceptions-1#23 local "|  Exception java.lang.RuntimeException: top\n|        at (#24:1)\n|  Caused by: java.lang.IllegalStateException: mid\n|        ...\n"
+  - evidence: exceptions-2#42 local "|  Exception java.lang.StackOverflowError\n|        at rec (#39:1)\n|        at rec (#39:1)\n"
+  - evidence: exceptions-2#24 local "|        at IntPipeline.sum (IntPipeline.java:475)\n|        at (#25:1)\n"
+  - evidence: exceptions-3#24 local "|        at loc (#20:3)\n"
+- RULE exceptions.42: LOCAL: the second touch of a failed static initializer reports the thread that ran it as `Thread-<n>` instead of `main` (n varies with the session, so it is not stable between runs).
+  - evidence: exceptions-2#19 local "Exception java.lang.ArithmeticException: / by zero [in thread \"Thread-"
+  - evidence: exceptions-2#19 elocal "[in thread \\\"Thread-"
+- RULE exceptions.43: LOCAL: printStackTrace() prints a shorter engine tail: after the user's frames and the two reflection frames, only two further frames follow (the second is `Thread.run`), so a fresh exception has 5 stack elements in the local engine and 11 in the default engine.
+  - evidence: exceptions-2#52 local "\tat jdk.jshell/jdk.jshell.execution.LocalExecutionControl.lambda$invoke$0(LocalExecutionControl.java:179)\n\tat java.base/java.lang.Thread.run(Thread.java:1474)\n"
+  - evidence: exceptions-2#54 local "\tat REPL.$JShell$56.do_it$($JShell$56.java:5)\n\tat java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:104)\n\tat java.base/java.lang.reflect.Method.invoke(Method.java:565)\n\tat jdk.jshell/jdk.jshell.execution.LocalExecutionControl.lambda$invoke$0(LocalExecutionControl.java:179)\n"
+  - evidence: exceptions-2#55 local "$53 ==> 5\n"
+  - evidence: exceptions-2#55 real "$53 ==> 11\n"
+- RULE exceptions.44: LOCAL: redefining a method with the same signature reports `replaced method calc(int)` where the default engine reports `modified method calc(int)`; the events show the same status VALID<-VALID but the local engine's signature-change flag is true where the default engine's is false (also for the earlier snippets that become valid when a missing name is declared).
+  - evidence: exceptions-4#2 real "|  modified method calc(int)\n"
+  - evidence: exceptions-4#2 local "|  replaced method calc(int)\n"
+  - evidence: exceptions-4#2 events "\"previousStatus\":\"VALID\",\"signatureChange\":false,\"cause\":null"
+  - evidence: exceptions-4#2 elocal "\"previousStatus\":\"VALID\",\"signatureChange\":true,\"cause\":null"
+  - evidence: exceptions-3#6 events "\"previousStatus\":\"RECOVERABLE_DEFINED\",\"signatureChange\":false"
+  - evidence: exceptions-3#6 elocal "\"previousStatus\":\"RECOVERABLE_DEFINED\",\"signatureChange\":true"
+- RULE exceptions.45: LOCAL: the class loader named in a ClassCastException about a user class carries a different identity-hash suffix (`... of loader jdk.jshell.execution.DefaultLoaderDelegate$RemoteClassLoader @<hash>`), so that line differs run to run in both engines; the first part of the message is the same.
+  - evidence: exceptions-3#64 real "|  Exception java.lang.ClassCastException: class REPL.$JShell$28$Node cannot be cast to class java.lang.String (REPL.$JShell$28$Node is in unnamed module of loader jdk.jshell.execution.DefaultLoaderDelegate$RemoteClassLoader @"
+  - evidence: exceptions-3#64 local "|  Exception java.lang.ClassCastException: class REPL.$JShell$28$Node cannot be cast to class java.lang.String (REPL.$JShell$28$Node is in unnamed module of loader jdk.jshell.execution.DefaultLoaderDelegate$RemoteClassLoader @"
+
+## Surprises
+
+- The real tool's helpful null-pointer messages and class names use a wrapper number that is one larger than the snippet's own id in the public API's events for the same snippet: the real tool printed `REPL.$JShell$3.s` where the events carry `REPL.$JShell$2.s`, and `REPL.$JShell$20$MyEx` where the events carry `REPL.$JShell$19$MyEx`. The `(#n:line)` frames agree in both.
+- `int v = 1 / 0;` leaves `v` defined as 0, and a thrown expression such as `1 / 0` leaves a temporary `$1` listed in `/vars` with its default value.
+- A toString that throws while a value is displayed prints an empty value (`bs ==> `) instead of an error.
+- Suppressed exceptions are not printed; an overridden toString on an exception is ignored in the header; the assert statement is silently a no-op.
+- The StackOverflowError output is capped at 1024 frames and drops the top-level frame.
+- A compact canonical constructor without `public` in a record is rejected, which is a trap for course examples.
+- The default engine says `modified method` where the local engine says `replaced method` for the same redefinition.
+- `printStackTrace()` output includes the engine's own frames, which differ in number between the two engines.
+
+## Open questions
+
+- Why the wrapper number in messages differs from the event numbering was not settled (observed only, by design).
+- The exact rule for which one-line statements print `modified` versus `replaced` was seen for one method redefinition only.
+- Uncaught exceptions thrown on another thread (a started Thread) were not probed because thread names vary between runs.
+- Whether the 1024-frame cap is the same for deeper non-recursive stacks (mutual recursion, recursion through a lambda) was not probed.

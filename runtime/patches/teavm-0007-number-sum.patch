@@ -1,0 +1,61 @@
+# Copyright 2026 Groundwork contributors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# Integer.sum / Long.sum / Double.sum (JDK 8 API) were missing, so map.merge(k, 1, Integer::sum)
+# did not compile.
+#
+# Applies to: github.com/konsoletyper/teavm tag 0.13.1 (b3a245b7)
+
+diff --git a/classlib/src/main/java/org/teavm/classlib/java/lang/TDouble.java b/classlib/src/main/java/org/teavm/classlib/java/lang/TDouble.java
+index e0b05e3..8e300e3 100644
+--- a/classlib/src/main/java/org/teavm/classlib/java/lang/TDouble.java
++++ b/classlib/src/main/java/org/teavm/classlib/java/lang/TDouble.java
+@@ -354,4 +354,9 @@ public class TDouble extends TNumber implements TComparable<TDouble> {
+ 
+         return new String(buffer, 0, sz);
+     }
++
++    // teavm-fork: JDK 8+ API missing from TeaVM 0.13.1 (e.g. map.merge(k, 1, Integer::sum)).
++    public static double sum(double a, double b) {
++        return a + b;
++    }
+ }
+diff --git a/classlib/src/main/java/org/teavm/classlib/java/lang/TInteger.java b/classlib/src/main/java/org/teavm/classlib/java/lang/TInteger.java
+index c7d964a..f361bcf 100644
+--- a/classlib/src/main/java/org/teavm/classlib/java/lang/TInteger.java
++++ b/classlib/src/main/java/org/teavm/classlib/java/lang/TInteger.java
+@@ -438,4 +438,9 @@ public class TInteger extends TNumber implements TComparable<TInteger> {
+     public static int max(int a, int b) {
+         return TMath.max(a, b);
+     }
++
++    // teavm-fork: JDK 8+ API missing from TeaVM 0.13.1 (e.g. map.merge(k, 1, Integer::sum)).
++    public static int sum(int a, int b) {
++        return a + b;
++    }
+ }
+diff --git a/classlib/src/main/java/org/teavm/classlib/java/lang/TLong.java b/classlib/src/main/java/org/teavm/classlib/java/lang/TLong.java
+index 85709c4..139530b 100644
+--- a/classlib/src/main/java/org/teavm/classlib/java/lang/TLong.java
++++ b/classlib/src/main/java/org/teavm/classlib/java/lang/TLong.java
+@@ -423,4 +423,9 @@ public class TLong extends TNumber implements TComparable<TLong> {
+     @GeneratedBy(LongNativeGenerator.class)
+     @NoSideEffects
+     public static native int compareUnsigned(long a, long b);
++
++    // teavm-fork: JDK 8+ API missing from TeaVM 0.13.1 (e.g. map.merge(k, 1, Integer::sum)).
++    public static long sum(long a, long b) {
++        return a + b;
++    }
+ }

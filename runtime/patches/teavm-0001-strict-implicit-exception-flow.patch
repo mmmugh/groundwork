@@ -1,0 +1,136 @@
+# Copyright 2026 Groundwork contributors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# F1. Strict mode: make dependency analysis aware of the NullPointerException /
+# ArrayIndexOutOfBoundsException that the null/bound checks inserted later (NullCheckInsertion,
+# BoundCheckInsertion) will throw. Without it, catch variables and methods' thrown sets miss those
+# types and a virtual call on a caught exception (e.toString(), e.getMessage()) is devirtualized
+# against an incomplete type set: a Wasm trap or the text "null" instead of the exception.
+# Only active when TeaVMBuilder.setStrict(true).
+#
+# Applies to: github.com/konsoletyper/teavm tag 0.13.1 (b3a245b7)
+
+diff --git a/core/src/main/java/org/teavm/dependency/DependencyAnalyzer.java b/core/src/main/java/org/teavm/dependency/DependencyAnalyzer.java
+index 791879e..4755cc8 100644
+--- a/core/src/main/java/org/teavm/dependency/DependencyAnalyzer.java
++++ b/core/src/main/java/org/teavm/dependency/DependencyAnalyzer.java
+@@ -158,6 +158,12 @@ public abstract class DependencyAnalyzer implements DependencyInfo {
+         classSource.strict = strict;
+     }
+ 
++    // teavm-fork: DependencyGraphBuilder needs to know whether implicit runtime checks
++    // (null / array bounds) will be inserted later, so it can model the exceptions they throw.
++    boolean isStrict() {
++        return classSource.strict;
++    }
++
+     public void setAsyncSupported(boolean asyncSupported) {
+         this.asyncSupported = asyncSupported;
+     }
+diff --git a/core/src/main/java/org/teavm/dependency/DependencyGraphBuilder.java b/core/src/main/java/org/teavm/dependency/DependencyGraphBuilder.java
+index 5960129..290022b 100644
+--- a/core/src/main/java/org/teavm/dependency/DependencyGraphBuilder.java
++++ b/core/src/main/java/org/teavm/dependency/DependencyGraphBuilder.java
+@@ -29,6 +29,7 @@ import org.teavm.model.ClassHierarchy;
+ import org.teavm.model.ClassReader;
+ import org.teavm.model.ClassReaderSource;
+ import org.teavm.model.ElementModifier;
++import org.teavm.model.FieldReference;
+ import org.teavm.model.IncomingReader;
+ import org.teavm.model.MethodDescriptor;
+ import org.teavm.model.MethodHolder;
+@@ -40,6 +41,7 @@ import org.teavm.model.TryCatchBlockReader;
+ import org.teavm.model.ValueType;
+ import org.teavm.model.VariableReader;
+ import org.teavm.model.instructions.ArrayElementType;
++import org.teavm.model.instructions.InvocationType;
+ import org.teavm.model.text.ListingBuilder;
+ 
+ class DependencyGraphBuilder {
+@@ -212,6 +214,59 @@ class DependencyGraphBuilder {
+     }
+ 
+     private AbstractInstructionAnalyzer reader = new AbstractInstructionAnalyzer() {
++        // teavm-fork: in strict mode the backend later inserts null checks (NullCheckInsertion) and
++        // bound checks (BoundCheckInsertion) that throw NullPointerException /
++        // ArrayIndexOutOfBoundsException. Those instructions do not exist yet during dependency
++        // analysis, so without this the exception types never reach catch variables or a method's
++        // thrown set, and virtual calls on a caught exception (e.toString()) are devirtualized against
++        // an incomplete type set (observed: Wasm trap, or "null" instead of the exception text).
++        private void implicitNullPointer() {
++            if (dependencyAnalyzer.isStrict()) {
++                currentExceptionConsumer.consume(dependencyAnalyzer.getClassType("java.lang.NullPointerException"));
++            }
++        }
++
++        private void implicitArrayAccess() {
++            if (dependencyAnalyzer.isStrict()) {
++                implicitNullPointer();
++                currentExceptionConsumer.consume(dependencyAnalyzer.getClassType(
++                        "java.lang.ArrayIndexOutOfBoundsException"));
++            }
++        }
++
++        @Override
++        public void getField(VariableReader receiver, VariableReader instance, FieldReference field,
++                ValueType fieldType) {
++            super.getField(receiver, instance, field, fieldType);
++            if (instance != null) {
++                implicitNullPointer();
++            }
++        }
++
++        @Override
++        public void putField(VariableReader instance, FieldReference field, VariableReader value,
++                ValueType fieldType) {
++            super.putField(instance, field, value, fieldType);
++            if (instance != null) {
++                implicitNullPointer();
++            }
++        }
++
++        @Override
++        public void arrayLength(VariableReader receiver, VariableReader array) {
++            super.arrayLength(receiver, array);
++            implicitNullPointer();
++        }
++
++        @Override
++        public void invoke(VariableReader receiver, VariableReader instance, MethodReference method,
++                List<? extends VariableReader> arguments, InvocationType type) {
++            super.invoke(receiver, instance, method, arguments, type);
++            if (instance != null) {
++                implicitNullPointer();
++            }
++        }
++
+         @Override
+         public void assign(VariableReader receiver, VariableReader assignee) {
+             DependencyNode valueNode = nodes[assignee.getIndex()];
+@@ -305,6 +360,7 @@ class DependencyGraphBuilder {
+         @Override
+         public void getElement(VariableReader receiver, VariableReader array, VariableReader index,
+                 ArrayElementType type) {
++            implicitArrayAccess();
+             if (isPrimitive(type)) {
+                 return;
+             }
+@@ -318,6 +374,7 @@ class DependencyGraphBuilder {
+         @Override
+         public void putElement(VariableReader array, VariableReader index, VariableReader value,
+                 ArrayElementType type) {
++            implicitArrayAccess();
+             if (isPrimitive(type)) {
+                 return;
+             }

@@ -1,0 +1,460 @@
+# Copyright 2026 Groundwork contributors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# Task 7a. The remaining exception gaps in TeaVM's library, for the errors a first course shows (D11).
+# Written from the pinned JDK's observed output and the public Javadoc only (clean room, D14): every
+# message below was read off small programs run on Temurin 25.0.4.1; no OpenJDK source was opened.
+#   - Throwable.getSuppressed() returns an empty array, as its Javadoc promises, and addSuppressed()
+#     works, so a try-with-resources whose body and close() both throw reports the body's exception with
+#     close()'s suppressed. Both threw NullPointerException: the field's initializer ran only in the
+#     fakeInit constructors, never in the <init> methods that really build a Throwable.
+#   - ArrayList get, set and remove: "Index 5 out of bounds for length 2"; add and addAll at an index:
+#     "Index: 3, Size: 2". The exception had no message at all.
+#   - StringBuilder (and StringBuffer, which shares the code), for a position outside the builder, throws
+#     StringIndexOutOfBoundsException with the JDK's text: charAt, deleteCharAt and setCharAt "Index 3
+#     out of bounds for length 3"; every insert "Range [4, 3) out of bounds for length 3"; delete and
+#     replace "Range [4, 3) ..." after cutting the end down to the length; substring and subSequence
+#     "Range [2, 7) ..."; setLength(-1) "String index out of range: -1". Before: no message, a bare
+#     IndexOutOfBoundsException from charAt and substring, and most inserts past the end, setCharAt at
+#     the end and setLength(-1) went through silently and left the builder broken.
+#   - new T[n] with n < 0 (compiler, strict mode): NegativeArraySizeException with the size as its message
+#     ("-1"), instead of a Wasm trap no catch can handle. For new T[a][b] every dimension is evaluated
+#     before any is checked, then they are checked left to right, as on the JDK. A size that is a
+#     non-negative constant is not checked. The dependency analysis learns that creating an array can
+#     throw it, as TeaVM already does for ClassCastException at a cast (in every build, like that cast
+#     rule): without that a catch for it got an empty type set, and e.getMessage() in the handler trapped.
+#   - An unused array creation is kept (optimizer, every build: not only strict mode, and so also in
+#     compiler.wasm itself, which the patched TeaVM compiles since teavm-javac-0105). This is what lets the
+#     check above run when the array is never used (int[] a = new int[-5]; alone, the textbook demo):
+#     TeaVM's unused-variable elimination deleted such a new T[n] before its check could run, so the
+#     escape analysis it relies on now counts every array creation as used. That also keeps an unused
+#     new T[3], which costs an allocation and changes nothing a program can see. Unused array reads and
+#     casts are still deleted (F1-unused-throwing-read, F1-unused-cast).
+#   - System.exit (was missing, so a program calling it did not compile) is Runtime.getRuntime().exit, as
+#     the Javadoc makes it, and Runtime.exit (was an empty method) calls the host import
+#     teavmConsole.exit(status) on Wasm GC. The host must not return from it: runtime/runner throws a JS
+#     exception, which unwinds past every Java catch and finally (TeaVM's Wasm code catches only its own
+#     exception tag), as the JDK runs no finally on exit, and reports the status. As with getcharStdin
+#     (teavm-0005), a program fails to instantiate without the import only if it calls exit.
+# Seen, not fixed: a bad sub-range of a char[] or CharSequence argument to StringBuilder append/insert
+# (the JDK: IndexOutOfBoundsException "Range [1, 5) out of bounds for length 2"); setLength growing the
+# builder does not fill with '\0'; addSuppressed(this) and addSuppressed(null) are not rejected;
+# Runtime.halt and shutdown hooks do nothing.
+#
+# Applies to: github.com/konsoletyper/teavm tag 0.13.1 (b3a245b7), after teavm-0001 to teavm-0011. Touches
+# no line an earlier patch added: WasmGCSupport, WasmGCDependencies, WasmGCGenerationContext and
+# WasmGCGenerationVisitor gain their own methods away from teavm-0009's hunks (VariableEscapeAnalyzer is
+# touched by no earlier patch), and the visitor avoids
+# teavm-0009's CachedExpression import; DependencyGraphBuilder gains its overrides away from teavm-0001's
+# hunk and, like the cast check it sits beside, does not ask for strict mode (teavm-0001 adds that
+# question), so the patch applies and compiles in every leave-one-out build, which leaves out one patch and
+# the patches that declare they build on it.
+
+diff --git a/classlib/src/main/java/org/teavm/classlib/java/lang/TAbstractStringBuilder.java b/classlib/src/main/java/org/teavm/classlib/java/lang/TAbstractStringBuilder.java
+index 44fdfb0..d75666e 100644
+--- a/classlib/src/main/java/org/teavm/classlib/java/lang/TAbstractStringBuilder.java
++++ b/classlib/src/main/java/org/teavm/classlib/java/lang/TAbstractStringBuilder.java
+@@ -61,9 +61,7 @@ class TAbstractStringBuilder implements TSerializable, TCharSequence {
+     }
+ 
+     protected TAbstractStringBuilder insert(int index, String string) {
+-        if (index < 0 || index > length) {
+-            throw new TStringIndexOutOfBoundsException();
+-        }
++        checkOffset(index);
+         if (string == null) {
+             string = "null";
+         } else if (string.isEmpty()) {
+@@ -573,12 +571,32 @@ class TAbstractStringBuilder implements TSerializable, TCharSequence {
+         return length;
+     }
+ 
++    // teavm-fork: charAt, deleteCharAt and setCharAt throw what the pinned JDK throws for an index outside
++    // the builder: StringIndexOutOfBoundsException, "Index 3 out of bounds for length 3". charAt threw a
++    // bare IndexOutOfBoundsException, and setCharAt accepted the index just past the end.
+     @Override
+     public char charAt(int index) {
++        checkIndex(index);
++        return buffer[index];
++    }
++
++    private void checkIndex(int index) {
+         if (index < 0 || index >= length) {
+-            throw new TIndexOutOfBoundsException();
++            throw new TStringIndexOutOfBoundsException("Index " + index + " out of bounds for length " + length);
++        }
++    }
++
++    private void checkOffset(int offset) {
++        if (offset < 0 || offset > length) {
++            throw outOfRange(offset, length);
+         }
+-        return buffer[index];
++    }
++
++    // teavm-fork: the pinned JDK's text for a range of the builder that does not fit in it. delete and
++    // replace first cut the end down to the length, so delete(4, 5) on "abc" reports [4, 3).
++    private TStringIndexOutOfBoundsException outOfRange(int start, int end) {
++        return new TStringIndexOutOfBoundsException("Range [" + start + ", " + end + ") out of bounds for length "
++                + length);
+     }
+ 
+     @Override
+@@ -649,13 +667,15 @@ class TAbstractStringBuilder implements TSerializable, TCharSequence {
+     }
+ 
+     public void setLength(int newLength) {
++        // teavm-fork: a negative length is refused, with the pinned JDK's text, instead of breaking the builder
++        if (newLength < 0) {
++            throw new TStringIndexOutOfBoundsException("String index out of range: " + newLength);
++        }
+         length = newLength;
+     }
+ 
+     public TAbstractStringBuilder deleteCharAt(int index) {
+-        if (index < 0 || index >= length) {
+-            throw new TStringIndexOutOfBoundsException();
+-        }
++        checkIndex(index);
+         length--;
+         for (int i = index; i < length; ++i) {
+             buffer[i] = buffer[i + 1];
+@@ -665,7 +685,7 @@ class TAbstractStringBuilder implements TSerializable, TCharSequence {
+ 
+     public TAbstractStringBuilder delete(int start, int end) {
+         if (start < 0 || start > end || start > length) {
+-            throw new TStringIndexOutOfBoundsException();
++            throw outOfRange(start, Math.min(end, length));
+         }
+         if (start == end) {
+             return this;
+@@ -683,7 +703,7 @@ class TAbstractStringBuilder implements TSerializable, TCharSequence {
+ 
+     public TAbstractStringBuilder replace(int start, int end, TString str) {
+         if (start < 0 || start > end || start > length) {
+-            throw new TStringIndexOutOfBoundsException();
++            throw outOfRange(start, Math.min(end, length));
+         }
+         if (end > length) {
+             end = length;
+@@ -700,7 +720,11 @@ class TAbstractStringBuilder implements TSerializable, TCharSequence {
+         return this;
+     }
+ 
++    // teavm-fork: every insert reaches here (or insert(int, String)) before writing, so an offset outside
++    // the builder throws what the pinned JDK throws: StringIndexOutOfBoundsException, "Range [4, 3) out of
++    // bounds for length 3". Most inserts used to write past the end without a word, leaving a '\0'.
+     private void insertSpace(int start, int end) {
++        checkOffset(start);
+         int sz = length - start;
+         ensureCapacity(length + end - start);
+         for (int i = sz - 1; i >= 0; --i) {
+@@ -755,7 +779,7 @@ class TAbstractStringBuilder implements TSerializable, TCharSequence {
+ 
+     public TString substring(int from, int to) {
+         if (from > to || from < 0 || to > length) {
+-            throw new TIndexOutOfBoundsException();
++            throw outOfRange(from, to);
+         }
+         return new TString(buffer, from, to - from);
+     }
+@@ -765,9 +789,7 @@ class TAbstractStringBuilder implements TSerializable, TCharSequence {
+     }
+ 
+     public void setCharAt(int index, char ch) {
+-        if (index > length) {
+-            throw new TIndexOutOfBoundsException();
+-        }
++        checkIndex(index);
+         buffer[index] = ch;
+     }
+ 
+diff --git a/classlib/src/main/java/org/teavm/classlib/java/lang/TRuntime.java b/classlib/src/main/java/org/teavm/classlib/java/lang/TRuntime.java
+index e31cad1..8b42504 100644
+--- a/classlib/src/main/java/org/teavm/classlib/java/lang/TRuntime.java
++++ b/classlib/src/main/java/org/teavm/classlib/java/lang/TRuntime.java
+@@ -15,7 +15,9 @@
+  */
+ package org.teavm.classlib.java.lang;
+ 
++import org.teavm.classlib.PlatformDetector;
+ import org.teavm.interop.DelegateTo;
++import org.teavm.interop.Import;
+ import org.teavm.interop.Platforms;
+ import org.teavm.interop.SupportedOn;
+ import org.teavm.jso.browser.Navigator;
+@@ -34,9 +36,19 @@ public class TRuntime {
+      * Terminates the currently running Java application. This method never returns normally.
+      * The argument serves as a status code; by convention, a nonzero status code indicates abnormal termination.
+      */
+-    public void exit(@SuppressWarnings("unused") int status) {
++    public void exit(int status) {
++        // teavm-fork: on Wasm GC the program ends here, as in the JDK. The host's import never returns: it
++        // throws a host exception, which unwinds past every Java catch and finally (TeaVM's Wasm code
++        // catches only its own exception tag), and reports the status. Output written so far is already
++        // with the host. Other platforms keep the old behavior (nothing happens).
++        if (PlatformDetector.isWebAssemblyGC()) {
++            exitHost(status);
++        }
+     }
+ 
++    @Import(module = "teavmConsole", name = "exit")
++    private static native void exitHost(int status);
++
+     /**
+      * Returns the amount of free memory in the system. Calling the gc method
+      * may result in increasing the value returned by freeMemory.
+diff --git a/classlib/src/main/java/org/teavm/classlib/java/lang/TSystem.java b/classlib/src/main/java/org/teavm/classlib/java/lang/TSystem.java
+index f001813..5acaf0c 100644
+--- a/classlib/src/main/java/org/teavm/classlib/java/lang/TSystem.java
++++ b/classlib/src/main/java/org/teavm/classlib/java/lang/TSystem.java
+@@ -307,6 +307,12 @@ public final class TSystem extends TObject {
+     public static String lineSeparator() {
+         return "\n";
+     }
++
++    // teavm-fork: System.exit was missing, so a program calling it did not compile. The Javadoc makes it
++    // equivalent to Runtime.getRuntime().exit(status).
++    public static void exit(int status) {
++        TRuntime.getRuntime().exit(status);
++    }
+     
+     public static String getenv(String name) {
+         return null;
+diff --git a/classlib/src/main/java/org/teavm/classlib/java/lang/TThrowable.java b/classlib/src/main/java/org/teavm/classlib/java/lang/TThrowable.java
+index 2b1211b..03c1aaf 100644
+--- a/classlib/src/main/java/org/teavm/classlib/java/lang/TThrowable.java
++++ b/classlib/src/main/java/org/teavm/classlib/java/lang/TThrowable.java
+@@ -254,15 +254,22 @@ public class TThrowable extends RuntimeException {
+         this.stackTrace = stackTrace.clone();
+     }
+ 
++    // teavm-fork: the field's initializer runs only in the fakeInit constructors, never in the <init>
++    // methods that really construct a Throwable, so `suppressed` starts out null. getSuppressed() then
++    // threw NullPointerException where the Javadoc promises an empty array, and so did addSuppressed(),
++    // which a try-with-resources calls when the body and close() both throw.
+     @Rename("getSuppressed")
+     public final TThrowable[] getSuppressed0() {
+-        return TArrays.copyOf(suppressed, suppressed.length);
++        return suppressed == null ? new TThrowable[0] : TArrays.copyOf(suppressed, suppressed.length);
+     }
+ 
+     public final void addSuppressed(TThrowable exception) {
+         if (!suppressionEnabled) {
+             return;
+         }
++        if (suppressed == null) {
++            suppressed = new TThrowable[0];
++        }
+         suppressed = TArrays.copyOf(suppressed, suppressed.length + 1);
+         suppressed[suppressed.length - 1] = exception;
+     }
+diff --git a/classlib/src/main/java/org/teavm/classlib/java/util/TArrayList.java b/classlib/src/main/java/org/teavm/classlib/java/util/TArrayList.java
+index 66bce7c..f116097 100644
+--- a/classlib/src/main/java/org/teavm/classlib/java/util/TArrayList.java
++++ b/classlib/src/main/java/org/teavm/classlib/java/util/TArrayList.java
+@@ -216,15 +216,17 @@ public class TArrayList<E> extends TAbstractList<E> implements TCloneable, TSeri
+         ++modCount;
+     }
+ 
++    // teavm-fork: the JDK's message text, as the pinned JDK prints it for get, set and remove ("Index 5 out
++    // of bounds for length 2") and for add and addAll at an index ("Index: 3, Size: 2").
+     private void checkIndex(int index) {
+         if (index < 0 || index >= size) {
+-            throw new TIndexOutOfBoundsException();
++            throw new TIndexOutOfBoundsException("Index " + index + " out of bounds for length " + size);
+         }
+     }
+ 
+     private void checkIndexForAdd(int index) {
+         if (index < 0 || index > size) {
+-            throw new TIndexOutOfBoundsException();
++            throw new TIndexOutOfBoundsException("Index: " + index + ", Size: " + size);
+         }
+     }
+ 
+diff --git a/core/src/main/java/org/teavm/backend/wasm/gc/WasmGCDependencies.java b/core/src/main/java/org/teavm/backend/wasm/gc/WasmGCDependencies.java
+index c8b016b..2267c9b 100644
+--- a/core/src/main/java/org/teavm/backend/wasm/gc/WasmGCDependencies.java
++++ b/core/src/main/java/org/teavm/backend/wasm/gc/WasmGCDependencies.java
+@@ -43,6 +43,7 @@ public class WasmGCDependencies {
+         contributeMathUtils();
+         contributeExceptionUtils();
+         contributeInitializerUtils();
++        contributeArraySizeCheck();
+         contributeString();
+         contributeBuffers();
+         contributeFiber();
+@@ -146,6 +147,12 @@ public class WasmGCDependencies {
+         analyzer.linkMethod(new MethodReference(WasmGCSupport.class, "nextCharArray", char[].class)).use();
+     }
+ 
++    // teavm-fork: the strict-mode check for a negative array size (WasmGCGenerationVisitor)
++    private void contributeArraySizeCheck() {
++        analyzer.linkMethod(new MethodReference(WasmGCSupport.class, "nase", int.class,
++                NegativeArraySizeException.class)).use();
++    }
++
+     private void contributeString() {
+         analyzer.addDependencyListener(new StringInternDependencySupport());
+     }
+diff --git a/core/src/main/java/org/teavm/backend/wasm/generate/gc/methods/WasmGCGenerationContext.java b/core/src/main/java/org/teavm/backend/wasm/generate/gc/methods/WasmGCGenerationContext.java
+index 04afad6..7f1ab18 100644
+--- a/core/src/main/java/org/teavm/backend/wasm/generate/gc/methods/WasmGCGenerationContext.java
++++ b/core/src/main/java/org/teavm/backend/wasm/generate/gc/methods/WasmGCGenerationContext.java
+@@ -192,6 +192,12 @@ public class WasmGCGenerationContext implements BaseWasmGenerationContext {
+         return npeMethod;
+     }
+ 
++    // teavm-fork: see WasmGCSupport.nase
++    public WasmFunction naseMethod() {
++        return functions().forStaticMethod(new MethodReference(WasmGCSupport.class, "nase", int.class,
++                NegativeArraySizeException.class));
++    }
++
+     public WasmFunction aaiobeMethod() {
+         if (aaiobeMethod == null) {
+             aaiobeMethod = functions().forStaticMethod(new MethodReference(WasmGCSupport.class, "aiiobe",
+diff --git a/core/src/main/java/org/teavm/backend/wasm/generate/gc/methods/WasmGCGenerationVisitor.java b/core/src/main/java/org/teavm/backend/wasm/generate/gc/methods/WasmGCGenerationVisitor.java
+index 6d11f90..51ffb87 100644
+--- a/core/src/main/java/org/teavm/backend/wasm/generate/gc/methods/WasmGCGenerationVisitor.java
++++ b/core/src/main/java/org/teavm/backend/wasm/generate/gc/methods/WasmGCGenerationVisitor.java
+@@ -529,8 +529,9 @@ public class WasmGCGenerationVisitor extends BaseWasmGenerationVisitor {
+     @Override
+     public void visit(NewArrayExpr expr) {
+         accept(expr.getLength(), WasmType.INT32);
++        var size = result;
+         var function = context.classInfoProvider().getArrayConstructor(expr.getType());
+-        var call = new WasmCall(function, classLiteral(expr.getType()), result);
++        var call = new WasmCall(function, classLiteral(expr.getType()), checkedArraySize(size, expr.getLocation()));
+         call.setLocation(expr.getLocation());
+         result = call;
+     }
+@@ -541,6 +542,18 @@ public class WasmGCGenerationVisitor extends BaseWasmGenerationVisitor {
+         var args = new ArrayList<WasmExpression>();
+         var dimensionsValue = dimensions.get();
+         args.add(classLiteral(((ValueType.Array) arrayType).getItemType()));
++        if (context.isStrict()) {
++            // teavm-fork: as in the JDK, every dimension is evaluated before any is checked, then they are
++            // checked left to right: new int[-5][-1] reports -5, and new int[0][-1] reports -1.
++            var sizes = new ArrayList<WasmExpression>();
++            for (var dimension : dimensionsValue) {
++                sizes.add(exprCache.create(dimension, WasmType.INT32, location, target).expr());
++            }
++            dimensionsValue = new ArrayList<>();
++            for (var size : sizes) {
++                dimensionsValue.add(checkedArraySize(size, location));
++            }
++        }
+         args.addAll(dimensionsValue);
+         var function = context.classInfoProvider().getMultiArrayConstructor(dimensionsValue.size());
+         var call = new WasmCall(function, args.toArray(new WasmExpression[0]));
+@@ -548,6 +561,25 @@ public class WasmGCGenerationVisitor extends BaseWasmGenerationVisitor {
+         return call;
+     }
+ 
++    // teavm-fork: in strict mode a negative array size throws NegativeArraySizeException, whose message is
++    // the size, as on the pinned JDK. array.new used to trap on it, which no Java catch can handle.
++    private WasmExpression checkedArraySize(WasmExpression size, TextLocation location) {
++        if (!context.isStrict() || size instanceof WasmInt32Constant && ((WasmInt32Constant) size).getValue() >= 0) {
++            return size;
++        }
++        var block = new WasmBlock(false);
++        block.setType(WasmType.INT32.asBlock());
++        block.setLocation(location);
++        var cachedSize = exprCache.create(size, WasmType.INT32, location, block.getBody());
++        var nonNegative = new WasmBranch(new WasmIntBinary(WasmIntType.INT32, WasmIntBinaryOperation.GE_SIGNED,
++                cachedSize.expr(), new WasmInt32Constant(0)), block);
++        nonNegative.setResult(cachedSize.expr());
++        block.getBody().add(new WasmDrop(nonNegative));
++        generateThrow(new WasmCall(context.naseMethod(), cachedSize.expr()), location, block.getBody());
++        cachedSize.release();
++        return block;
++    }
++
+     @Override
+     protected WasmExpression generateInstanceOf(WasmExpression expression, ValueType type) {
+         context.classInfoProvider().getClassInfo(type);
+diff --git a/core/src/main/java/org/teavm/backend/wasm/runtime/gc/WasmGCSupport.java b/core/src/main/java/org/teavm/backend/wasm/runtime/gc/WasmGCSupport.java
+index f38cd24..34cf5f4 100644
+--- a/core/src/main/java/org/teavm/backend/wasm/runtime/gc/WasmGCSupport.java
++++ b/core/src/main/java/org/teavm/backend/wasm/runtime/gc/WasmGCSupport.java
+@@ -118,6 +118,11 @@ public class WasmGCSupport {
+         throw new CloneNotSupportedException();
+     }
+ 
++    // teavm-fork: an array created with a negative size. The pinned JDK's message is the size itself ("-1").
++    public static NegativeArraySizeException nase(int size) {
++        return new NegativeArraySizeException(Integer.toString(size));
++    }
++
+     public static int nextObjectId() {
+         var x = lastObjectId;
+         x ^= x << 13;
+diff --git a/core/src/main/java/org/teavm/dependency/DependencyGraphBuilder.java b/core/src/main/java/org/teavm/dependency/DependencyGraphBuilder.java
+index 290022b..c2684dc 100644
+--- a/core/src/main/java/org/teavm/dependency/DependencyGraphBuilder.java
++++ b/core/src/main/java/org/teavm/dependency/DependencyGraphBuilder.java
+@@ -276,6 +276,28 @@ class DependencyGraphBuilder {
+             }
+         }
+ 
++        // teavm-fork: creating an array can throw NegativeArraySizeException (the check the Wasm GC backend
++        // inserts in strict mode), so the type must reach catch variables and a method's thrown set, as it
++        // does for ClassCastException at a cast below. Without it a caught NegativeArraySizeException's
++        // type set is empty, and e.getMessage() on it traps.
++        @Override
++        public void createArray(VariableReader receiver, ValueType itemType, VariableReader size) {
++            super.createArray(receiver, itemType, size);
++            negativeArraySize();
++        }
++
++        @Override
++        public void createArray(VariableReader receiver, ValueType itemType,
++                List<? extends VariableReader> dimensions) {
++            super.createArray(receiver, itemType, dimensions);
++            negativeArraySize();
++        }
++
++        private void negativeArraySize() {
++            currentExceptionConsumer.consume(dependencyAnalyzer.getClassType(
++                    "java.lang.NegativeArraySizeException"));
++        }
++
+         @Override
+         public void cast(VariableReader receiver, VariableReader value, ValueType targetType, boolean weak) {
+             super.cast(receiver, value, targetType, weak);
+diff --git a/core/src/main/java/org/teavm/model/optimization/VariableEscapeAnalyzer.java b/core/src/main/java/org/teavm/model/optimization/VariableEscapeAnalyzer.java
+index 928628f..fe61b24 100644
+--- a/core/src/main/java/org/teavm/model/optimization/VariableEscapeAnalyzer.java
++++ b/core/src/main/java/org/teavm/model/optimization/VariableEscapeAnalyzer.java
+@@ -104,6 +104,18 @@ public final class VariableEscapeAnalyzer {
+             }
+         }
+ 
++        // teavm-fork: creating an array with a negative size throws NegativeArraySizeException, so a
++        // new T[n] whose result is never used is not dead code: keep it, as the JDK runs it and throws.
++        @Override
++        public void visit(ConstructArrayInstruction insn) {
++            escaping[insn.getReceiver().getIndex()] = true;
++        }
++
++        @Override
++        public void visit(ConstructMultiArrayInstruction insn) {
++            escaping[insn.getReceiver().getIndex()] = true;
++        }
++
+         @Override
+         public void visit(MonitorEnterInstruction insn) {
+             escaping[insn.getObjectRef().getIndex()] = true;

@@ -1,0 +1,27 @@
+# Personal deny patterns for .githooks/leak-scan: literals that must never
+# reach a public repo. Never committed, by definition.
+.githooks/leak-patterns.local
+
+# Generated output. The site is built from volumes/ and never committed.
+site/
+
+# The pinned runtimes are fetched at build time and verified against the
+# tracked checksums; their bytes do not belong in this history.
+runtime/dist/
+
+# Java and tooling byproducts.
+*.class
+out/
+node_modules/
+__pycache__/
+*.pyc
+.DS_Store
+
+# Runtime build workspace: JDK, clones, Gradle and Maven caches.
+runtime/.work/
+
+# Build scratch: test fixtures copied per run, logs.
+build/.work/
+
+# Subagent-driven-development ledgers and review packages (absolute machine paths; never committed)
+.superpowers/

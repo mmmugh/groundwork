@@ -1,0 +1,326 @@
+# Copyright 2026 Groundwork contributors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# Task 7b: gaps in TeaVM's code generator (G7-nan-compare, G7-negative-zero, G7-joining) and one in its
+# classlib stubs (G7-suppress-warnings). Written from the pinned JDK's observed output, the public Javadoc
+# (SuppressWarnings, java.lang.annotation.Annotation) and TeaVM's own source, which it changes (clean room,
+# D14); no OpenJDK source was opened.
+#
+# NaN comparisons. javac compiles a < b on doubles as dcmpg + ifge, and a > b as dcmpl + ifle; the two
+# differ only for NaN (dcmpg gives 1, dcmpl -1). ProgramParser turned both into the same COMPARE, and the
+# AST optimizer fused compare(a, b) >= 0 into a >= b, so NaN < 1 came out true. Now:
+#   - COMPARE of floats and doubles means fcmpg/dcmpg (NaN gives 1, as GlobalValueNumbering already
+#     folds it), and fcmpl/dcmpl become -compare(b, a), which is equal for every input;
+#   - OptimizingVisitor fuses compare(a, b) > 0 as !(a <= b) and >= 0 as !(a < b), and fuses through
+#     the negation with the operator mirrored, so fcmpl/dcmpl still compile to one f64 comparison;
+#   - ExprOptimizer.invert and the Wasm generator's branch negation no longer turn !(a < b) into
+#     a >= b for floats (only == and != swap); the rest are wrapped in NOT / i32.eqz;
+#   - WasmRuntime.compare, used when a comparison is not fused, gives 1 for NaN instead of 0.
+# Negative zero: NEGATE of a float or double compiled to 0 - x, which is +0.0 for x = 0.0; it is now
+# f32.neg / f64.neg. Both fixes reach javac's and TeaVM's own constant folding only when compiler.wasm is
+# itself compiled by the patched TeaVM, which teavm-javac-0105 arranges: "double z = -0.0" is folded by
+# javac, and n < 1 with n = 0.0 / 0.0 by GlobalValueNumbering, both inside compiler.wasm. Do not ship
+# this patch without 0105: with the stock-compiled GlobalValueNumbering, the new fcmpl/dcmpl form folds
+# NaN < 0 as true, and "" + 0.0 / 0 printed -0.0 (the fork-no-0105 build shows it on G-primitives).
+#
+# Collectors. WasmGCClassGenerator.getEnumConstantsFunctionOffset() returned the offset without laying
+# out java.lang.Class first, unlike the other Class offsets, so it was still -1 when the first use came
+# before anything else touched Class: "Field index must be >= 0" for Collectors.toList(), joining(),
+# groupingBy() and counting() (all build an EnumSet of Characteristics) in a program whose main is an
+# instance void main(). Reproduced with TeaVM on the JVM, where a static main compiled and an instance
+# void main() did not.
+#
+# @SuppressWarnings. TSuppressWarnings had no value() element, so javac said "cannot find symbol: method
+# value()" and then crashed. The Javadoc gives it String[] value(). teavm-javac-0104 fixes the other half
+# (java.lang.annotation.Annotation extended itself in the compile classlib).
+#
+# No earlier patch touches ProgramParser, OptimizingVisitor, ExprOptimizer, WasmRuntime,
+# WasmGCClassGenerator or TSuppressWarnings. BaseWasmGenerationVisitor is also changed by teavm-0009, far
+# from these hunks, so each applies with the other left out.
+#
+# Applies to: github.com/konsoletyper/teavm tag 0.13.1 (b3a245b7)
+
+diff --git a/classlib/src/main/java/org/teavm/classlib/java/lang/TSuppressWarnings.java b/classlib/src/main/java/org/teavm/classlib/java/lang/TSuppressWarnings.java
+index 580fae1..44cb087 100644
+--- a/classlib/src/main/java/org/teavm/classlib/java/lang/TSuppressWarnings.java
++++ b/classlib/src/main/java/org/teavm/classlib/java/lang/TSuppressWarnings.java
+@@ -24,4 +24,7 @@ import java.lang.annotation.Target;
+ @Target({ ElementType.TYPE, ElementType.FIELD, ElementType.METHOD, ElementType.PARAMETER, ElementType.CONSTRUCTOR,
+         ElementType.LOCAL_VARIABLE })
+ public @interface TSuppressWarnings {
++    // teavm-fork: the element the Javadoc gives SuppressWarnings. Without it javac said "cannot find symbol:
++    // method value()" for every @SuppressWarnings("...") and then crashed.
++    String[] value();
+ }
+diff --git a/core/src/main/java/org/teavm/ast/optimization/ExprOptimizer.java b/core/src/main/java/org/teavm/ast/optimization/ExprOptimizer.java
+index f141e3d..6293d6d 100644
+--- a/core/src/main/java/org/teavm/ast/optimization/ExprOptimizer.java
++++ b/core/src/main/java/org/teavm/ast/optimization/ExprOptimizer.java
+@@ -18,6 +18,7 @@ package org.teavm.ast.optimization;
+ import org.teavm.ast.BinaryExpr;
+ import org.teavm.ast.BinaryOperation;
+ import org.teavm.ast.Expr;
++import org.teavm.ast.OperationType;
+ import org.teavm.ast.UnaryExpr;
+ import org.teavm.ast.UnaryOperation;
+ 
+@@ -35,6 +36,13 @@ final class ExprOptimizer {
+             BinaryExpr binary = (BinaryExpr) expr;
+             Expr a = binary.getFirstOperand();
+             Expr b = binary.getSecondOperand();
++            // teavm-fork: with a NaN operand a < b and a >= b are both false, so an ordered comparison of
++            // floating-point numbers is negated with NOT; == and != still swap.
++            boolean floating = binary.getType() == OperationType.FLOAT || binary.getType() == OperationType.DOUBLE;
++            if (floating && binary.getOperation() != BinaryOperation.EQUALS
++                    && binary.getOperation() != BinaryOperation.NOT_EQUALS) {
++                return Expr.invert(expr);
++            }
+             switch (binary.getOperation()) {
+                 case EQUALS:
+                     return Expr.binary(BinaryOperation.NOT_EQUALS, binary.getType(), a, b, expr.getLocation());
+diff --git a/core/src/main/java/org/teavm/ast/optimization/OptimizingVisitor.java b/core/src/main/java/org/teavm/ast/optimization/OptimizingVisitor.java
+index 3278031..3c5e8f3 100644
+--- a/core/src/main/java/org/teavm/ast/optimization/OptimizingVisitor.java
++++ b/core/src/main/java/org/teavm/ast/optimization/OptimizingVisitor.java
+@@ -49,6 +49,7 @@ import org.teavm.ast.MonitorExitStatement;
+ import org.teavm.ast.NewArrayExpr;
+ import org.teavm.ast.NewExpr;
+ import org.teavm.ast.NewMultiArrayExpr;
++import org.teavm.ast.OperationType;
+ import org.teavm.ast.PrimitiveCastExpr;
+ import org.teavm.ast.QualificationExpr;
+ import org.teavm.ast.ReturnStatement;
+@@ -107,6 +108,36 @@ class OptimizingVisitor implements StatementVisitor, ExprVisitor {
+         return expr instanceof BinaryExpr && ((BinaryExpr) expr).getOperation() == BinaryOperation.COMPARE;
+     }
+ 
++    // teavm-fork: a floating-point compare(a, b) is 1 when either operand is NaN (fcmpg, dcmpg), so
++    // compare(a, b) > 0 is !(a <= b) and compare(a, b) >= 0 is !(a < b): a > b and a >= b are false for NaN.
++    private static Expr fuseComparison(BinaryOperation operation, BinaryExpr comparison) {
++        Expr a = comparison.getFirstOperand();
++        Expr b = comparison.getSecondOperand();
++        boolean floating = comparison.getType() == OperationType.FLOAT
++                || comparison.getType() == OperationType.DOUBLE;
++        if (floating && operation == BinaryOperation.GREATER) {
++            return Expr.invert(BinaryExpr.binary(BinaryOperation.LESS_OR_EQUALS, comparison.getType(), a, b));
++        } else if (floating && operation == BinaryOperation.GREATER_OR_EQUALS) {
++            return Expr.invert(BinaryExpr.binary(BinaryOperation.LESS, comparison.getType(), a, b));
++        }
++        return BinaryExpr.binary(operation, comparison.getType(), a, b);
++    }
++
++    private static BinaryOperation mirror(BinaryOperation operation) {
++        switch (operation) {
++            case LESS:
++                return BinaryOperation.GREATER;
++            case LESS_OR_EQUALS:
++                return BinaryOperation.GREATER_OR_EQUALS;
++            case GREATER:
++                return BinaryOperation.LESS;
++            case GREATER_OR_EQUALS:
++                return BinaryOperation.LESS_OR_EQUALS;
++            default:
++                return operation;
++        }
++    }
++
+     private void pushLocation(TextLocation location) {
+         locationStack.push(location);
+         if (location != null) {
+@@ -178,8 +209,16 @@ class OptimizingVisitor implements StatementVisitor, ExprVisitor {
+                 q = tmp;
+                 invert = true;
+             }
++            // teavm-fork: fcmpl and dcmpl arrive as -compare(b, a) (see ProgramParser), and -c OP 0 is c OP' 0
++            // with OP mirrored, so they fuse like fcmpg and dcmpg.
++            BinaryOperation operation = expr.getOperation();
++            if (p instanceof UnaryExpr && ((UnaryExpr) p).getOperation() == UnaryOperation.NEGATE
++                    && isComparison(((UnaryExpr) p).getOperand()) && isZero(q)) {
++                p = ((UnaryExpr) p).getOperand();
++                operation = mirror(operation);
++            }
+             if (isComparison(p) && isZero(q)) {
+-                switch (expr.getOperation()) {
++                switch (operation) {
+                     case EQUALS:
+                     case NOT_EQUALS:
+                     case LESS:
+@@ -187,8 +226,7 @@ class OptimizingVisitor implements StatementVisitor, ExprVisitor {
+                     case GREATER:
+                     case GREATER_OR_EQUALS: {
+                         BinaryExpr comparison = (BinaryExpr) p;
+-                        Expr result = BinaryExpr.binary(expr.getOperation(), comparison.getType(),
+-                                comparison.getFirstOperand(), comparison.getSecondOperand());
++                        Expr result = fuseComparison(operation, comparison);
+                         result.setLocation(comparison.getLocation());
+                         result.setVariableIndex(comparison.getVariableIndex());
+                         if (invert) {
+diff --git a/core/src/main/java/org/teavm/backend/wasm/WasmRuntime.java b/core/src/main/java/org/teavm/backend/wasm/WasmRuntime.java
+index 0ae1aa6..f6b770b 100644
+--- a/core/src/main/java/org/teavm/backend/wasm/WasmRuntime.java
++++ b/core/src/main/java/org/teavm/backend/wasm/WasmRuntime.java
+@@ -46,14 +46,27 @@ public final class WasmRuntime {
+         return gt(a, b) ? 1 : lt(a, b) ? -1 : 0;
+     }
+ 
++    // teavm-fork: like fcmpg and dcmpg, NaN compares as greater (was 0, equal). ProgramParser turns fcmpl and
++    // dcmpl into -compare(b, a). A number is NaN when it is neither below +Infinity nor above -Infinity;
++    // this uses lt and gt only, because a Java comparison here could itself become a call to compare.
+     @Unmanaged
+     public static int compare(float a, float b) {
+-        return gt(a, b) ? 1 : lt(a, b) ? -1 : 0;
++        return gt(a, b) ? 1 : lt(a, b) ? -1 : isNaN(a) || isNaN(b) ? 1 : 0;
+     }
+ 
+     @Unmanaged
+     public static int compare(double a, double b) {
+-        return gt(a, b) ? 1 : lt(a, b) ? -1 : 0;
++        return gt(a, b) ? 1 : lt(a, b) ? -1 : isNaN(a) || isNaN(b) ? 1 : 0;
++    }
++
++    @Unmanaged
++    private static boolean isNaN(float v) {
++        return !lt(v, Float.POSITIVE_INFINITY) && !gt(v, Float.NEGATIVE_INFINITY);
++    }
++
++    @Unmanaged
++    private static boolean isNaN(double v) {
++        return !lt(v, Double.POSITIVE_INFINITY) && !gt(v, Double.NEGATIVE_INFINITY);
+     }
+ 
+     @Unmanaged
+diff --git a/core/src/main/java/org/teavm/backend/wasm/generate/common/methods/BaseWasmGenerationVisitor.java b/core/src/main/java/org/teavm/backend/wasm/generate/common/methods/BaseWasmGenerationVisitor.java
+index b8f6a2a..3c5b823 100644
+--- a/core/src/main/java/org/teavm/backend/wasm/generate/common/methods/BaseWasmGenerationVisitor.java
++++ b/core/src/main/java/org/teavm/backend/wasm/generate/common/methods/BaseWasmGenerationVisitor.java
+@@ -86,6 +86,8 @@ import org.teavm.backend.wasm.model.expression.WasmFloat64Constant;
+ import org.teavm.backend.wasm.model.expression.WasmFloatBinary;
+ import org.teavm.backend.wasm.model.expression.WasmFloatBinaryOperation;
+ import org.teavm.backend.wasm.model.expression.WasmFloatType;
++import org.teavm.backend.wasm.model.expression.WasmFloatUnary;
++import org.teavm.backend.wasm.model.expression.WasmFloatUnaryOperation;
+ import org.teavm.backend.wasm.model.expression.WasmGetLocal;
+ import org.teavm.backend.wasm.model.expression.WasmInt32Constant;
+ import org.teavm.backend.wasm.model.expression.WasmInt64Constant;
+@@ -428,14 +430,13 @@ public abstract class BaseWasmGenerationVisitor implements StatementVisitor, Exp
+                                 new WasmInt64Constant(0), result);
+                         result.setLocation(expr.getLocation());
+                         break;
++                    // teavm-fork: 0 - x is +0.0 for x = 0.0, where Java's -x is -0.0; neg flips the sign bit only.
+                     case FLOAT:
+-                        result = new WasmFloatBinary(WasmFloatType.FLOAT32, WasmFloatBinaryOperation.SUB,
+-                                new WasmFloat32Constant(0), result);
++                        result = new WasmFloatUnary(WasmFloatType.FLOAT32, WasmFloatUnaryOperation.NEG, result);
+                         result.setLocation(expr.getLocation());
+                         break;
+                     case DOUBLE:
+-                        result = new WasmFloatBinary(WasmFloatType.FLOAT64, WasmFloatBinaryOperation.SUB,
+-                                new WasmFloat64Constant(0), result);
++                        result = new WasmFloatUnary(WasmFloatType.FLOAT64, WasmFloatUnaryOperation.NEG, result);
+                         result.setLocation(expr.getLocation());
+                         break;
+                 }
+@@ -1559,20 +1560,14 @@ public abstract class BaseWasmGenerationVisitor implements StatementVisitor, Exp
+         }
+     }
+ 
++    // teavm-fork: with a NaN operand every ordered comparison is false, so !(a < b) is not a >= b. Only
++    // == and != are each other's negation; for the rest, null makes the caller wrap the test in eqz.
+     private static WasmFloatBinaryOperation negate(WasmFloatBinaryOperation op) {
+         switch (op) {
+             case EQ:
+                 return WasmFloatBinaryOperation.NE;
+             case NE:
+                 return WasmFloatBinaryOperation.EQ;
+-            case LT:
+-                return WasmFloatBinaryOperation.GE;
+-            case LE:
+-                return WasmFloatBinaryOperation.GT;
+-            case GT:
+-                return WasmFloatBinaryOperation.LE;
+-            case GE:
+-                return WasmFloatBinaryOperation.LT;
+             default:
+                 return null;
+         }
+diff --git a/core/src/main/java/org/teavm/backend/wasm/generate/gc/classes/WasmGCClassGenerator.java b/core/src/main/java/org/teavm/backend/wasm/generate/gc/classes/WasmGCClassGenerator.java
+index 09aeb25..434fbf3 100644
+--- a/core/src/main/java/org/teavm/backend/wasm/generate/gc/classes/WasmGCClassGenerator.java
++++ b/core/src/main/java/org/teavm/backend/wasm/generate/gc/classes/WasmGCClassGenerator.java
+@@ -1524,6 +1524,10 @@ public class WasmGCClassGenerator implements WasmGCClassInfoProvider, WasmGCInit
+ 
+     @Override
+     public int getEnumConstantsFunctionOffset() {
++        // teavm-fork: lay out java.lang.Class first, as the other Class offsets do. Otherwise the offset was
++        // still -1 when the first use came before anything else touched Class ("Field index must be >= 0"),
++        // which broke Collectors.toList() and joining() in a program whose main is an instance void main().
++        standardClasses.classClass().getStructure().init();
+         return enumConstantsFunctionOffset;
+     }
+ 
+diff --git a/core/src/main/java/org/teavm/parsing/ProgramParser.java b/core/src/main/java/org/teavm/parsing/ProgramParser.java
+index ca9f068..3655f0f 100644
+--- a/core/src/main/java/org/teavm/parsing/ProgramParser.java
++++ b/core/src/main/java/org/teavm/parsing/ProgramParser.java
+@@ -1443,14 +1443,24 @@ public class ProgramParser {
+                     emitNeg(NumericOperandType.DOUBLE, a, r);
+                     break;
+                 }
+-                case Opcodes.FCMPG:
+-                case Opcodes.FCMPL: {
++                // teavm-fork: COMPARE of two floating-point numbers gives 1 when either is NaN, as fcmpg and
++                // dcmpg do. fcmpl and dcmpl give -1 for NaN, and fcmpl(a, b) is -fcmpg(b, a) for every input,
++                // so that is what they become. Without this, NaN < x came out true.
++                case Opcodes.FCMPG: {
+                     int b = popSingle();
+                     int a = popSingle();
+                     int r = pushSingle();
+                     emitBinary(BinaryOperation.COMPARE, NumericOperandType.FLOAT, a, b, r);
+                     break;
+                 }
++                case Opcodes.FCMPL: {
++                    int b = popSingle();
++                    int a = popSingle();
++                    int r = pushSingle();
++                    emitBinary(BinaryOperation.COMPARE, NumericOperandType.FLOAT, b, a, r);
++                    emitNeg(NumericOperandType.INT, r, r);
++                    break;
++                }
+                 case Opcodes.LCMP: {
+                     int b = popDouble();
+                     int a = popDouble();
+@@ -1458,14 +1468,21 @@ public class ProgramParser {
+                     emitBinary(BinaryOperation.COMPARE, NumericOperandType.LONG, a, b, r);
+                     break;
+                 }
+-                case Opcodes.DCMPG:
+-                case Opcodes.DCMPL: {
++                case Opcodes.DCMPG: {
+                     int b = popDouble();
+                     int a = popDouble();
+                     int r = pushSingle();
+                     emitBinary(BinaryOperation.COMPARE, NumericOperandType.DOUBLE, a, b, r);
+                     break;
+                 }
++                case Opcodes.DCMPL: {
++                    int b = popDouble();
++                    int a = popDouble();
++                    int r = pushSingle();
++                    emitBinary(BinaryOperation.COMPARE, NumericOperandType.DOUBLE, b, a, r);
++                    emitNeg(NumericOperandType.INT, r, r);
++                    break;
++                }
+                 case Opcodes.ISHL: {
+                     int b = popSingle();
+                     int a = popSingle();

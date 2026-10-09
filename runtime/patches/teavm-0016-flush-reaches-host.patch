@@ -1,0 +1,143 @@
+# Copyright 2026 Groundwork contributors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# Plan 3 Task 2. Text a program printed before it ran away reaches the page. Written from TeaVM's own
+# sources, the public Javadoc (IO, PrintStream, System) and the pinned JDK's observed output only (clean
+# room, D14): no OpenJDK source was opened.
+#   - On Wasm GC, System.out and System.err (JSStdoutPrintStream, JSStderrPrintStream) hand the host one
+#     UTF-16 code unit per call (teavmConsole.putcharStdout/putcharStderr), and the host holds what it gets
+#     until a newline: the course's runner does, so IO.print("Guess: "); while (true) {} showed nothing
+#     once the run was stopped at its deadline. Two new host imports, teavmConsole.flushStdout() and
+#     teavmConsole.flushStderr(), tell the host to hand on what it holds. They are declared in the two
+#     print streams, as teavm-0005 declares getcharStdin in TConsoleInputStream (the overlay build compiles
+#     classlib against the published core, so a new method in core's WasmGCSupport is out of its reach).
+#     The host must supply both: a program that prints imports them, and so does compiler.wasm, which the
+#     patched TeaVM builds since teavm-javac-0105.
+#   - Every print on those streams ends with the flush import, and so does flush(). The pinned JDK, killed
+#     (SIGTERM or SIGKILL) 3 s into each program below, had shown exactly this: IO.print("Guess: ") ->
+#     "Guess: "; System.out.print("Guess: ") with no flush -> "Guess: "; the same with System.out.flush()
+#     -> "Guess: "; System.out.printf("%d: ", 7) -> "7: "; System.err.print("oops ") -> "oops " on stderr;
+#     IO.print("a"); IO.print("b") -> "ab". So text printed without a flush is shown as well.
+#   - Throwable.printStackTrace(PrintStream) prints each frame line with one println instead of print
+#     ("\tat ") then println(element). The text is the same; the host now receives the frame whole in
+#     one flush, which the runner's stack cleaner needs, since it judges a line (keep, or hide a TeaVM or
+#     constructor frame) by the first part of it that arrives.
+#   - Other backends (JavaScript, Wasm, C) are unchanged.
+# Seen, not fixed: System.out.write(int) and write(byte[], int, int) do not compile on Wasm GC ("Parameter
+# 1 of method ... is marked with @JSByRef, which is not supported in Wasm GC"), with or without this patch.
+#
+# Applies to: github.com/konsoletyper/teavm tag 0.13.1 (b3a245b7), after teavm-0001 to teavm-0015. Touches
+# no line an earlier patch added: TThrowable's printStackTrace is away from teavm-0012's hunk, and the two
+# print streams are touched by no earlier patch. So the patch applies in every leave-one-out build, which
+# leaves out one patch and the patches that declare they build on it.
+
+diff --git a/classlib/src/main/java/org/teavm/classlib/impl/console/JSStderrPrintStream.java b/classlib/src/main/java/org/teavm/classlib/impl/console/JSStderrPrintStream.java
+index 5f3cd3b..99ebe51 100644
+--- a/classlib/src/main/java/org/teavm/classlib/impl/console/JSStderrPrintStream.java
++++ b/classlib/src/main/java/org/teavm/classlib/impl/console/JSStderrPrintStream.java
+@@ -17,6 +17,7 @@ package org.teavm.classlib.impl.console;
+ 
+ import org.teavm.backend.wasm.runtime.gc.WasmGCSupport;
+ import org.teavm.classlib.PlatformDetector;
++import org.teavm.interop.Import;
+ import org.teavm.jso.JSBody;
+ 
+ public class JSStderrPrintStream extends JsConsolePrintStream {
+@@ -29,11 +30,28 @@ public class JSStderrPrintStream extends JsConsolePrintStream {
+             for (int i = 0; i < s.length(); ++i) {
+                 WasmGCSupport.putCharStderr(s.charAt(i));
+             }
++            // teavm-fork: the pinned JDK shows what System.err.print printed, flushed or not, when the
++            // program is killed right after it; so every print ends by handing the text on to the host.
++            flushHost();
+         } else {
+             writeJs(s);
+         }
+     }
+ 
++    // teavm-fork: flush() reaches the host too ("Flushes the stream", PrintStream's Javadoc).
++    @Override
++    public void flush() {
++        super.flush();
++        if (PlatformDetector.isWebAssemblyGC()) {
++            flushHost();
++        }
++    }
++
++    // teavm-fork: putchar hands the host one UTF-16 code unit at a time, and the host may hold them (the
++    // course's runner holds a line until its newline). This tells it to hand on what it holds.
++    @Import(module = "teavmConsole", name = "flushStderr")
++    private static native void flushHost();
++
+     @JSBody(params = "b", script = "$rt_putStderr(b);")
+     private static native void writeJs(String s);
+ }
+diff --git a/classlib/src/main/java/org/teavm/classlib/impl/console/JSStdoutPrintStream.java b/classlib/src/main/java/org/teavm/classlib/impl/console/JSStdoutPrintStream.java
+index 4dddcdb..a7fc188 100644
+--- a/classlib/src/main/java/org/teavm/classlib/impl/console/JSStdoutPrintStream.java
++++ b/classlib/src/main/java/org/teavm/classlib/impl/console/JSStdoutPrintStream.java
+@@ -17,6 +17,7 @@ package org.teavm.classlib.impl.console;
+ 
+ import org.teavm.backend.wasm.runtime.gc.WasmGCSupport;
+ import org.teavm.classlib.PlatformDetector;
++import org.teavm.interop.Import;
+ import org.teavm.jso.JSBody;
+ 
+ public class JSStdoutPrintStream extends JsConsolePrintStream {
+@@ -29,11 +30,28 @@ public class JSStdoutPrintStream extends JsConsolePrintStream {
+             for (int i = 0; i < s.length(); ++i) {
+                 WasmGCSupport.putCharStdout(s.charAt(i));
+             }
++            // teavm-fork: the pinned JDK shows what System.out.print printed, flushed or not, when the
++            // program is killed right after it; so every print ends by handing the text on to the host.
++            flushHost();
+         } else {
+             writeJs(s);
+         }
+     }
+ 
++    // teavm-fork: flush() reaches the host too ("Flushes the stream", PrintStream's Javadoc).
++    @Override
++    public void flush() {
++        super.flush();
++        if (PlatformDetector.isWebAssemblyGC()) {
++            flushHost();
++        }
++    }
++
++    // teavm-fork: putchar hands the host one UTF-16 code unit at a time, and the host may hold them (the
++    // course's runner holds a line until its newline). This tells it to hand on what it holds.
++    @Import(module = "teavmConsole", name = "flushStdout")
++    private static native void flushHost();
++
+     @JSBody(params = "b", script = "$rt_putStdout(b);")
+     private static native void writeJs(String s);
+ }
+diff --git a/classlib/src/main/java/org/teavm/classlib/java/lang/TThrowable.java b/classlib/src/main/java/org/teavm/classlib/java/lang/TThrowable.java
+index 03c1aaf..185a8c8 100644
+--- a/classlib/src/main/java/org/teavm/classlib/java/lang/TThrowable.java
++++ b/classlib/src/main/java/org/teavm/classlib/java/lang/TThrowable.java
+@@ -211,8 +211,10 @@ public class TThrowable extends RuntimeException {
+         ensureStackTrace();
+         if (stackTrace != null) {
+             for (TStackTraceElement element : stackTrace) {
+-                stream.print("\tat ");
+-                stream.println(element);
++                // teavm-fork: one print per frame, so the host sees each frame's line whole: every print
++                // on System.err now reaches the host at once, and the course's runner judges a line (keep
++                // or hide the frame) by the first part it receives. The printed text is unchanged.
++                stream.println("\tat " + element);
+             }
+         }
+         if (cause != null && cause != this) {

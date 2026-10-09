@@ -1,0 +1,257 @@
+# Copyright 2026 Groundwork contributors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# D11. Numbers the Javadoc pins down exactly. Written from the public Javadoc of Math, Float and Double
+# (Java SE 25) and the pinned JDK's observed output only (clean room, D14); no OpenJDK source was opened.
+#   - Math.round(double), Math.round(float): the closest long (int), ties toward positive infinity, so
+#     round(-2.5) is -2 (was -3), and round(0.49999999999999994) is 0 (was 1). NaN gives 0; infinities
+#     and out-of-range values give Long/Integer.MIN_VALUE or MAX_VALUE.
+#   - Float.MIN_VALUE and Float.MIN_NORMAL were swapped: MIN_VALUE is now 0x0.000002P-126f (1.4E-45) and
+#     MIN_NORMAL 0x1.0p-126f (1.1754944E-38).
+#   - Float.toString and Double.toString of a subnormal: the neighbors of a subnormal are one unit of the
+#     smallest exponent away, so the interval of decimals that round to it is wider than the analyzers
+#     assumed, and they printed too many digits (4.940656458412465E-324). And when the shortest decimal
+#     has one digit, the Javadoc picks the closest decimal of one or two digits: Double.MIN_VALUE is
+#     4.9E-324, Float.MIN_VALUE 1.4E-45. Normal numbers print exactly as before.
+#   - Math.log10: exact n for 10^n (log10(1000) was 2.9999999999999996), from a = m * 2^k and
+#     log10(a) = k * log10(2) + ln(m) / ln(10), with k * log10(2) computed exactly.
+#
+# Applies to: github.com/konsoletyper/teavm tag 0.13.1 (b3a245b7), after teavm-0001 to teavm-0009; it
+# touches no line an earlier patch added, so the patch applies in every leave-one-out build, which leaves
+# out one patch and the patches that declare they build on it.
+
+diff --git a/classlib/src/main/java/org/teavm/classlib/impl/text/DoubleAnalyzer.java b/classlib/src/main/java/org/teavm/classlib/impl/text/DoubleAnalyzer.java
+index 90b25b9..e468caf 100644
+--- a/classlib/src/main/java/org/teavm/classlib/impl/text/DoubleAnalyzer.java
++++ b/classlib/src/main/java/org/teavm/classlib/impl/text/DoubleAnalyzer.java
+@@ -57,6 +57,11 @@ public final class DoubleAnalyzer {
+         } else {
+             mantissa |= 1L << 52;
+         }
++        // teavm-fork: a subnormal's neighbors are 2^-1074 away however far its mantissa was shifted up above,
++        // so the half-gap to them (in units of the doubled mantissa used below) is 2^shift, not 1. Treating
++        // it as 1 printed Double.MIN_VALUE as 4.940656458412465E-324 where the Javadoc's shortest decimal
++        // gives 4.9E-324.
++        int subnormalShift = exponent > 0 ? 0 : 1 - exponent;
+ 
+         int decExponent = Arrays.binarySearch(exp10Table, (short) exponent);
+         if (decExponent < 0) {
+@@ -75,9 +80,20 @@ public final class DoubleAnalyzer {
+             mantissaShift = 12 + binExponentCorrection;
+             decMantissa = mulAndShiftRight(mantissa, mantissa10Table[decExponent + 1], mantissaShift);
+         }
+-        var decMantissaHi = mulAndShiftRight((mantissa << 1) + 1, mantissa10Table[decExponent + 1],
++        if (subnormalShift > 0) {
++            // teavm-fork: one digit fewer (still 18, more than a subnormal needs), so the widened upper bound
++            // fits in 64 bits
++            ++decExponent;
++            binExponentCorrection = exponent - exp10Table[decExponent + 1];
++            mantissaShift = 12 + binExponentCorrection;
++            decMantissa = mulAndShiftRight(mantissa, mantissa10Table[decExponent + 1], mantissaShift);
++        }
++        long exact = decMantissa;
++        int exactExponent = decExponent;
++        long halfGap = 1L << subnormalShift;
++        var decMantissaHi = mulAndShiftRight((mantissa << 1) + halfGap, mantissa10Table[decExponent + 1],
+                 mantissaShift - 1);
+-        var decMantissaLow = mulAndShiftRight((mantissa << 1) - 1, mantissa10Table[decExponent + 1],
++        var decMantissaLow = mulAndShiftRight((mantissa << 1) - halfGap, mantissa10Table[decExponent + 1],
+                 mantissaShift - 1);
+ 
+         var lowerPos = findLowerDistance(decMantissa, decMantissaLow);
+@@ -101,6 +117,25 @@ public final class DoubleAnalyzer {
+             decMantissa *= 10;
+         }
+ 
++        if (Long.remainderUnsigned(decMantissa, 100000000000000000L) == 0) {
++            // teavm-fork: the Javadoc of Double.toString: when the shortest decimal has one digit, the choice
++            // is the decimal of one or two digits closest to the value (Double.MIN_VALUE is 4.9E-324, not
++            // 5.0E-324). exact / unit has three digits; round them to two.
++            long unit = 1000000000000000L;
++            int e = exactExponent;
++            while (Long.compareUnsigned(Long.divideUnsigned(exact, unit), 1000) >= 0) {
++                unit *= 10;
++                e++;
++            }
++            long two = (Long.divideUnsigned(exact, unit) + 5) / 10;
++            if (two == 100) {
++                two = 10;
++                e++;
++            }
++            decMantissa = two * 10000000000000000L;
++            decExponent = e;
++        }
++
+         result.mantissa = decMantissa;
+         result.exponent = decExponent - MAX_ABS_DEC_EXP;
+     }
+diff --git a/classlib/src/main/java/org/teavm/classlib/impl/text/FloatAnalyzer.java b/classlib/src/main/java/org/teavm/classlib/impl/text/FloatAnalyzer.java
+index dae0678..166ec8d 100644
+--- a/classlib/src/main/java/org/teavm/classlib/impl/text/FloatAnalyzer.java
++++ b/classlib/src/main/java/org/teavm/classlib/impl/text/FloatAnalyzer.java
+@@ -46,6 +46,10 @@ public final class FloatAnalyzer {
+         } else {
+             mantissa |= 1 << 23;
+         }
++        // teavm-fork: a subnormal's neighbors are 2^-149 away however far its mantissa was shifted up above,
++        // so the half-gap to them (in units of the doubled mantissa used below) is 2^shift, not 1. Treating
++        // it as 1 printed Float.MIN_VALUE as 1.4012985E-45 where the Javadoc's shortest decimal gives 1.4E-45.
++        int subnormalShift = exponent > 0 ? 0 : 1 - exponent;
+ 
+         int decExponent = Arrays.binarySearch(exp10Table, exponent);
+         if (decExponent < 0) {
+@@ -64,9 +68,19 @@ public final class FloatAnalyzer {
+             mantissaShift = 9 + binExponentCorrection;
+             decMantissa = mulAndShiftRight(mantissa, mantissa10Table[decExponent + 1], mantissaShift);
+         }
+-        var decMantissaHi = mulAndShiftRight((mantissa << 1) + 1, mantissa10Table[decExponent + 1],
++        if (subnormalShift > 0) {
++            // teavm-fork: one digit fewer, so the widened upper bound fits in 32 bits
++            ++decExponent;
++            binExponentCorrection = exponent - exp10Table[decExponent + 1];
++            mantissaShift = 9 + binExponentCorrection;
++            decMantissa = mulAndShiftRight(mantissa, mantissa10Table[decExponent + 1], mantissaShift);
++        }
++        int exact = decMantissa;
++        int exactExponent = decExponent;
++        int halfGap = 1 << subnormalShift;
++        var decMantissaHi = mulAndShiftRight((mantissa << 1) + halfGap, mantissa10Table[decExponent + 1],
+                 mantissaShift - 1);
+-        var decMantissaLow = mulAndShiftRight((mantissa << 1) - 1, mantissa10Table[decExponent + 1],
++        var decMantissaLow = mulAndShiftRight((mantissa << 1) - halfGap, mantissa10Table[decExponent + 1],
+                 mantissaShift - 1);
+ 
+         var lowerPos = findLowerDistance(decMantissa, decMantissaLow);
+@@ -90,6 +104,26 @@ public final class FloatAnalyzer {
+             decMantissa *= 10;
+         }
+ 
++        if (Integer.remainderUnsigned(decMantissa, 100000000) == 0) {
++            // teavm-fork: the Javadoc of Float.toString: when the shortest decimal has one digit, the choice
++            // is the decimal of one or two digits closest to the value (Float.MIN_VALUE is 1.4E-45, not
++            // 1.0E-45). exact / unit has three digits; round them to two.
++            long exactUnsigned = exact & 0xFFFFFFFFL;
++            long unit = 100000;
++            int e = exactExponent - 1;
++            while (exactUnsigned / unit >= 1000) {
++                unit *= 10;
++                e++;
++            }
++            long two = (exactUnsigned / unit + 5) / 10;
++            if (two == 100) {
++                two = 10;
++                e++;
++            }
++            decMantissa = (int) (two * 10000000);
++            decExponent = e;
++        }
++
+         result.mantissa = decMantissa;
+         result.exponent = decExponent - MAX_ABS_DEC_EXP;
+     }
+diff --git a/classlib/src/main/java/org/teavm/classlib/java/lang/TFloat.java b/classlib/src/main/java/org/teavm/classlib/java/lang/TFloat.java
+index e5d1bf5..6f45184 100644
+--- a/classlib/src/main/java/org/teavm/classlib/java/lang/TFloat.java
++++ b/classlib/src/main/java/org/teavm/classlib/java/lang/TFloat.java
+@@ -26,8 +26,10 @@ public class TFloat extends TNumber implements TComparable<TFloat> {
+     public static final float NEGATIVE_INFINITY = -POSITIVE_INFINITY;
+     public static final float NaN = 0f / 0f;
+     public static final float MAX_VALUE = 0x1.fffffeP+127f;
+-    public static final float MIN_VALUE = 0x1.0p-126f;
+-    public static final float MIN_NORMAL = 0x0.000002P-126f;
++    // teavm-fork: these two were swapped. The Javadoc: MIN_VALUE is the smallest positive nonzero float,
++    // 0x0.000002P-126f, and MIN_NORMAL the smallest positive normal one, 0x1.0p-126f.
++    public static final float MIN_VALUE = 0x0.000002P-126f;
++    public static final float MIN_NORMAL = 0x1.0p-126f;
+     public static final int MAX_EXPONENT = 127;
+     public static final int MIN_EXPONENT = -126;
+     public static final int SIZE = 32;
+diff --git a/classlib/src/main/java/org/teavm/classlib/java/lang/TMath.java b/classlib/src/main/java/org/teavm/classlib/java/lang/TMath.java
+index 15f7950..8e53c56 100644
+--- a/classlib/src/main/java/org/teavm/classlib/java/lang/TMath.java
++++ b/classlib/src/main/java/org/teavm/classlib/java/lang/TMath.java
+@@ -80,8 +80,37 @@ public final class TMath extends TObject {
+     @Unmanaged
+     public static native double log(double a);
+ 
++    // teavm-fork: written from the Javadoc (NaN or negative gives NaN, +0 and -0 give -Infinity, +Infinity
++    // gives +Infinity, 10^n gives exactly n, within 1 ulp). Dividing ln(a) by ln(10) put its rounding
++    // errors on the whole result, so log10(1000) came out 2.9999999999999996. Here a = m * 2^k with
++    // m in (sqrt(1/2), sqrt(2)], and log10(a) = k * log10(2) + ln(m) / ln(10): k * LOG10_2_HI is exact
++    // (the constant ends in 11 zero bits), so the rounding errors left sit in the small second term.
++    private static final double LOG10_2_HI = 0x1.34413509f7800p-2;
++    private static final double LOG10_2_LO = 0x1.fef311f12b358p-46;
++
+     public static double log10(double a) {
+-        return log(a) / 2.302585092994046 /* log_e 10 */;
++        if (a != a || a < 0) {
++            return Double.NaN;
++        }
++        if (a == 0) {
++            return Double.NEGATIVE_INFINITY;
++        }
++        if (a == Double.POSITIVE_INFINITY) {
++            return a;
++        }
++        int k = 0;
++        if (a < 0x1p-1022) {
++            a *= 0x1p54;
++            k = -54;
++        }
++        long bits = Double.doubleToRawLongBits(a);
++        k += (int) (bits >>> 52) - 1023;
++        double m = Double.longBitsToDouble((bits & 0x000FFFFFFFFFFFFFL) | 0x3FF0000000000000L);
++        if (m > 1.4142135623730951) {
++            m *= 0.5;
++            k++;
++        }
++        return k * LOG10_2_HI + (k * LOG10_2_LO + log(m) * 0.4342944819032518 /* 1 / log_e 10 */);
+     }
+ 
+     @GeneratedBy(MathNativeGenerator.class)
+@@ -130,12 +159,32 @@ public final class TMath extends TObject {
+     @Unmanaged
+     public static native double atan2(double y, double x);
+ 
++    // teavm-fork: written from the Javadoc: the closest int (long) with ties rounding toward positive
++    // infinity, so round(-2.5) is -2. Adding sign(a) * 0.5 rounded ties away from zero, and the addition
++    // itself could round up (0.49999999999999994 gave 1). NaN gives 0; a value too large to have a
++    // fraction is already whole, and the narrowing cast saturates it (infinities too) as the Javadoc
++    // asks. Below that, a - floor(a) is exact. NaN is ruled out first because this compiler can get a
++    // comparison with NaN wrong (NaN < 0.5 comes out true).
+     public static int round(float a) {
+-        return (int) (a + signum(a) * 0.5f);
++        if (a != a) {
++            return 0;
++        }
++        if (a >= 0x1p23f || a <= -0x1p23f) {
++            return (int) a;
++        }
++        float floor = (float) floor(a);
++        return (int) floor + (a - floor >= 0.5f ? 1 : 0);
+     }
+ 
+     public static long round(double a) {
+-        return (long) (a + signum(a) * 0.5);
++        if (a != a) {
++            return 0;
++        }
++        if (a >= 0x1p52 || a <= -0x1p52) {
++            return (long) a;
++        }
++        double floor = floor(a);
++        return (long) floor + (a - floor >= 0.5 ? 1 : 0);
+     }
+ 
+     public static int floorDiv(int a, int b) {

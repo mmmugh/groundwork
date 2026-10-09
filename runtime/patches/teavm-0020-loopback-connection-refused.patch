@@ -1,0 +1,72 @@
+# Copyright 2026 Groundwork contributors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# Plan 4b Task 7 (D100, which reverses D92 for loopback). In a box, 127.0.0.1 and localhost fail as the pinned
+# JDK does when nothing listens there: java.net.ConnectException, "Connection refused". A box has no computer of
+# its own, so nothing ever listens on its loopback. Before this patch 127.0.0.1 failed as any address literal does
+# under teavm-0018 (ConnectException, "Network is unreachable") and localhost as any host name does
+# (UnknownHostException, "localhost").
+#   - The rule, from the pinned JDK's observed output (runtime/test/cases.mjs, the D100 cases, all on port 1,
+#     where nothing listens on the machine that runs the JDK either): getInputStream(), getResponseCode() and
+#     getOutputStream() with doOutput true, over http and https, printed
+#       java.net.ConnectException: Connection refused
+#     for 127.0.0.1, and getInputStream() printed the same line for localhost. For both names, openStream()
+#     threw a ConnectException that is also a SocketException (a catch of UnknownHostException placed first did
+#     not run), and so did connect() for localhost.
+#   - Only those two names are loopback here (D92 and D100 name them, and only they are pinned against the JDK).
+#     Every other address literal, other loopback addresses such as 127.0.0.2 and [::1] included, keeps
+#     teavm-0018's "Network is unreachable", a choice (D92), and every other host name keeps
+#     UnknownHostException. A host is compared as the URL writes it (TeaVM's TURL keeps its case).
+#   - The comment above offline(), which teavm-0018 wrote, changes with it.
+#
+# Written from TeaVM's own sources (classlib/src/main/java/org/teavm/classlib/java/net/) and the pinned
+# JDK's observed output; no OpenJDK source was opened (clean room, D14). Written by a fresh subagent (Claude
+# Opus 5.5), a language model whose training may include OpenJDK, so before the build the patch was read for
+# names or structure that look recalled rather than derived: it adds no name, only two comparisons with the
+# names D100 gives and the JDK's observed message, ahead of teavm-0018's address test; nothing was renamed.
+# The audit of the session's transcript for forbidden paths is recorded in the commit that adds this patch.
+#
+# Applies to: github.com/konsoletyper/teavm tag 0.13.1 (b3a245b7), after teavm-0001 to teavm-0018, with or
+# without teavm-0019: its one hunk changes offline() and the comment above it, which teavm-0018 wrote, and its
+# context is lines teavm-0019 does not change, so the build without teavm-0019 (fork-no-0019) applies it too.
+# It cannot apply without teavm-0018 (D100 changes teavm-0018's own offline()), so the leave-one-out build
+# without teavm-0018 leaves it out too (runtime/build.sh and runtime/test/negatives.mjs read the line below).
+# Builds on: teavm-0018
+
+diff --git a/classlib/src/main/java/org/teavm/classlib/java/net/impl/TXHRURLConnection.java b/classlib/src/main/java/org/teavm/classlib/java/net/impl/TXHRURLConnection.java
+index 5131f96..73377a0 100644
+--- a/classlib/src/main/java/org/teavm/classlib/java/net/impl/TXHRURLConnection.java
++++ b/classlib/src/main/java/org/teavm/classlib/java/net/impl/TXHRURLConnection.java
+@@ -56,12 +56,17 @@ public class TXHRURLConnection extends THttpURLConnection {
+         throw offline();
+     }
+ 
+-    // A host name resolves to nothing offline: UnknownHostException, its message the host, as the JDK says
+-    // for a host no lookup finds. An address literal needs no lookup and reaches nothing: ConnectException,
+-    // with the words the operating system gives for ENETUNREACH (not pinned against the JDK, whose machine has
+-    // a network). Loopback and localhost fail the same way: a box has no computer of its own to connect to.
++    // A box has no computer of its own, so nothing listens on its loopback: 127.0.0.1 and localhost, the only
++    // two names taken as loopback here, fail as the JDK does when nothing listens, ConnectException with
++    // "Connection refused" (D100). Any other host name resolves to nothing offline: UnknownHostException, its
++    // message the host, as the JDK says for a host no lookup finds. Any other address literal needs no lookup
++    // and reaches nothing: ConnectException, with the words the operating system gives for ENETUNREACH, a
++    // choice (D92), since the JDK's machine has a network and its offline answer for an address cannot be seen.
+     private IOException offline() {
+         String host = url.getHost();
++        if ("127.0.0.1".equals(host) || "localhost".equals(host)) {
++            return new TConnectException("Connection refused");
++        }
+         if (host != null && isAddressLiteral(host)) {
+             return new TConnectException("Network is unreachable");
+         }

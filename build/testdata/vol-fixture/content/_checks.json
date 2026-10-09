@@ -1,0 +1,1 @@
+{"ch01-first-programs#4": {"kind": "output", "expected": "Ada\n", "starter": "void main() {\n    IO.println(\"\");\n}\n"}}

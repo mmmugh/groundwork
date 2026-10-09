@@ -1,0 +1,178 @@
+# Copyright 2026 Groundwork contributors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# Task 11 (D32, D33). StrictMath.log and Math.log are fdlibm's __ieee754_log, so Random.nextGaussian, which
+# calls StrictMath.log, prints the JDK's numbers, and so does Math.log. StrictMath's Javadoc names fdlibm and
+# requires its results to match fdlibm's; TeaVM's StrictMath.log was TMath.log, which is JavaScript's
+# Math.log, and differed in the last bit on 1.6% of inputs in (0, 1), so about 0.75% of Gaussian values
+# differed (teavm-0014 recorded this as a known limit until this patch).
+# Source, under the author's decision D32 (netlib's fdlibm is an allowed clean-room source for StrictMath):
+# netlib's fdlibm 5.3 e_log.c ("@(#)e_log.c 1.3 95/01/18", https://www.netlib.org/fdlibm/e_log.c, fetched
+# 2026-09-28, SHA-256 a2b1bd1b367026a35f36da53425cd618386c3bf69d23ac224a40791aa9855ac9), ported statement
+# for statement; its constants are copied as its decimal literals, with its hexadecimal comments. The only
+# change of form is __HI and __LO, which in C read and write the halves of x in place and here are taken
+# from and put back into Double.doubleToRawLongBits. Besides e_log.c, only fdlibm's readme and fdlibm.h
+# (for what __HI and __LO mean), the public Javadoc of StrictMath, Math and Random, and the pinned JDK's
+# observed output were used. No OpenJDK source was opened (clean room, D14), neither its Java translation
+# of fdlibm nor StrictMath.java nor Math.java.
+#   - Before building, the same Java code was run on the pinned JDK against its StrictMath.log on 15,020,021
+#     inputs (random positive bit patterns, (0, 1), values near 1, the R11 case's inputs and the edges):
+#     every result was bit-identical.
+#   - Math.log calls the port too (author's decision D33). Its Javadoc asks only for a result within 1 ulp,
+#     but on the pinned JDK Math.log equaled StrictMath.log, and so fdlibm, on all 15,020,021 of those
+#     inputs, while the fork's Math.log, JavaScript's, differed in the last bit on 29 of the 20,000 inputs
+#     of case R11-math-log and can vary from one browser engine to another. Math.log10 and Math.log1p,
+#     which TeaVM builds on Math.log, now go through the port as well. The Math.log change sits in this
+#     patch rather than a later one because it calls code this patch adds: a separate patch could not
+#     compile in the build without this one (fork-no-0015), which the negative proof needs.
+#   - The TMath.java hunk carries one line of context on each side: the line after Math.log is followed by
+#     teavm-0010's log10 comment, and three lines of context would reach it, so fork-no-0010 could not
+#     apply this patch.
+#   - e_log.c's notice (Sun Microsystems, 1993: use, copy, modify and distribute freely, provided the notice
+#     is preserved) is kept with the ported code in TStrictMath.java, and release/package.sh writes it into
+#     the release's NOTICE:
+#       Copyright (C) 1993 by Sun Microsystems, Inc. All rights reserved.
+#
+#       Developed at SunSoft, a Sun Microsystems, Inc. business.
+#       Permission to use, copy, modify, and distribute this
+#       software is freely granted, provided that this notice
+#       is preserved.
+# Gates: differential cases R11-strictmath-log, R11-gaussian and R11-math-log (fork-no-0015 fails all three),
+# and R11-strictmath-log-edges, which drives e_log.c's near-1 and subnormal branches (JavaScript's Math.log
+# agrees with fdlibm there, so it fails not on fork-no-0015 but on a port whose near-1 branch is broken).
+diff --git a/classlib/src/main/java/org/teavm/classlib/java/lang/TMath.java b/classlib/src/main/java/org/teavm/classlib/java/lang/TMath.java
+index ac03c38..33fb84f 100644
+--- a/classlib/src/main/java/org/teavm/classlib/java/lang/TMath.java
++++ b/classlib/src/main/java/org/teavm/classlib/java/lang/TMath.java
+@@ -78,6 +78,9 @@ public final class TMath extends TObject {
+ 
+-    @GeneratedBy(MathNativeGenerator.class)
+-    @Import(module = "teavmMath", name = "log")
+-    @Unmanaged
+-    public static native double log(double a);
++    // teavm-fork (teavm-0015): Math.log is fdlibm's __ieee754_log as well, the port in TStrictMath.log (D33).
++    // Its Javadoc allows any result within 1 ulp, but on the pinned JDK Math.log equals fdlibm's result on
++    // every input checked (15 million); JavaScript's Math.log differed in the last bit on 29 of 20,000
++    // inputs and can vary from one browser engine to another.
++    public static double log(double a) {
++        return TStrictMath.log(a);
++    }
+ 
+diff --git a/classlib/src/main/java/org/teavm/classlib/java/lang/TStrictMath.java b/classlib/src/main/java/org/teavm/classlib/java/lang/TStrictMath.java
+index e54208f..40eb067 100644
+--- a/classlib/src/main/java/org/teavm/classlib/java/lang/TStrictMath.java
++++ b/classlib/src/main/java/org/teavm/classlib/java/lang/TStrictMath.java
+@@ -59,8 +59,100 @@ public final class TStrictMath extends TObject {
+         return TMath.exp(a);
+     }
+ 
+-    public static double log(double a) {
+-        return TMath.log(a);
++    /*
++     * teavm-fork: log is fdlibm's __ieee754_log, ported line for line from netlib's e_log.c
++     * (https://www.netlib.org/fdlibm/e_log.c, "@(#)e_log.c 1.3 95/01/18"), because StrictMath's Javadoc
++     * requires its results to match fdlibm's. This was TMath.log, JavaScript's Math.log, which differs in
++     * the last bit on some inputs, and so did nextGaussian, which calls this. TMath.log now calls this too
++     * (D33), since the JDK's Math.log gives fdlibm's results. The notice below is e_log.c's own, kept as
++     * its terms require.
++     *
++     * ====================================================
++     * Copyright (C) 1993 by Sun Microsystems, Inc. All rights reserved.
++     *
++     * Developed at SunSoft, a Sun Microsystems, Inc. business.
++     * Permission to use, copy, modify, and distribute this
++     * software is freely granted, provided that this notice
++     * is preserved.
++     * ====================================================
++     */
++    private static final double LN2_HI = 6.93147180369123816490e-01; // 3fe62e42 fee00000
++    private static final double LN2_LO = 1.90821492927058770002e-10; // 3dea39ef 35793c76
++    private static final double TWO54 = 1.80143985094819840000e+16; // 43500000 00000000
++    private static final double LG1 = 6.666666666666735130e-01; // 3FE55555 55555593
++    private static final double LG2 = 3.999999999940941908e-01; // 3FD99999 9997FA04
++    private static final double LG3 = 2.857142874366239149e-01; // 3FD24924 94229359
++    private static final double LG4 = 2.222219843214978396e-01; // 3FCC71C5 1D8E78AF
++    private static final double LG5 = 1.818357216161805012e-01; // 3FC74664 96CB03DE
++    private static final double LG6 = 1.531383769920937332e-01; // 3FC39A09 D078C69F
++    private static final double LG7 = 1.479819860511658591e-01; // 3FC2F112 DF3E5244
++
++    // e_log.c reads and writes the two 32-bit halves of x in place (__HI, __LO); here they are taken from
++    // and put back into the 64 raw bits. Otherwise the statements and their order are e_log.c's.
++    public static double log(double x) {
++        long bits = Double.doubleToRawLongBits(x);
++        int hx = (int) (bits >> 32);
++        int lx = (int) bits;
++        int k = 0;
++        if (hx < 0x00100000) { // x < 2**-1022
++            if (((hx & 0x7fffffff) | lx) == 0) {
++                return -TWO54 / 0.0; // log(+-0) = -inf
++            }
++            if (hx < 0) {
++                return (x - x) / 0.0; // log(-#) = NaN
++            }
++            k -= 54; // subnormal number, scale up x
++            x *= TWO54;
++            hx = (int) (Double.doubleToRawLongBits(x) >> 32);
++        }
++        if (hx >= 0x7ff00000) {
++            return x + x;
++        }
++        k += (hx >> 20) - 1023;
++        hx &= 0x000fffff;
++        int i = (hx + 0x95f64) & 0x100000;
++        // __HI(x) = hx | (i ^ 0x3ff00000): normalize x or x/2, keeping its low word
++        x = Double.longBitsToDouble(((long) (hx | (i ^ 0x3ff00000)) << 32)
++                | (Double.doubleToRawLongBits(x) & 0xffffffffL));
++        k += i >> 20;
++        double f = x - 1.0;
++        double dk;
++        if ((0x000fffff & (2 + hx)) < 3) { // |f| < 2**-20
++            if (f == 0.0) {
++                if (k == 0) {
++                    return 0.0;
++                }
++                dk = k;
++                return dk * LN2_HI + dk * LN2_LO;
++            }
++            double r = f * f * (0.5 - 0.33333333333333333 * f);
++            if (k == 0) {
++                return f - r;
++            }
++            dk = k;
++            return dk * LN2_HI - ((r - dk * LN2_LO) - f);
++        }
++        double s = f / (2.0 + f);
++        dk = k;
++        double z = s * s;
++        i = hx - 0x6147a;
++        double w = z * z;
++        int j = 0x6b851 - hx;
++        double t1 = w * (LG2 + w * (LG4 + w * LG6));
++        double t2 = z * (LG1 + w * (LG3 + w * (LG5 + w * LG7)));
++        i |= j;
++        double r = t2 + t1;
++        if (i > 0) {
++            double hfsq = 0.5 * f * f;
++            if (k == 0) {
++                return f - (hfsq - s * (hfsq + r));
++            }
++            return dk * LN2_HI - ((hfsq - (s * (hfsq + r) + dk * LN2_LO)) - f);
++        }
++        if (k == 0) {
++            return f - s * (f - r);
++        }
++        return dk * LN2_HI - ((s * (f - r) - dk * LN2_LO) - f);
+     }
+ 
+     public static double log10(double a) {

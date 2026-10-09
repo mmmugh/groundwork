@@ -1,0 +1,276 @@
+# Copyright 2026 Groundwork contributors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# F1. Java semantics for int/long division, which Wasm lacks (x / 0 traps; MIN_VALUE / -1 traps).
+# StrictArithmeticTransformer replaces division/remainder by a call to StrictArithmetic.{i,l}{div,rem}
+# unless the divisor is a constant other than 0 / -1. Applied (a) to user programs when strictMode is on
+# (Compiler.generateWebAssembly) and (b) to javac's ConstFold inside compiler.wasm (Patches), where
+# javac folds '10 / 0' and relies on catch (ArithmeticException): before this, any program containing a
+# constant division by zero crashed the compiler and wedged the playground. StrictArithmetic ships in
+# runtime-classlib-teavm.bin but not in the SDK, so user code cannot see it.
+#
+# Applies to: github.com/konsoletyper/teavm-javac 2ddcf02e (master, 2026-09-04)
+
+diff --git a/compiler/build.gradle b/compiler/build.gradle
+index 5598351..0165b97 100644
+--- a/compiler/build.gradle
++++ b/compiler/build.gradle
+@@ -118,6 +118,10 @@ def prepareTeaVMClassLib = tasks.register("prepareTeaVMClassLib", Copy) {
+         include "org/teavm/backend/wasm/WasmHeap*.class"
+         include "com/jcraft/jzlib/**"
+     }
++    // teavm-fork: runtime helper for strict integer division (see StrictArithmeticTransformer)
++    from(sourceSets.main.output.classesDirs) {
++        include "org/teavm/javac/rt/**"
++    }
+     from(repackCldr) {
+         eachFile {
+             path = "org/teavm/classlib/impl/unicode/" + path
+diff --git a/compiler/src/main/java/org/teavm/javac/Compiler.java b/compiler/src/main/java/org/teavm/javac/Compiler.java
+index dae63f3..1e0718c 100644
+--- a/compiler/src/main/java/org/teavm/javac/Compiler.java
++++ b/compiler/src/main/java/org/teavm/javac/Compiler.java
+@@ -277,6 +277,10 @@ public final class Compiler {
+         new JSOPlugin().install(teavm);
+         new PlatformPlugin().install(teavm);
+         new JCLPlugin().install(teavm);
++        if (strictMode) {
++            // teavm-fork: Java semantics for int/long division (ArithmeticException, MIN_VALUE / -1).
++            teavm.add(new StrictArithmeticTransformer(true));
++        }
+         teavm.setEntryPoint(mainClass);
+         target.setObfuscated(false);
+         target.setDebugInfoLocation(WasmDebugInfoLocation.EMBEDDED);
+diff --git a/compiler/src/main/java/org/teavm/javac/Patches.java b/compiler/src/main/java/org/teavm/javac/Patches.java
+index a86cacf..25e075e 100644
+--- a/compiler/src/main/java/org/teavm/javac/Patches.java
++++ b/compiler/src/main/java/org/teavm/javac/Patches.java
+@@ -56,6 +56,13 @@ public class Patches implements TeaVMPlugin, ClassHolderTransformer {
+             case "java.lang.System":
+                 transformSystem(cls, context);
+                 break;
++            case "com.sun.tools.javac.comp.ConstFold":
++                // teavm-fork: ConstFold.fold2 folds constant int/long division and relies on
++                // catch (ArithmeticException) for "x / 0". compiler.wasm is not built in strict mode, so
++                // that division was a Wasm trap that killed the compiler ("10 / 0" in any program, and
++                // Integer.MIN_VALUE / -1). Route the divisions through StrictArithmetic instead.
++                StrictArithmeticTransformer.transformMethods(cls);
++                break;
+         }
+     }
+ 
+diff --git a/compiler/src/main/java/org/teavm/javac/StrictArithmeticTransformer.java b/compiler/src/main/java/org/teavm/javac/StrictArithmeticTransformer.java
+new file mode 100644
+index 0000000..4c98b55
+--- /dev/null
++++ b/compiler/src/main/java/org/teavm/javac/StrictArithmeticTransformer.java
+@@ -0,0 +1,136 @@
++/*
++ *  Copyright 2026 Groundwork contributors.
++ *
++ *  Licensed under the Apache License, Version 2.0 (the "License");
++ *  you may not use this file except in compliance with the License.
++ *  You may obtain a copy of the License at
++ *
++ *       http://www.apache.org/licenses/LICENSE-2.0
++ *
++ *  Unless required by applicable law or agreed to in writing, software
++ *  distributed under the License is distributed on an "AS IS" BASIS,
++ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++ *  See the License for the specific language governing permissions and
++ *  limitations under the License.
++ */
++package org.teavm.javac;
++
++import java.util.ArrayList;
++import java.util.HashMap;
++import java.util.HashSet;
++import java.util.List;
++import java.util.Map;
++import java.util.Set;
++import org.teavm.javac.rt.StrictArithmetic;
++import org.teavm.model.BasicBlock;
++import org.teavm.model.ClassHolder;
++import org.teavm.model.ClassHolderTransformer;
++import org.teavm.model.ClassHolderTransformerContext;
++import org.teavm.model.Instruction;
++import org.teavm.model.MethodHolder;
++import org.teavm.model.MethodReference;
++import org.teavm.model.Phi;
++import org.teavm.model.Program;
++import org.teavm.model.ValueType;
++import org.teavm.model.instructions.BinaryInstruction;
++import org.teavm.model.instructions.BinaryOperation;
++import org.teavm.model.instructions.IntegerConstantInstruction;
++import org.teavm.model.instructions.InvocationType;
++import org.teavm.model.instructions.InvokeInstruction;
++import org.teavm.model.instructions.LongConstantInstruction;
++import org.teavm.model.instructions.NumericOperandType;
++import org.teavm.model.util.DefinitionExtractor;
++
++/**
++ * Replaces int/long division and remainder with calls to {@link StrictArithmetic}, unless the divisor
++ * is a constant other than 0 and -1. Runs as a class transformer, i.e. before dependency analysis, so
++ * the ArithmeticException thrown by the helper is visible to the analysis like any explicit throw.
++ */
++public class StrictArithmeticTransformer implements ClassHolderTransformer {
++    private static final String HELPER = StrictArithmetic.class.getName();
++    private final boolean allClasses;
++
++    /**
++     * @param allClasses true: every class except TeaVM's own runtime (org.teavm.*); false: nothing
++     *                   unless {@link #transformMethods} is called directly.
++     */
++    public StrictArithmeticTransformer(boolean allClasses) {
++        this.allClasses = allClasses;
++    }
++
++    @Override
++    public void transformClass(ClassHolder cls, ClassHolderTransformerContext context) {
++        if (!allClasses || cls.getName().startsWith("org.teavm.") || cls.getName().equals(HELPER)) {
++            return;
++        }
++        transformMethods(cls);
++    }
++
++    public static void transformMethods(ClassHolder cls) {
++        for (MethodHolder method : cls.getMethods()) {
++            if (method.getProgram() != null) {
++                transformProgram(method.getProgram());
++            }
++        }
++    }
++
++    static void transformProgram(Program program) {
++        Map<Integer, Long> constants = new HashMap<>();
++        Set<Integer> multiplyDefined = new HashSet<>();
++        Set<Integer> defined = new HashSet<>();
++        DefinitionExtractor defs = new DefinitionExtractor();
++        for (BasicBlock block : program.getBasicBlocks()) {
++            for (Phi phi : block.getPhis()) {
++                if (!defined.add(phi.getReceiver().getIndex())) {
++                    multiplyDefined.add(phi.getReceiver().getIndex());
++                }
++            }
++            for (Instruction insn : block) {
++                insn.acceptVisitor(defs);
++                for (var v : defs.getDefinedVariables()) {
++                    if (!defined.add(v.getIndex())) {
++                        multiplyDefined.add(v.getIndex());
++                    }
++                }
++                if (insn instanceof IntegerConstantInstruction c) {
++                    constants.put(c.getReceiver().getIndex(), (long) c.getConstant());
++                } else if (insn instanceof LongConstantInstruction c) {
++                    constants.put(c.getReceiver().getIndex(), c.getConstant());
++                }
++            }
++        }
++        List<BinaryInstruction> targets = new ArrayList<>();
++        for (BasicBlock block : program.getBasicBlocks()) {
++            for (Instruction insn : block) {
++                if (insn instanceof BinaryInstruction binary) {
++                    targets.add(binary);
++                }
++            }
++        }
++        for (BinaryInstruction binary : targets) {
++            boolean div = binary.getOperation() == BinaryOperation.DIVIDE;
++            if (!div && binary.getOperation() != BinaryOperation.MODULO) {
++                continue;
++            }
++            NumericOperandType type = binary.getOperandType();
++            if (type != NumericOperandType.INT && type != NumericOperandType.LONG) {
++                continue;
++            }
++            int divisor = binary.getSecondOperand().getIndex();
++            Long constant = multiplyDefined.contains(divisor) ? null : constants.get(divisor);
++            if (constant != null && constant != 0 && constant != -1) {
++                continue;
++            }
++            Class<?> t = type == NumericOperandType.INT ? int.class : long.class;
++            String name = (type == NumericOperandType.INT ? "i" : "l") + (div ? "div" : "rem");
++            InvokeInstruction call = new InvokeInstruction();
++            call.setType(InvocationType.SPECIAL);
++            call.setMethod(new MethodReference(HELPER, name, ValueType.parse(t),
++                    ValueType.parse(t), ValueType.parse(t)));
++            call.setArguments(binary.getFirstOperand(), binary.getSecondOperand());
++            call.setReceiver(binary.getReceiver());
++            call.setLocation(binary.getLocation());
++            binary.replace(call);
++        }
++    }
++}
+diff --git a/compiler/src/main/java/org/teavm/javac/rt/StrictArithmetic.java b/compiler/src/main/java/org/teavm/javac/rt/StrictArithmetic.java
+new file mode 100644
+index 0000000..6cc70db
+--- /dev/null
++++ b/compiler/src/main/java/org/teavm/javac/rt/StrictArithmetic.java
+@@ -0,0 +1,56 @@
++/*
++ *  Copyright 2026 Groundwork contributors.
++ *
++ *  Licensed under the Apache License, Version 2.0 (the "License");
++ *  you may not use this file except in compliance with the License.
++ *  You may obtain a copy of the License at
++ *
++ *       http://www.apache.org/licenses/LICENSE-2.0
++ *
++ *  Unless required by applicable law or agreed to in writing, software
++ *  distributed under the License is distributed on an "AS IS" BASIS,
++ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++ *  See the License for the specific language governing permissions and
++ *  limitations under the License.
++ */
++package org.teavm.javac.rt;
++
++/**
++ * Java semantics for integer division, which Wasm does not have: i32.div_s / i64.div_s trap on a zero
++ * divisor and on MIN_VALUE / -1, where Java throws ArithmeticException("/ by zero") and wraps to
++ * MIN_VALUE respectively. Calls to these methods replace integer division and remainder (see
++ * StrictArithmeticTransformer). This class is compiled into compiler.wasm (for javac's ConstFold) and
++ * into runtime-classlib-teavm.bin (for user programs); it is not visible to javac (not in the SDK).
++ */
++public final class StrictArithmetic {
++    private StrictArithmetic() {
++    }
++
++    public static int idiv(int a, int b) {
++        if (b == 0) {
++            throw new ArithmeticException("/ by zero");
++        }
++        return b == -1 ? -a : a / b;
++    }
++
++    public static int irem(int a, int b) {
++        if (b == 0) {
++            throw new ArithmeticException("/ by zero");
++        }
++        return b == -1 ? 0 : a % b;
++    }
++
++    public static long ldiv(long a, long b) {
++        if (b == 0) {
++            throw new ArithmeticException("/ by zero");
++        }
++        return b == -1 ? -a : a / b;
++    }
++
++    public static long lrem(long a, long b) {
++        if (b == 0) {
++            throw new ArithmeticException("/ by zero");
++        }
++        return b == -1 ? 0 : a % b;
++    }
++}

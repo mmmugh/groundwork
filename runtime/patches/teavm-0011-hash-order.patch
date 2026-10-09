@@ -1,0 +1,1042 @@
+# Copyright 2026 Groundwork contributors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# D12. HashMap and HashSet iterate in the JDK's order.
+# Provenance. Written for the clean room (D14) by a fresh subagent (Claude Opus 5.5) that opened no OpenJDK
+# source. Its inputs were programs run on the pinned JDK (every rule below was derived from them, and
+# 7c90c06, the commit that adds this patch, names the experiment behind each one), TeaVM's own THashMap,
+# THashSet and TLinkedHashMap, and the textbook (CLRS) red-black algorithms; fix round 1 (081ed1e, a second
+# clean-room subagent, Opus 5.5) had the same inputs plus the review finding it answers. 7c90c06 also lists
+# the public Javadoc, but no Javadoc page was opened, so it was not an input. The first version's internal
+# names (balanceInsertion, balanceDeletion, moveRootToFront, treeify, untreeify) matched names in OpenJDK's
+# HashMap, as a reviewer recognized them from memory without opening that source; 081ed1e renamed them. A
+# later review noted that two names still here match OpenJDK's as well: unlinkEntry's parameter movable
+# and the tree entry's field red. As 7c90c06 says, the implementer is a language model and may have met
+# descriptions of OpenJDK's HashMap in training, so the shape of some hypotheses may come from there; no
+# rule was taken on that basis, and each was kept only after an experiment on the JDK picked it over its
+# rivals. An executable model of these rules agreed with java.util.HashMap on 20,000 random operation
+# sequences, and the patched fork with the JDK on 100 random programs (700 scenarios, the order printed
+# after every operation).
+#   - Bucket: (h ^ (h >>> 16)) & (capacity - 1), h the key's hashCode (0 for null).
+#   - put and putIfAbsent add a new key at the end of its bucket and double the table after adding it once
+#     size > loadFactor * capacity. merge, compute and computeIfAbsent add it at the front and double before
+#     they look whenever size > threshold (even for a present key or a null result), never after; a function
+#     that adds or removes keys throws ConcurrentModificationException. Doubling keeps each bucket's order.
+#   - Capacity: HashMap() 16, HashMap(n) the next power of two >= n (1 for 0), settled by the first insertion.
+#     putAll into an unsettled map asks for the next power of two >= ceil(size / loadFactor) (a larger request
+#     stands); into a settled one it doubles while its size alone passes the threshold. new HashMap<>(m) and
+#     clone() are HashMap() then putAll. new HashSet<>(c) starts at max(ceil(size / 0.75), 16). The
+#     clone() rule is untested: HashMap.clone() traps on the fork, so no gate has run it.
+#   - A new key that makes a bucket hold 9 keys (8 for the compute family) doubles a table of fewer than 64
+#     buckets; otherwise the bucket becomes a red-black tree ordered by hash (signed), then compareTo for keys
+#     of one Comparable class. The bucket's list stays the iteration order: the tree is built in list order
+#     and its root moves to the front; a new key goes right after its parent and the root moves to the front
+#     again. map.remove turns a small tree (its root has no left child, or that child has none) back into a
+#     list; otherwise it deletes by the successor and moves the root to the front. Removal through an
+#     iterator does neither. On doubling, a tree part of 6 keys or fewer becomes a list, a part that took all
+#     of the keys stays as it was, and any other part is built again.
+#   - Known limit, as far as it was observed: for colliding keys of one class that does not implement
+#     Comparable, the JDK's order moved with unrelated allocations (seen on the JDK itself), so no rule
+#     can match it; here such a tie goes right. Other mixes of key classes were not tried.
+#   - LinkedHashMap keeps its own order: it uses the new bucket function and keeps doing merge, compute and
+#     computeIfAbsent through get, put and remove.
+#
+# Applies to: github.com/konsoletyper/teavm tag 0.13.1 (b3a245b7), after teavm-0001 to teavm-0010; it
+# touches no line an earlier patch added (no earlier patch touches THashMap, THashSet or TLinkedHashMap), so
+# the patch applies in every leave-one-out build, which leaves out one patch and the patches that declare
+# they build on it.
+
+diff --git a/classlib/src/main/java/org/teavm/classlib/java/util/THashMap.java b/classlib/src/main/java/org/teavm/classlib/java/util/THashMap.java
+index 0435e40..d85ec1a 100644
+--- a/classlib/src/main/java/org/teavm/classlib/java/util/THashMap.java
++++ b/classlib/src/main/java/org/teavm/classlib/java/util/THashMap.java
+@@ -19,6 +19,7 @@ import java.util.Arrays;
+ import java.util.function.BiConsumer;
+ import java.util.function.BiFunction;
+ import java.util.function.Consumer;
++import java.util.function.Function;
+ import org.teavm.classlib.java.io.TSerializable;
+ import org.teavm.classlib.java.lang.TCloneNotSupportedException;
+ import org.teavm.classlib.java.lang.TCloneable;
+@@ -35,6 +36,14 @@ public class THashMap<K, V> extends TAbstractMap<K, V> implements TCloneable, TS
+     private static final float DEFAULT_LOAD_FACTOR = 0.75f;
+     final float loadFactor;
+     int threshold;
++    // teavm-fork: HashMap and HashSet iterate in the JDK's order (D12). Every rule below was derived from
++    // programs run on the pinned JDK, starting from TeaVM's own THashMap (clean room, D14: no OpenJDK source
++    // was opened); runtime/patches/teavm-0011-hash-order.patch lists the rules and states where this code
++    // came from, including names that match OpenJDK's. The table's size is only settled by the first
++    // insertion: until then putAll may choose one that fits what it brings, so requestedCapacity keeps the
++    // constructor's (0 for HashMap(), which means 16) and tableSized says whether the choice has been made.
++    private transient int requestedCapacity;
++    private transient boolean tableSized;
+ 
+     static class HashEntry<K, V> extends TMapEntry<K, V> {
+         final int origKeyHash;
+@@ -62,12 +71,26 @@ public class THashMap<K, V> extends TAbstractMap<K, V> implements TCloneable, TS
+         }
+     }
+ 
++    // teavm-fork: a bucket that collects many keys turns into a red-black tree of these entries, ordered by
++    // hash and then by compareTo. Lookups still walk the bucket's list; the tree only decides where each new
++    // key goes in that list, and the list is the iteration order.
++    static final class TreeEntry<K, V> extends HashEntry<K, V> {
++        TreeEntry<K, V> parent;
++        TreeEntry<K, V> left;
++        TreeEntry<K, V> right;
++        boolean red;
++
++        TreeEntry(K key, int hash, V value) {
++            super(key, hash);
++            this.value = value;
++        }
++    }
++
+     private static class AbstractMapIterator<K, V>  {
+         private int position;
+         int expectedModCount;
+         HashEntry<K, V> futureEntry;
+         HashEntry<K, V> currentEntry;
+-        HashEntry<K, V> prevEntry;
+ 
+         final THashMap<K, V> associatedMap;
+ 
+@@ -105,11 +128,7 @@ public class THashMap<K, V> extends TAbstractMap<K, V> implements TCloneable, TS
+             if (futureEntry == null) {
+                 currentEntry = associatedMap.elementData[position++];
+                 futureEntry = currentEntry.next;
+-                prevEntry = null;
+             } else {
+-                if (currentEntry != null) {
+-                    prevEntry = currentEntry;
+-                }
+                 currentEntry = futureEntry;
+                 futureEntry = futureEntry.next;
+             }
+@@ -120,17 +139,12 @@ public class THashMap<K, V> extends TAbstractMap<K, V> implements TCloneable, TS
+             if (currentEntry == null) {
+                 throw new TIllegalStateException();
+             }
+-            if (prevEntry == null) {
+-                int index = currentEntry.origKeyHash & (associatedMap.elementData.length - 1);
+-                associatedMap.elementData[index] = associatedMap.elementData[index].next;
+-            } else {
+-                prevEntry.next = currentEntry.next;
+-            }
++            // teavm-fork: through the map, so a tree bucket's tree stays in step. Removing through an
++            // iterator (or removeIf, values().remove, retainAll, which use one) never moves a tree's root to
++            // the front of its bucket and never turns the tree back into a list; map.remove does both.
++            associatedMap.unlinkEntry(currentEntry, false);
+             currentEntry = null;
+             expectedModCount++;
+-            associatedMap.modCount++;
+-            associatedMap.elementCount--;
+-
+         }
+     }
+ 
+@@ -246,6 +260,7 @@ public class THashMap<K, V> extends TAbstractMap<K, V> implements TCloneable, TS
+ 
+     public THashMap() {
+         this(DEFAULT_SIZE);
++        requestedCapacity = 0;
+     }
+ 
+     public THashMap(int capacity) {
+@@ -257,7 +272,8 @@ public class THashMap<K, V> extends TAbstractMap<K, V> implements TCloneable, TS
+             return 1 << 30;
+         }
+         if (x == 0) {
+-            return 16;
++            // teavm-fork: new HashMap<>(0) starts with one bucket, as the JDK's does
++            return 1;
+         }
+         x = x - 1;
+         x |= x >> 1;
+@@ -286,6 +302,7 @@ public class THashMap<K, V> extends TAbstractMap<K, V> implements TCloneable, TS
+             elementCount = 0;
+             elementData = newElementArray(capacity);
+             this.loadFactor = loadFactor;
++            requestedCapacity = capacity;
+             computeThreshold();
+         } else {
+             throw new TIllegalArgumentException();
+@@ -293,8 +310,8 @@ public class THashMap<K, V> extends TAbstractMap<K, V> implements TCloneable, TS
+     }
+ 
+     public THashMap(TMap<? extends K, ? extends V> map) {
+-        this(calculateCapacity(map.size()));
+-        putAllImpl(map);
++        this();
++        putAll(map);
+     }
+ 
+     @Override
+@@ -312,7 +329,12 @@ public class THashMap<K, V> extends TAbstractMap<K, V> implements TCloneable, TS
+         try {
+             THashMap<K, V> map = (THashMap<K, V>) super.clone();
+             map.elementCount = 0;
+-            map.elementData = newElementArray(elementData.length);
++            // teavm-fork: a clone is built as new HashMap<>(this) is: sized for its entries, which go in
++            // in this map's iteration order
++            map.elementData = newElementArray(DEFAULT_SIZE);
++            map.requestedCapacity = 0;
++            map.tableSized = false;
++            map.computeThreshold();
+             map.putAll(this);
+ 
+             return map;
+@@ -377,12 +399,18 @@ public class THashMap<K, V> extends TAbstractMap<K, V> implements TCloneable, TS
+             m = findNullKeyEntry();
+         } else {
+             int hash = key.hashCode();
+-            int index = hash & (elementData.length - 1);
++            int index = bucketIndex(hash, elementData.length);
+             m = findNonNullKeyEntry(key, index, hash);
+         }
+         return m;
+     }
+ 
++    // teavm-fork: a key's bucket mixes the high half of its hash code into the low half (JDK: 0x10000 lands
++    // in bucket 1 of 16, 0x10001 in bucket 0)
++    static int bucketIndex(int hash, int length) {
++        return (hash ^ (hash >>> 16)) & (length - 1);
++    }
++
+     final HashEntry<K, V> findNonNullKeyEntry(Object key, int index, int keyHash) {
+         HashEntry<K, V> m = elementData[index];
+         while (m != null && (m.origKeyHash != keyHash || !areEqualKeys(key, m.key))) {
+@@ -449,40 +477,88 @@ public class THashMap<K, V> extends TAbstractMap<K, V> implements TCloneable, TS
+         return putImpl(key, value);
+     }
+ 
++    // teavm-fork: put and putIfAbsent add a new key at the end of its bucket and grow the table after
++    // adding it, once the size passes loadFactor * capacity. The first insertion settles the table's size.
+     private V putImpl(K key, V value) {
+-        HashEntry<K, V> entry;
+-        if (key == null) {
+-            entry = findNullKeyEntry();
+-            if (entry == null) {
+-                modCount++;
+-                entry = createHashedEntry(null, 0, 0);
+-                if (++elementCount > threshold) {
+-                    rehash();
+-                }
+-            }
+-        } else {
+-            int hash = key.hashCode();
+-            int index = hash & (elementData.length - 1);
+-            entry = findNonNullKeyEntry(key, index, hash);
+-            if (entry == null) {
+-                modCount++;
+-                entry = createHashedEntry(key, index, hash);
+-                if (++elementCount > threshold) {
+-                    rehash();
+-                }
++        sizeTable();
++        int hash = key == null ? 0 : key.hashCode();
++        int index = bucketIndex(hash, elementData.length);
++        HashEntry<K, V> entry = key == null ? findNullKeyEntry() : findNonNullKeyEntry(key, index, hash);
++        if (entry != null) {
++            V result = entry.value;
++            entry.value = value;
++            return result;
++        }
++        modCount++;
++        appendEntry(key, hash, index, value);
++        if (++elementCount > threshold) {
++            doubleTable();
++        }
++        return null;
++    }
++
++    private void sizeTable() {
++        if (!tableSized) {
++            tableSized = true;
++            int length = requestedCapacity > 0 ? requestedCapacity : DEFAULT_SIZE;
++            if (elementData.length != length && elementCount == 0) {
++                elementData = newElementArray(length);
++                computeThreshold();
+             }
+         }
++    }
+ 
+-        V result = entry.value;
++    // teavm-fork: a bucket that already held 8 keys (7 for the compute family) and gets one more becomes a
++    // tree, unless the table has fewer than 64 buckets: then the table doubles instead.
++    private void appendEntry(K key, int hash, int index, V value) {
++        HashEntry<K, V> last = elementData[index];
++        if (last instanceof TreeEntry) {
++            treeInsert(index, key, hash, value);
++            return;
++        }
++        HashEntry<K, V> entry = new HashEntry<>(key, hash);
+         entry.value = value;
+-        return result;
++        if (last == null) {
++            elementData[index] = entry;
++            return;
++        }
++        int count = 1;
++        while (last.next != null) {
++            last = last.next;
++            count++;
++        }
++        last.next = entry;
++        if (count >= 8) {
++            listToTreeOrGrow(index);
++        }
+     }
+ 
+-    private HashEntry<K, V> createHashedEntry(K key, int index, int hash) {
++    // teavm-fork: merge, compute and computeIfAbsent add a new key at the front of its bucket
++    private void prependEntry(K key, int hash, int index, V value) {
++        HashEntry<K, V> first = elementData[index];
++        if (first instanceof TreeEntry) {
++            treeInsert(index, key, hash, value);
++            return;
++        }
+         HashEntry<K, V> entry = new HashEntry<>(key, hash);
+-        entry.next = elementData[index];
++        entry.value = value;
++        entry.next = first;
+         elementData[index] = entry;
+-        return entry;
++        int count = 0;
++        for (; first != null; first = first.next) {
++            count++;
++        }
++        if (count >= 7) {
++            listToTreeOrGrow(index);
++        }
++    }
++
++    private void listToTreeOrGrow(int index) {
++        if (elementData.length < 64) {
++            doubleTable();
++        } else {
++            listToTree(index);
++        }
+     }
+ 
+     @Override
+@@ -492,10 +568,20 @@ public class THashMap<K, V> extends TAbstractMap<K, V> implements TCloneable, TS
+         }
+     }
+ 
++    // teavm-fork: into a map whose table is not settled yet, putAll asks for the smallest table that holds
++    // the new entries under the load factor (a larger requested capacity stands); otherwise it doubles the
++    // table while their number alone passes the threshold. Then each entry goes in as put puts it.
+     void putAllImpl(TMap<? extends K, ? extends V> map) {
+-        int capacity = elementCount + map.size();
+-        if (capacity > threshold) {
+-            rehash(capacity);
++        int size = map.size();
++        if (!tableSized) {
++            int capacity = calculateCapacity((int) Math.ceil(size / loadFactor));
++            if (capacity > requestedCapacity) {
++                requestedCapacity = capacity;
++            }
++        } else {
++            while (size > threshold) {
++                doubleTable();
++            }
+         }
+         for (var it = map.entrySet().iterator(); it.hasNext();) {
+             TMap.Entry<? extends K, ? extends V> entry = it.next();
+@@ -505,25 +591,71 @@ public class THashMap<K, V> extends TAbstractMap<K, V> implements TCloneable, TS
+ 
+     void rehash(int capacity) {
+         int length = calculateCapacity(capacity == 0 ? 1 : capacity << 1);
++        while (elementData.length < length) {
++            doubleTable();
++        }
++    }
++
++    void rehash() {
++        doubleTable();
++    }
+ 
+-        HashEntry<K, V>[] newData = newElementArray(length);
+-        for (int i = 0; i < elementData.length; i++) {
+-            HashEntry<K, V> entry = elementData[i];
+-            elementData[i] = null;
++    // teavm-fork: doubling splits each bucket into the keys that stay and the keys that move up by the old
++    // capacity, each part keeping its order. A tree part of 6 or fewer keys becomes a list; a tree whose
++    // keys all went one way stays as it was; any other tree part is built again.
++    private void doubleTable() {
++        HashEntry<K, V>[] oldData = elementData;
++        int oldLength = oldData.length;
++        elementData = newElementArray(oldLength * 2);
++        computeThreshold();
++        for (int i = 0; i < oldLength; i++) {
++            HashEntry<K, V> entry = oldData[i];
++            if (entry == null) {
++                continue;
++            }
++            boolean tree = entry instanceof TreeEntry;
++            HashEntry<K, V> stayTail = null;
++            HashEntry<K, V> moveTail = null;
++            int stayCount = 0;
++            int moveCount = 0;
+             while (entry != null) {
+-                int index = entry.origKeyHash & (length - 1);
+                 HashEntry<K, V> next = entry.next;
+-                entry.next = newData[index];
+-                newData[index] = entry;
++                entry.next = null;
++                if (((entry.origKeyHash ^ (entry.origKeyHash >>> 16)) & oldLength) == 0) {
++                    if (stayTail == null) {
++                        elementData[i] = entry;
++                    } else {
++                        stayTail.next = entry;
++                    }
++                    stayTail = entry;
++                    stayCount++;
++                } else {
++                    if (moveTail == null) {
++                        elementData[i + oldLength] = entry;
++                    } else {
++                        moveTail.next = entry;
++                    }
++                    moveTail = entry;
++                    moveCount++;
++                }
+                 entry = next;
+             }
++            if (tree) {
++                splitTree(i, stayCount, moveCount == 0);
++                splitTree(i + oldLength, moveCount, stayCount == 0);
++            }
+         }
+-        elementData = newData;
+-        computeThreshold();
+     }
+ 
+-    void rehash() {
+-        rehash(elementData.length);
++    private void splitTree(int index, int count, boolean wholeTree) {
++        if (count == 0) {
++            return;
++        }
++        if (count <= 6) {
++            treeToList(index);
++        } else if (!wholeTree) {
++            listToTree(index);
++        }
+     }
+ 
+     @Override
+@@ -536,8 +668,23 @@ public class THashMap<K, V> extends TAbstractMap<K, V> implements TCloneable, TS
+     }
+ 
+     final void removeEntry(HashEntry<K, V> entry) {
+-        int index = entry.origKeyHash & (elementData.length - 1);
+-        var m = elementData[index];
++        unlinkEntry(entry, true);
++    }
++
++    final HashEntry<K, V> removeByKey(Object key) {
++        HashEntry<K, V> entry = entryByKey(key);
++        if (entry != null) {
++            unlinkEntry(entry, true);
++        }
++        return entry;
++    }
++
++    // teavm-fork: movable is false for removal through an iterator. Otherwise a tree bucket first checks
++    // whether its tree has become small (the root lacks a left child, or that child lacks one), and if so
++    // turns back into a list; if not, the tree's new root moves to the front of the bucket.
++    final void unlinkEntry(HashEntry<K, V> entry, boolean movable) {
++        int index = bucketIndex(entry.origKeyHash, elementData.length);
++        HashEntry<K, V> m = elementData[index];
+         if (m == entry) {
+             elementData[index] = entry.next;
+         } else {
+@@ -548,38 +695,448 @@ public class THashMap<K, V> extends TAbstractMap<K, V> implements TCloneable, TS
+         }
+         modCount++;
+         elementCount--;
++        if (entry instanceof TreeEntry && elementData[index] != null) {
++            TreeEntry<K, V> node = (TreeEntry<K, V>) entry;
++            TreeEntry<K, V> root = rootOf(node);
++            if (movable && (root.left == null || root.left.left == null)) {
++                treeToList(index);
++                return;
++            }
++            deleteFromTree(node);
++            if (movable) {
++                bringRootToHead(index, rootOf((TreeEntry<K, V>) elementData[index]));
++            }
++        }
+     }
+ 
+-    final HashEntry<K, V> removeByKey(Object key) {
+-        int index = 0;
+-        HashEntry<K, V> entry;
++    // teavm-fork: the tree. A bucket's list becomes a tree by inserting its keys in list order, and the root
++    // then moves to the front of the list; a key added to a tree goes into the list right after its parent
++    // in the tree, and the (possibly new) root moves to the front again. Both changes to the kind of bucket
++    // replace its entries with new ones, as the JDK's do (an entry held from before no longer writes through).
++    private void listToTree(int index) {
++        TreeEntry<K, V> root = null;
++        TreeEntry<K, V> last = null;
++        for (HashEntry<K, V> entry = elementData[index]; entry != null; entry = entry.next) {
++            TreeEntry<K, V> node = entry instanceof TreeEntry ? (TreeEntry<K, V>) entry
++                    : new TreeEntry<>(entry.key, entry.origKeyHash, entry.value);
++            if (last == null) {
++                elementData[index] = node;
++            } else {
++                last.next = node;
++            }
++            last = node;
++            node.parent = null;
++            node.left = null;
++            node.right = null;
++            if (root == null) {
++                node.red = false;
++                root = node;
++            } else {
++                attach(root, node);
++                rebalanceAfterInsert(node);
++                root = rootOf(node);
++            }
++        }
++        bringRootToHead(index, root);
++    }
++
++    private void treeToList(int index) {
+         HashEntry<K, V> last = null;
+-        if (key != null) {
+-            int hash = key.hashCode();
+-            index = hash & (elementData.length - 1);
+-            entry = elementData[index];
+-            while (entry != null && !(entry.origKeyHash == hash && areEqualKeys(key, entry.key))) {
+-                last = entry;
+-                entry = entry.next;
++        for (HashEntry<K, V> entry = elementData[index]; entry != null; entry = entry.next) {
++            HashEntry<K, V> plain = new HashEntry<>(entry.key, entry.origKeyHash);
++            plain.value = entry.value;
++            if (last == null) {
++                elementData[index] = plain;
++            } else {
++                last.next = plain;
++            }
++            last = plain;
++        }
++    }
++
++    private void treeInsert(int index, K key, int hash, V value) {
++        TreeEntry<K, V> root = rootOf((TreeEntry<K, V>) elementData[index]);
++        TreeEntry<K, V> node = new TreeEntry<>(key, hash, value);
++        TreeEntry<K, V> parent = attach(root, node);
++        node.next = parent.next;
++        parent.next = node;
++        rebalanceAfterInsert(node);
++        bringRootToHead(index, rootOf(node));
++    }
++
++    private void bringRootToHead(int index, TreeEntry<K, V> root) {
++        HashEntry<K, V> first = elementData[index];
++        if (first == root) {
++            return;
++        }
++        HashEntry<K, V> prev = first;
++        while (prev.next != root) {
++            prev = prev.next;
++        }
++        prev.next = root.next;
++        root.next = first;
++        elementData[index] = root;
++    }
++
++    private static <K, V> TreeEntry<K, V> rootOf(TreeEntry<K, V> node) {
++        while (node.parent != null) {
++            node = node.parent;
++        }
++        return node;
++    }
++
++    // teavm-fork: tree order is the hash code (as a signed int), then compareTo when both keys are of the
++    // same Comparable class. The JDK breaks the remaining ties by identity, which no other runtime can
++    // reproduce; here a tie goes right.
++    private static int compareInTree(HashEntry<?, ?> a, HashEntry<?, ?> b) {
++        if (a.origKeyHash != b.origKeyHash) {
++            return a.origKeyHash < b.origKeyHash ? -1 : 1;
++        }
++        Object ka = a.key;
++        Object kb = b.key;
++        if (ka instanceof Comparable && kb != null && ka.getClass() == kb.getClass()) {
++            @SuppressWarnings("unchecked")
++            int c = ((Comparable<Object>) ka).compareTo(kb);
++            if (c != 0) {
++                return c;
++            }
++        }
++        return 1;
++    }
++
++    private static <K, V> TreeEntry<K, V> attach(TreeEntry<K, V> root, TreeEntry<K, V> node) {
++        TreeEntry<K, V> parent = root;
++        while (true) {
++            if (compareInTree(node, parent) < 0) {
++                if (parent.left == null) {
++                    parent.left = node;
++                    break;
++                }
++                parent = parent.left;
++            } else {
++                if (parent.right == null) {
++                    parent.right = node;
++                    break;
++                }
++                parent = parent.right;
++            }
++        }
++        node.parent = parent;
++        return parent;
++    }
++
++    private static boolean isRed(TreeEntry<?, ?> node) {
++        return node != null && node.red;
++    }
++
++    // teavm-fork: a bucket's tree has no object of its own to hold its root, so the rotations, the
++    // rebalancing and the deletion below only relink nodes; whoever needs the root walks up to it (rootOf).
++    private static <K, V> void rotateLeft(TreeEntry<K, V> x) {
++        TreeEntry<K, V> y = x.right;
++        x.right = y.left;
++        if (y.left != null) {
++            y.left.parent = x;
++        }
++        y.parent = x.parent;
++        if (x.parent != null) {
++            if (x == x.parent.left) {
++                x.parent.left = y;
++            } else {
++                x.parent.right = y;
+             }
++        }
++        y.left = x;
++        x.parent = y;
++    }
++
++    private static <K, V> void rotateRight(TreeEntry<K, V> x) {
++        TreeEntry<K, V> y = x.left;
++        x.left = y.right;
++        if (y.right != null) {
++            y.right.parent = x;
++        }
++        y.parent = x.parent;
++        if (x.parent != null) {
++            if (x == x.parent.right) {
++                x.parent.right = y;
++            } else {
++                x.parent.left = y;
++            }
++        }
++        y.right = x;
++        x.parent = y;
++    }
++
++    // teavm-fork: the textbook red-black insertion and deletion (deletion takes the successor's place
++    // for a node with two children)
++    private static <K, V> void rebalanceAfterInsert(TreeEntry<K, V> x) {
++        x.red = true;
++        while (isRed(x.parent)) {
++            TreeEntry<K, V> parent = x.parent;
++            TreeEntry<K, V> grand = parent.parent;
++            if (parent == grand.left) {
++                TreeEntry<K, V> uncle = grand.right;
++                if (isRed(uncle)) {
++                    parent.red = false;
++                    uncle.red = false;
++                    grand.red = true;
++                    x = grand;
++                } else {
++                    if (x == parent.right) {
++                        x = parent;
++                        rotateLeft(x);
++                        parent = x.parent;
++                        grand = parent.parent;
++                    }
++                    parent.red = false;
++                    grand.red = true;
++                    rotateRight(grand);
++                }
++            } else {
++                TreeEntry<K, V> uncle = grand.left;
++                if (isRed(uncle)) {
++                    parent.red = false;
++                    uncle.red = false;
++                    grand.red = true;
++                    x = grand;
++                } else {
++                    if (x == parent.left) {
++                        x = parent;
++                        rotateRight(x);
++                        parent = x.parent;
++                        grand = parent.parent;
++                    }
++                    parent.red = false;
++                    grand.red = true;
++                    rotateLeft(grand);
++                }
++            }
++        }
++        rootOf(x).red = false;
++    }
++
++    private static <K, V> void transplant(TreeEntry<K, V> u, TreeEntry<K, V> v) {
++        if (u.parent != null) {
++            if (u == u.parent.left) {
++                u.parent.left = v;
++            } else {
++                u.parent.right = v;
++            }
++        }
++        if (v != null) {
++            v.parent = u.parent;
++        }
++    }
++
++    private static <K, V> void deleteFromTree(TreeEntry<K, V> z) {
++        boolean removedRed = z.red;
++        TreeEntry<K, V> x;
++        TreeEntry<K, V> xParent;
++        if (z.left == null) {
++            x = z.right;
++            xParent = z.parent;
++            transplant(z, z.right);
++        } else if (z.right == null) {
++            x = z.left;
++            xParent = z.parent;
++            transplant(z, z.left);
+         } else {
+-            entry = elementData[0];
+-            while (entry != null && entry.key != null) {
+-                last = entry;
+-                entry = entry.next;
++            TreeEntry<K, V> y = z.right;
++            while (y.left != null) {
++                y = y.left;
++            }
++            removedRed = y.red;
++            x = y.right;
++            if (y.parent == z) {
++                xParent = y;
++            } else {
++                xParent = y.parent;
++                transplant(y, y.right);
++                y.right = z.right;
++                y.right.parent = y;
+             }
++            transplant(z, y);
++            y.left = z.left;
++            y.left.parent = y;
++            y.red = z.red;
+         }
+-        if (entry == null) {
++        z.parent = null;
++        z.left = null;
++        z.right = null;
++        if (!removedRed) {
++            rebalanceAfterDelete(x, xParent);
++        }
++    }
++
++    // teavm-fork: x may be null, so its parent is carried alongside it; x is the root exactly when that
++    // parent is null
++    private static <K, V> void rebalanceAfterDelete(TreeEntry<K, V> x, TreeEntry<K, V> parent) {
++        while (parent != null && !isRed(x)) {
++            if (x == parent.left) {
++                TreeEntry<K, V> w = parent.right;
++                if (isRed(w)) {
++                    w.red = false;
++                    parent.red = true;
++                    rotateLeft(parent);
++                    w = parent.right;
++                }
++                if (!isRed(w.left) && !isRed(w.right)) {
++                    w.red = true;
++                    x = parent;
++                    parent = x.parent;
++                } else {
++                    if (!isRed(w.right)) {
++                        w.left.red = false;
++                        w.red = true;
++                        rotateRight(w);
++                        w = parent.right;
++                    }
++                    w.red = parent.red;
++                    parent.red = false;
++                    if (w.right != null) {
++                        w.right.red = false;
++                    }
++                    rotateLeft(parent);
++                    x = rootOf(parent);
++                    break;
++                }
++            } else {
++                TreeEntry<K, V> w = parent.left;
++                if (isRed(w)) {
++                    w.red = false;
++                    parent.red = true;
++                    rotateRight(parent);
++                    w = parent.left;
++                }
++                if (!isRed(w.right) && !isRed(w.left)) {
++                    w.red = true;
++                    x = parent;
++                    parent = x.parent;
++                } else {
++                    if (!isRed(w.left)) {
++                        w.right.red = false;
++                        w.red = true;
++                        rotateLeft(w);
++                        w = parent.left;
++                    }
++                    w.red = parent.red;
++                    parent.red = false;
++                    if (w.left != null) {
++                        w.left.red = false;
++                    }
++                    rotateRight(parent);
++                    x = rootOf(parent);
++                    break;
++                }
++            }
++        }
++        if (x != null) {
++            x.red = false;
++        }
++    }
++
++    // teavm-fork: merge, compute and computeIfAbsent double the table before they look, whenever the size
++    // already passes the threshold (the first of them on a new map settles the table's size), even if the
++    // key is present or nothing gets added. A function that adds or removes keys of this map throws
++    // ConcurrentModificationException, as the JDK's HashMap does (recursive memoization with
++    // computeIfAbsent included).
++    private void growBeforeCompute() {
++        if (!tableSized) {
++            sizeTable();
++        } else if (elementCount > threshold) {
++            doubleTable();
++        }
++    }
++
++    // teavm-fork: a null argument throws NullPointerException without a message, before anything else
++    // happens, as the JDK's does
++    @Override
++    public V computeIfAbsent(K key, Function<? super K, ? extends V> mappingFunction) {
++        if (mappingFunction == null) {
++            throw new NullPointerException();
++        }
++        growBeforeCompute();
++        int hash = key == null ? 0 : key.hashCode();
++        int index = bucketIndex(hash, elementData.length);
++        HashEntry<K, V> entry = key == null ? findNullKeyEntry() : findNonNullKeyEntry(key, index, hash);
++        if (entry != null && entry.value != null) {
++            return entry.value;
++        }
++        int expectedModCount = modCount;
++        V value = mappingFunction.apply(key);
++        if (modCount != expectedModCount) {
++            throw new TConcurrentModificationException();
++        }
++        if (value == null) {
+             return null;
+         }
+-        if (last == null) {
+-            elementData[index] = entry.next;
++        if (entry != null) {
++            entry.value = value;
+         } else {
+-            last.next = entry.next;
++            modCount++;
++            prependEntry(key, hash, index, value);
++            elementCount++;
+         }
+-        modCount++;
+-        elementCount--;
+-        return entry;
++        return value;
++    }
++
++    @Override
++    public V compute(K key, BiFunction<? super K, ? super V, ? extends V> remappingFunction) {
++        if (remappingFunction == null) {
++            throw new NullPointerException();
++        }
++        growBeforeCompute();
++        int hash = key == null ? 0 : key.hashCode();
++        int index = bucketIndex(hash, elementData.length);
++        HashEntry<K, V> entry = key == null ? findNullKeyEntry() : findNonNullKeyEntry(key, index, hash);
++        int expectedModCount = modCount;
++        V value = remappingFunction.apply(key, entry != null ? entry.value : null);
++        if (modCount != expectedModCount) {
++            throw new TConcurrentModificationException();
++        }
++        if (entry != null) {
++            if (value != null) {
++                entry.value = value;
++            } else {
++                unlinkEntry(entry, true);
++            }
++        } else if (value != null) {
++            modCount++;
++            prependEntry(key, hash, index, value);
++            elementCount++;
++        }
++        return value;
++    }
++
++    @Override
++    public V merge(K key, V value, BiFunction<? super V, ? super V, ? extends V> remappingFunction) {
++        if (value == null || remappingFunction == null) {
++            throw new NullPointerException();
++        }
++        growBeforeCompute();
++        int hash = key == null ? 0 : key.hashCode();
++        int index = bucketIndex(hash, elementData.length);
++        HashEntry<K, V> entry = key == null ? findNullKeyEntry() : findNonNullKeyEntry(key, index, hash);
++        if (entry == null) {
++            modCount++;
++            prependEntry(key, hash, index, value);
++            elementCount++;
++            return value;
++        }
++        V newValue = value;
++        if (entry.value != null) {
++            int expectedModCount = modCount;
++            newValue = remappingFunction.apply(entry.value, value);
++            if (modCount != expectedModCount) {
++                throw new TConcurrentModificationException();
++            }
++        }
++        if (newValue != null) {
++            entry.value = newValue;
++        } else {
++            unlinkEntry(entry, true);
++        }
++        return newValue;
+     }
+ 
+     @Override
+diff --git a/classlib/src/main/java/org/teavm/classlib/java/util/THashSet.java b/classlib/src/main/java/org/teavm/classlib/java/util/THashSet.java
+index a67675f..9b74046 100644
+--- a/classlib/src/main/java/org/teavm/classlib/java/util/THashSet.java
++++ b/classlib/src/main/java/org/teavm/classlib/java/util/THashSet.java
+@@ -68,7 +68,9 @@ public class THashSet<E> extends TAbstractSet<E> implements TCloneable, TSeriali
+      *            the collection of elements to add.
+      */
+     public THashSet(TCollection<? extends E> collection) {
+-        this(new THashMap<>(collection.size() < 6 ? 11 : collection.size() * 2));
++        // teavm-fork: the JDK's HashSet(Collection) starts with the table new HashMap<>(n) would get for
++        // n = max(ceil(size / 0.75), 16), then adds each element as add does
++        this(new THashMap<>(Math.max(THashMap.capacity(collection.size()), 16)));
+         for (TIterator<? extends E> iter = collection.iterator(); iter.hasNext();) {
+             add(iter.next());
+         }
+diff --git a/classlib/src/main/java/org/teavm/classlib/java/util/TLinkedHashMap.java b/classlib/src/main/java/org/teavm/classlib/java/util/TLinkedHashMap.java
+index 8fd097b..a1a2a7d 100644
+--- a/classlib/src/main/java/org/teavm/classlib/java/util/TLinkedHashMap.java
++++ b/classlib/src/main/java/org/teavm/classlib/java/util/TLinkedHashMap.java
+@@ -18,6 +18,7 @@ package org.teavm.classlib.java.util;
+ import java.util.Objects;
+ import java.util.function.BiConsumer;
+ import java.util.function.BiFunction;
++import java.util.function.Function;
+ 
+ public class TLinkedHashMap<K, V> extends THashMap<K, V> implements TSequencedMap<K, V> {
+     private boolean accessOrder;
+@@ -133,7 +134,7 @@ public class TLinkedHashMap<K, V> extends THashMap<K, V> implements TSequencedMa
+             entry = (LinkedHashMapEntry<K, V>) findNullKeyEntry();
+         } else {
+             int hash = key.hashCode();
+-            int index = (hash & 0x7FFFFFFF) % elementData.length;
++            int index = bucketIndex(hash, elementData.length);
+             entry = (LinkedHashMapEntry<K, V>) findNonNullKeyEntry(key, index, hash);
+         }
+         if (entry == null) {
+@@ -193,13 +194,13 @@ public class TLinkedHashMap<K, V> extends THashMap<K, V> implements TSequencedMa
+             tail = null;
+         }
+         int hash = Objects.hashCode(key);
+-        int index = (hash & Integer.MAX_VALUE) % elementData.length;
++        int index = bucketIndex(hash, elementData.length);
+         entry = (LinkedHashMapEntry<K, V>) (key != null ? findNonNullKeyEntry(key, index, hash) : findNullKeyEntry());
+         if (entry == null) {
+             modCount++;
+             if (++elementCount > threshold) {
+                 rehash();
+-                index = (hash & Integer.MAX_VALUE) % elementData.length;
++                index = bucketIndex(hash, elementData.length);
+             }
+             entry = (LinkedHashMapEntry<K, V>) createHashedEntry(key, index, hash, first);
+         } else if (forceMotion) {
+@@ -251,6 +252,53 @@ public class TLinkedHashMap<K, V> extends THashMap<K, V> implements TSequencedMa
+         }
+     }
+ 
++    // teavm-fork: THashMap now has its own merge, compute and computeIfAbsent (they place keys in the JDK's
++    // HashMap order); a LinkedHashMap keeps doing them through get, put and remove, so its links and its
++    // access order stay as they were.
++    @Override
++    public V computeIfAbsent(K key, Function<? super K, ? extends V> mappingFunction) {
++        TObjects.requireNonNull(mappingFunction);
++        V v = get(key);
++        if (v == null) {
++            V newValue = mappingFunction.apply(key);
++            if (newValue != null) {
++                put(key, newValue);
++            }
++            return newValue;
++        }
++        return v;
++    }
++
++    @Override
++    public V compute(K key, BiFunction<? super K, ? super V, ? extends V> remappingFunction) {
++        TObjects.requireNonNull(remappingFunction);
++        V oldValue = get(key);
++        V newValue = remappingFunction.apply(key, oldValue);
++        if (oldValue != null) {
++            if (newValue != null) {
++                put(key, newValue);
++            } else {
++                remove(key);
++            }
++        } else if (newValue != null) {
++            put(key, newValue);
++        }
++        return newValue;
++    }
++
++    @Override
++    public V merge(K key, V value, BiFunction<? super V, ? super V, ? extends V> remappingFunction) {
++        TObjects.requireNonNull(remappingFunction);
++        V oldValue = get(key);
++        V newValue = (oldValue == null) ? value : remappingFunction.apply(oldValue, value);
++        if (newValue == null) {
++            remove(key);
++        } else {
++            put(key, newValue);
++        }
++        return newValue;
++    }
++
+     @Override
+     public TSet<Entry<K, V>> entrySet() {
+         return new TLinkedHashMapEntrySet<>(this, false);

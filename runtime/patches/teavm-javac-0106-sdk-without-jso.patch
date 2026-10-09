@@ -1,0 +1,50 @@
+# Copyright 2026 Groundwork contributors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# Plan 4 Task 6, S1 (D46): org.teavm.jso, TeaVM's JavaScript interop, leaves the class library javac
+# compiles against (compile-classlib-teavm.bin, "the SDK"). A box could `import org.teavm.jso.JSBody` and
+# run any JavaScript in its worker, from there even import(), which no worker can remove (D86); the JDK
+# has no such package. StdlibConverter builds the SDK from every jar of generateClassLib's classlibInput
+# (teavm-classlib, teavm-jso, teavm-jso-apis) and already skipped org/teavm/jso/impl/; it now skips all of
+# org/teavm/jso/, so the SDK holds no class of the package or its subpackages (277 entries before) and the
+# module-info it generates exports none of them. javac then says what the JDK says: "package org.teavm.jso
+# does not exist". The SDK classes that still name a jso type (package-private helpers in java.lang,
+# java.nio and java.util that implement JSObject or TimerHandler, and two TeaVM-only public types,
+# java.nio.ArrayBufferViewProvider and java.nio.JSBufferHelper$WasmGC) are never completed by ordinary
+# code, and every gate passes without the package. The runtime classlib (runtime-classlib-teavm.bin,
+# which buildTeaVMClassLib builds from the same jars) is unchanged: TeaVM's own classes use org.teavm.jso
+# at run time (its console print streams, which teavm-0016 edits, and teavm-0012's Navigator), and a
+# program's compiled code links against them there. classlibInput is left as it is because that same
+# configuration feeds the runtime classlib.
+#
+# Written against teavm-javac's own tracked files (compiler/build.gradle, StdlibConverter.java), from the
+# pinned JDK's observed output; no OpenJDK source was opened.
+#
+# Applies to: github.com/konsoletyper/teavm-javac 2ddcf02e (master, 2026-09-04)
+
+diff --git a/compiler/src/main/java/org/teavm/javac/StdlibConverter.java b/compiler/src/main/java/org/teavm/javac/StdlibConverter.java
+index 4b81bff..74ec518 100644
+--- a/compiler/src/main/java/org/teavm/javac/StdlibConverter.java
++++ b/compiler/src/main/java/org/teavm/javac/StdlibConverter.java
+@@ -43,7 +43,9 @@ public class StdlibConverter extends ClassVisitor {
+     private static final String PREFIX = "org/teavm/classlib/java/";
+     private static final String[] EXCLUDED = {
+             "org/teavm/classlib/",
+-            "org/teavm/jso/impl/",
++            // teavm-fork: all of org.teavm.jso, not only its impl package. TeaVM's JavaScript interop is not in
++            // the JDK, and a program that could name it (@JSBody) could run JavaScript; the runtime classlib keeps it.
++            "org/teavm/jso/",
+             "org/teavm/platform",
+             "java/nio/charset/impl/",
+             "java/util/stream/impl",

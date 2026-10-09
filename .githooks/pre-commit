@@ -1,0 +1,14 @@
+#!/bin/sh
+# Refuse to commit added content matching a deny pattern.
+#
+# Taken from tokenwatt, minus its VERSION bump: this repo has no version to
+# increment. The scan is the whole hook.
+#
+# Bypass for one commit with: git commit --no-verify
+set -e
+
+HOOK_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+if ! git -c core.quotePath=false diff --cached --no-color -U0 | "$HOOK_DIR/leak-scan"; then
+  echo "pre-commit: leak-scan blocked this commit (see above). Override: git commit --no-verify" >&2
+  exit 1
+fi

@@ -1,0 +1,729 @@
+# Copyright 2026 Groundwork contributors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# D11. Runtime errors carry the JDK's own message text, for the errors a first course shows. Written
+# from the pinned JDK's observed output only (clean room, D14): every message below was read off small
+# programs run on Temurin 25.0.4.1; no OpenJDK source was opened.
+#   - array index (compiler): the bounds check the strict-mode compiler inserts now throws
+#     "Index 3 out of bounds for length 3"; a check for a possibly negative index keeps the array so the
+#     message can name its length.
+#   - casts (compiler): "class java.lang.String cannot be cast to class java.lang.Integer (java.lang.String
+#     and java.lang.Integer are in module java.base of loader 'bootstrap')". A program's own classes are
+#     "in unnamed module of loader com.sun.tools.javac.launcher.MemoryClassLoader @<hash>", as with
+#     java Main.java; the hash is an identity hash on both sides and never matches (the JDK's changes with
+#     the program and its directory). Every reached class keeps its name so the message can name it.
+#   - String.charAt: "Index 5 out of bounds for length 3"; String.substring/subSequence: a
+#     StringIndexOutOfBoundsException (was a bare IndexOutOfBoundsException on Wasm) with
+#     "Range [2, 7) out of bounds for length 3", checked before the empty-range shortcut.
+#   - Integer.parseInt, Long.parseLong: For input string: "12a" (plus " under radix 16" for another
+#     radix), "Cannot parse null string", "radix 1 less than Character.MIN_RADIX".
+#   - Double.parseDouble, Float.parseFloat: For input string: "abc", "multiple points", "empty String".
+#   - Not changed here: Scanner.nextInt/nextLong (teavm-0005) pass parseInt/parseLong's message through,
+#     so with this patch a token out of range reports the text above. That matches the JDK for a token
+#     with no sign or a leading '-'; for a leading '+' the fork's message drops the '+' and the JDK's keeps
+#     it (For input string: "99999999999" where the JDK says "+99999999999").
+# NullPointerException's "helpful" message is left out on purpose (D11): no page shows it.
+#
+# Applies to: github.com/konsoletyper/teavm tag 0.13.1 (b3a245b7), after teavm-0001 to teavm-0008
+
+diff --git a/classlib/src/main/java/org/teavm/classlib/java/lang/TDouble.java b/classlib/src/main/java/org/teavm/classlib/java/lang/TDouble.java
+index 8e300e3..0a9b9e8 100644
+--- a/classlib/src/main/java/org/teavm/classlib/java/lang/TDouble.java
++++ b/classlib/src/main/java/org/teavm/classlib/java/lang/TDouble.java
+@@ -78,17 +78,52 @@ public class TDouble extends TNumber implements TComparable<TDouble> {
+         return valueOf(parseDouble(string));
+     }
+ 
++    // teavm-fork: the JDK's NumberFormatException text for a string Double.parseDouble or Float.parseFloat
++    // rejects, as observed on the pinned JDK: "empty String" when nothing but whitespace is left,
++    // "multiple points" when the leading run of digits and points holds a second point, and otherwise
++    // For input string: "<the string as given>".
++    static NumberFormatException invalidNumber(String string) {
++        int start = 0;
++        int end = string.length();
++        while (start < end && string.charAt(start) <= ' ') {
++            ++start;
++        }
++        while (end > start && string.charAt(end - 1) <= ' ') {
++            --end;
++        }
++        if (start == end) {
++            return new NumberFormatException("empty String");
++        }
++        int index = start;
++        if (string.charAt(index) == '+' || string.charAt(index) == '-') {
++            ++index;
++        }
++        boolean point = false;
++        for (; index < end; ++index) {
++            char c = string.charAt(index);
++            if (c == '.') {
++                if (point) {
++                    return new NumberFormatException("multiple points");
++                }
++                point = true;
++            } else if (c < '0' || c > '9') {
++                break;
++            }
++        }
++        return new NumberFormatException("For input string: \"" + string + "\"");
++    }
++
+     public static double parseDouble(String string) throws NumberFormatException {
+         // TODO: parse infinite and different radix
+ 
+         if (string.isEmpty()) {
+-            throw new NumberFormatException();
++            throw invalidNumber(string);
+         }
+         int start = 0;
+         int end = string.length();
+         while (string.charAt(start) <= ' ') {
+             if (++start == end) {
+-                throw new NumberFormatException();
++                throw invalidNumber(string);
+             }
+         }
+         while (string.charAt(end - 1) <= ' ') {
+@@ -108,7 +143,7 @@ public class TDouble extends TNumber implements TComparable<TDouble> {
+             ++index;
+         }
+         if (index == end) {
+-            throw new NumberFormatException();
++            throw invalidNumber(string);
+         }
+         char c = string.charAt(index);
+ 
+@@ -119,7 +154,7 @@ public class TDouble extends TNumber implements TComparable<TDouble> {
+         if (c != '.') {
+             hasOneDigit = true;
+             if (c < '0' || c > '9') {
+-                throw new NumberFormatException();
++                throw invalidNumber(string);
+             }
+             while (index < end && string.charAt(index) == '0') {
+                 ++index;
+@@ -154,18 +189,18 @@ public class TDouble extends TNumber implements TComparable<TDouble> {
+                 hasOneDigit = true;
+             }
+             if (!hasOneDigit) {
+-                throw new NumberFormatException();
++                throw invalidNumber(string);
+             }
+         }
+         if (index < end) {
+             c = string.charAt(index);
+             if (c != 'e' && c != 'E') {
+-                throw new NumberFormatException();
++                throw invalidNumber(string);
+             }
+             ++index;
+             boolean negativeExp = false;
+             if (index == end) {
+-                throw new NumberFormatException();
++                throw invalidNumber(string);
+             }
+             if (string.charAt(index) == '-') {
+                 ++index;
+@@ -185,7 +220,7 @@ public class TDouble extends TNumber implements TComparable<TDouble> {
+                 ++index;
+             }
+             if (!hasOneDigit) {
+-                throw new NumberFormatException();
++                throw invalidNumber(string);
+             }
+             if (negativeExp) {
+                 numExp = -numExp;
+diff --git a/classlib/src/main/java/org/teavm/classlib/java/lang/TFloat.java b/classlib/src/main/java/org/teavm/classlib/java/lang/TFloat.java
+index b8cf6a3..e5d1bf5 100644
+--- a/classlib/src/main/java/org/teavm/classlib/java/lang/TFloat.java
++++ b/classlib/src/main/java/org/teavm/classlib/java/lang/TFloat.java
+@@ -120,16 +120,17 @@ public class TFloat extends TNumber implements TComparable<TFloat> {
+     public static native boolean isFinite(float v);
+ 
+     public static float parseFloat(String string) throws NumberFormatException {
++        // teavm-fork: rejected strings get the JDK's message text (TDouble.invalidNumber)
+         // TODO: parse infinite and different radix
+ 
+         if (string.isEmpty()) {
+-            throw new NumberFormatException();
++            throw TDouble.invalidNumber(string);
+         }
+         int start = 0;
+         int end = string.length();
+         while (string.charAt(start) <= ' ') {
+             if (++start == end) {
+-                throw new NumberFormatException();
++                throw TDouble.invalidNumber(string);
+             }
+         }
+         while (string.charAt(end - 1) <= ' ') {
+@@ -149,7 +150,7 @@ public class TFloat extends TNumber implements TComparable<TFloat> {
+             ++index;
+         }
+         if (index == end) {
+-            throw new NumberFormatException();
++            throw TDouble.invalidNumber(string);
+         }
+         char c = string.charAt(index);
+ 
+@@ -161,7 +162,7 @@ public class TFloat extends TNumber implements TComparable<TFloat> {
+         if (c != '.') {
+             hasOneDigit = true;
+             if (c < '0' || c > '9') {
+-                throw new NumberFormatException();
++                throw TDouble.invalidNumber(string);
+             }
+ 
+             while (index < end && string.charAt(index) == '0') {
+@@ -198,18 +199,18 @@ public class TFloat extends TNumber implements TComparable<TFloat> {
+                 hasOneDigit = true;
+             }
+             if (!hasOneDigit) {
+-                throw new NumberFormatException();
++                throw TDouble.invalidNumber(string);
+             }
+         }
+         if (index < end) {
+             c = string.charAt(index);
+             if (c != 'e' && c != 'E') {
+-                throw new NumberFormatException();
++                throw TDouble.invalidNumber(string);
+             }
+             ++index;
+             boolean negativeExp = false;
+             if (index == end) {
+-                throw new NumberFormatException();
++                throw TDouble.invalidNumber(string);
+             }
+             if (string.charAt(index) == '-') {
+                 ++index;
+@@ -229,7 +230,7 @@ public class TFloat extends TNumber implements TComparable<TFloat> {
+                 ++index;
+             }
+             if (!hasOneDigit) {
+-                throw new NumberFormatException();
++                throw TDouble.invalidNumber(string);
+             }
+             if (negativeExp) {
+                 numExp = -numExp;
+diff --git a/classlib/src/main/java/org/teavm/classlib/java/lang/TInteger.java b/classlib/src/main/java/org/teavm/classlib/java/lang/TInteger.java
+index f361bcf..338f90d 100644
+--- a/classlib/src/main/java/org/teavm/classlib/java/lang/TInteger.java
++++ b/classlib/src/main/java/org/teavm/classlib/java/lang/TInteger.java
+@@ -100,7 +100,7 @@ public class TInteger extends TNumber implements TComparable<TInteger> {
+ 
+     public static int parseInt(String s, int radix) throws TNumberFormatException {
+         if (s == null) {
+-            throw new TNumberFormatException("String is null");
++            throw new TNumberFormatException("Cannot parse null string");
+         }
+         return parseIntImpl(s, 0, s.length(), radix);
+     }
+@@ -111,11 +111,15 @@ public class TInteger extends TNumber implements TComparable<TInteger> {
+ 
+     private static int parseIntImpl(CharSequence s, int beginIndex, int endIndex, int radix)
+             throws TNumberFormatException {
+-        if (beginIndex == endIndex) {
+-            throw new TNumberFormatException("String is empty");
++        // teavm-fork: every message below is the JDK's text, as observed on the pinned JDK
++        if (radix < TCharacter.MIN_RADIX) {
++            throw new TNumberFormatException("radix " + radix + " less than Character.MIN_RADIX");
++        }
++        if (radix > TCharacter.MAX_RADIX) {
++            throw new TNumberFormatException("radix " + radix + " greater than Character.MAX_RADIX");
+         }
+-        if (radix < TCharacter.MIN_RADIX || radix > TCharacter.MAX_RADIX) {
+-            throw new TNumberFormatException("Illegal radix: " + radix);
++        if (beginIndex == endIndex) {
++            throw invalidNumber(s, beginIndex, endIndex, radix);
+         }
+         boolean negative = false;
+         int index = beginIndex;
+@@ -131,33 +135,29 @@ public class TInteger extends TNumber implements TComparable<TInteger> {
+         int value = 0;
+         int maxValue = 1 + TInteger.MAX_VALUE / radix;
+         if (index == endIndex) {
+-            throw new TNumberFormatException();
++            throw invalidNumber(s, beginIndex, endIndex, radix);
+         }
+         while (index < endIndex) {
+             int digit = decodeDigit(s.charAt(index++));
+-            if (digit < 0) {
+-                throw new TNumberFormatException("String contains invalid digits: "
+-                        + s.subSequence(beginIndex, endIndex));
+-            }
+-            if (digit >= radix) {
+-                throw new TNumberFormatException("String contains digits out of radix " + radix + ": "
+-                        + s.subSequence(beginIndex, endIndex));
+-            }
+-            if (value > maxValue) {
+-                throw new TNumberFormatException("The value is too big for integer type");
++            if (digit < 0 || digit >= radix || value > maxValue) {
++                throw invalidNumber(s, beginIndex, endIndex, radix);
+             }
+             value = radix * value + digit;
+             if (value < 0) {
+                 if (index == endIndex && value == MIN_VALUE && negative) {
+                     return MIN_VALUE;
+                 }
+-                throw new TNumberFormatException("The value is too big for int type: "
+-                        + s.subSequence(beginIndex, endIndex));
++                throw invalidNumber(s, beginIndex, endIndex, radix);
+             }
+         }
+         return negative ? -value : value;
+     }
+ 
++    private static TNumberFormatException invalidNumber(CharSequence s, int beginIndex, int endIndex, int radix) {
++        return new TNumberFormatException("For input string: \"" + s.subSequence(beginIndex, endIndex) + "\""
++                + (radix == 10 ? "" : " under radix " + radix));
++    }
++
+     public static int parseInt(String s) throws TNumberFormatException {
+         return parseInt(s, 10);
+     }
+diff --git a/classlib/src/main/java/org/teavm/classlib/java/lang/TLong.java b/classlib/src/main/java/org/teavm/classlib/java/lang/TLong.java
+index 139530b..4731e12 100644
+--- a/classlib/src/main/java/org/teavm/classlib/java/lang/TLong.java
++++ b/classlib/src/main/java/org/teavm/classlib/java/lang/TLong.java
+@@ -42,7 +42,7 @@ public class TLong extends TNumber implements TComparable<TLong> {
+ 
+     public static long parseLong(String s, int radix) throws TNumberFormatException {
+         if (s == null) {
+-            throw new TNumberFormatException("String is null");
++            throw new TNumberFormatException("Cannot parse null string");
+         }
+         return parseLongImpl(s, 0, s.length(), radix);
+     }
+@@ -54,11 +54,15 @@ public class TLong extends TNumber implements TComparable<TLong> {
+ 
+     private static long parseLongImpl(CharSequence s, int beginIndex, int endIndex, int radix)
+             throws TNumberFormatException {
+-        if (radix < TCharacter.MIN_RADIX || radix > TCharacter.MAX_RADIX) {
+-            throw new TNumberFormatException("Illegal radix: " + radix);
++        // teavm-fork: every message below is the JDK's text, as observed on the pinned JDK
++        if (radix < TCharacter.MIN_RADIX) {
++            throw new TNumberFormatException("radix " + radix + " less than Character.MIN_RADIX");
++        }
++        if (radix > TCharacter.MAX_RADIX) {
++            throw new TNumberFormatException("radix " + radix + " greater than Character.MAX_RADIX");
+         }
+         if (beginIndex == endIndex) {
+-            throw new TNumberFormatException("String is empty");
++            throw invalidNumber(s, beginIndex, endIndex, radix);
+         }
+         boolean negative = false;
+         int index = beginIndex;
+@@ -74,33 +78,29 @@ public class TLong extends TNumber implements TComparable<TLong> {
+         long value = 0;
+         long maxValue = 1 + TLong.MAX_VALUE / radix;
+         if (index == endIndex) {
+-            throw new TNumberFormatException();
++            throw invalidNumber(s, beginIndex, endIndex, radix);
+         }
+         while (index < endIndex) {
+             int digit = decodeDigit(s.charAt(index++));
+-            if (digit < 0) {
+-                throw new TNumberFormatException("String contains invalid digits: "
+-                        + s.subSequence(beginIndex, endIndex));
+-            }
+-            if (digit >= radix) {
+-                throw new TNumberFormatException("String contains digits out of radix " + radix + ": "
+-                        + s.subSequence(beginIndex, endIndex));
+-            }
+-            if (value > maxValue) {
+-                throw new TNumberFormatException("The value is too big for long type");
++            if (digit < 0 || digit >= radix || value > maxValue) {
++                throw invalidNumber(s, beginIndex, endIndex, radix);
+             }
+             value = radix * value + digit;
+             if (value < 0) {
+                 if (index == endIndex && value == MIN_VALUE && negative) {
+                     return MIN_VALUE;
+                 }
+-                throw new TNumberFormatException("The value is too big for long type: "
+-                        + s.subSequence(beginIndex, endIndex));
++                throw invalidNumber(s, beginIndex, endIndex, radix);
+             }
+         }
+         return negative ? -value : value;
+     }
+ 
++    private static TNumberFormatException invalidNumber(CharSequence s, int beginIndex, int endIndex, int radix) {
++        return new TNumberFormatException("For input string: \"" + s.subSequence(beginIndex, endIndex) + "\""
++                + (radix == 10 ? "" : " under radix " + radix));
++    }
++
+     public static long parseLong(String s) throws TNumberFormatException {
+         return parseLong(s, 10);
+     }
+diff --git a/classlib/src/main/java/org/teavm/classlib/java/lang/TString.java b/classlib/src/main/java/org/teavm/classlib/java/lang/TString.java
+index a96a5ec..e2a20e3 100644
+--- a/classlib/src/main/java/org/teavm/classlib/java/lang/TString.java
++++ b/classlib/src/main/java/org/teavm/classlib/java/lang/TString.java
+@@ -156,7 +156,9 @@ public class TString extends TObject implements TSerializable, TComparable<TStri
+     @Override
+     public char charAt(int index) {
+         if (index < 0 || index >= charactersLength()) {
+-            throw new TStringIndexOutOfBoundsException();
++            // teavm-fork: the JDK's message text, as observed on the pinned JDK
++            throw new TStringIndexOutOfBoundsException("Index " + index + " out of bounds for length "
++                    + charactersLength());
+         }
+         return charactersGet(index);
+     }
+@@ -427,6 +429,13 @@ public class TString extends TObject implements TSerializable, TComparable<TStri
+ 
+     public TString substring(int beginIndex, int endIndex) {
+         int length = charactersLength();
++        // teavm-fork: the range is checked first on every platform (Wasm used to throw a bare
++        // IndexOutOfBoundsException, or none at all for an empty range), with the JDK's exception class and
++        // message text as observed on the pinned JDK.
++        if (beginIndex < 0 || beginIndex > endIndex || endIndex > length) {
++            throw new TStringIndexOutOfBoundsException("Range [" + beginIndex + ", " + endIndex
++                    + ") out of bounds for length " + length);
++        }
+         if (beginIndex == endIndex) {
+             return EMPTY;
+         }
+@@ -436,9 +445,6 @@ public class TString extends TObject implements TSerializable, TComparable<TStri
+         }
+ 
+         if (PlatformDetector.isJavaScript()) {
+-            if (beginIndex < 0 || beginIndex > endIndex || endIndex > length) {
+-                throw new TStringIndexOutOfBoundsException();
+-            }
+             return new TString(substringJS(nativeString(), beginIndex, endIndex));
+         }
+         return new TString(fastCharArray(), beginIndex, endIndex - beginIndex);
+diff --git a/core/src/main/java/org/teavm/backend/wasm/gc/WasmGCDependencies.java b/core/src/main/java/org/teavm/backend/wasm/gc/WasmGCDependencies.java
+index 702f9f9..c8b016b 100644
+--- a/core/src/main/java/org/teavm/backend/wasm/gc/WasmGCDependencies.java
++++ b/core/src/main/java/org/teavm/backend/wasm/gc/WasmGCDependencies.java
+@@ -113,6 +113,12 @@ public class WasmGCDependencies {
+         analyzer.linkMethod(new MethodReference(WasmGCSupport.class, "aiiobe", ArrayIndexOutOfBoundsException.class))
+                 .use();
+         analyzer.linkMethod(new MethodReference(WasmGCSupport.class, "cce", ClassCastException.class)).use();
++        // teavm-fork: the variants that build the JDK's message text
++        analyzer.linkMethod(new MethodReference(WasmGCSupport.class, "aiiobe", int.class, int.class,
++                ArrayIndexOutOfBoundsException.class)).use();
++        var cceWithValue = analyzer.linkMethod(new MethodReference(WasmGCSupport.class, "cce", Object.class,
++                String.class, ClassCastException.class));
++        cceWithValue.propagate(2, String.class).use();
+         analyzer.linkMethod(new MethodReference(WasmGCSupport.class, "throwCloneNotSupportedException",
+                 void.class)).use();
+         analyzer.linkMethod(new MethodReference(WasmGCSupport.class, "defaultClone", Object.class, Object.class)).use();
+@@ -128,6 +134,10 @@ public class WasmGCDependencies {
+                             .propagate(0, Throwable.class)
+                             .use();
+                 }
++                // teavm-fork: a failed cast's message names the class of the value (WasmGCSupport.cce reads
++                // value.getClass().getName()), and a class keeps its name only if the analysis sees it reach
++                // Class.getName; any class's instance can be cast, so every reached class flows there.
++                cceWithValue.getVariable(1).propagate(agent.getType(ValueType.object(className)));
+             }
+         });
+     }
+diff --git a/core/src/main/java/org/teavm/backend/wasm/generate/common/methods/BaseWasmGenerationVisitor.java b/core/src/main/java/org/teavm/backend/wasm/generate/common/methods/BaseWasmGenerationVisitor.java
+index cf38b36..b8f6a2a 100644
+--- a/core/src/main/java/org/teavm/backend/wasm/generate/common/methods/BaseWasmGenerationVisitor.java
++++ b/core/src/main/java/org/teavm/backend/wasm/generate/common/methods/BaseWasmGenerationVisitor.java
+@@ -1365,7 +1365,16 @@ public abstract class BaseWasmGenerationVisitor implements StatementVisitor, Exp
+         accept(expr.getIndex());
+         var index = exprCache.create(result, WasmType.INT32, expr.getLocation(), block.getBody());
+ 
++        // teavm-fork: the array is kept so that the exception can name the length, as the JDK's
++        // "Index 3 out of bounds for length 3" does.
++        CachedExpression array = null;
+         if (expr.getArray() != null) {
++            accept(expr.getArray());
++            result.acceptVisitor(typeInference);
++            array = exprCache.create(result, typeInference.getSingleResult(), expr.getLocation(), block.getBody());
++        }
++
++        if (array != null) {
+             var condBlock = block;
+             if (expr.isLower()) {
+                 condBlock = new WasmBlock(false);
+@@ -1377,8 +1386,7 @@ public abstract class BaseWasmGenerationVisitor implements StatementVisitor, Exp
+                 condBlock.getBody().add(lowerBranch);
+             }
+ 
+-            accept(expr.getArray());
+-            var upperBound = generateArrayLength(result);
++            var upperBound = generateArrayLength(array.expr());
+             var upperCond = new WasmIntBinary(WasmIntType.INT32, WasmIntBinaryOperation.LT_SIGNED,
+                     index.expr(), upperBound);
+             var upperBranch = new WasmBranch(upperCond, block);
+@@ -1394,7 +1402,12 @@ public abstract class BaseWasmGenerationVisitor implements StatementVisitor, Exp
+ 
+         var callSiteId = generateCallSiteId(expr.getLocation());
+         callSiteId.generateRegister(block.getBody(), expr.getLocation());
+-        generateThrowAIOOBE(expr.getLocation(), block.getBody());
++        if (array != null) {
++            generateThrowAIOOBE(index.expr(), generateArrayLength(array.expr()), expr.getLocation(),
++                    block.getBody());
++        } else {
++            generateThrowAIOOBE(expr.getLocation(), block.getBody());
++        }
+         callSiteId.generateThrow(block.getBody(), expr.getLocation());
+ 
+         result = block;
+@@ -1402,6 +1415,12 @@ public abstract class BaseWasmGenerationVisitor implements StatementVisitor, Exp
+ 
+     protected abstract void generateThrowAIOOBE(TextLocation location, List<WasmExpression> target);
+ 
++    // teavm-fork: a backend that can say which index and length failed overrides this.
++    protected void generateThrowAIOOBE(WasmExpression index, WasmExpression length, TextLocation location,
++            List<WasmExpression> target) {
++        generateThrowAIOOBE(location, target);
++    }
++
+     protected abstract void generateThrowCCE(TextLocation location, List<WasmExpression> target);
+ 
+     private static WasmExpression negate(WasmExpression expr) {
+diff --git a/core/src/main/java/org/teavm/backend/wasm/generate/gc/methods/WasmGCGenerationContext.java b/core/src/main/java/org/teavm/backend/wasm/generate/gc/methods/WasmGCGenerationContext.java
+index f933326..04afad6 100644
+--- a/core/src/main/java/org/teavm/backend/wasm/generate/gc/methods/WasmGCGenerationContext.java
++++ b/core/src/main/java/org/teavm/backend/wasm/generate/gc/methods/WasmGCGenerationContext.java
+@@ -208,6 +208,17 @@ public class WasmGCGenerationContext implements BaseWasmGenerationContext {
+         return cceMethod;
+     }
+ 
++    // teavm-fork: exceptions that carry the JDK's message text (see WasmGCSupport).
++    public WasmFunction aaiobeWithIndexMethod() {
++        return functions().forStaticMethod(new MethodReference(WasmGCSupport.class, "aiiobe",
++                int.class, int.class, ArrayIndexOutOfBoundsException.class));
++    }
++
++    public WasmFunction cceWithValueMethod() {
++        return functions().forStaticMethod(new MethodReference(WasmGCSupport.class, "cce",
++                Object.class, String.class, ClassCastException.class));
++    }
++
+     public WasmModule module() {
+         return module;
+     }
+diff --git a/core/src/main/java/org/teavm/backend/wasm/generate/gc/methods/WasmGCGenerationVisitor.java b/core/src/main/java/org/teavm/backend/wasm/generate/gc/methods/WasmGCGenerationVisitor.java
+index 138bd62..6d11f90 100644
+--- a/core/src/main/java/org/teavm/backend/wasm/generate/gc/methods/WasmGCGenerationVisitor.java
++++ b/core/src/main/java/org/teavm/backend/wasm/generate/gc/methods/WasmGCGenerationVisitor.java
+@@ -38,6 +38,7 @@ import org.teavm.backend.wasm.BaseWasmFunctionRepository;
+ import org.teavm.backend.wasm.WasmFunctionTypes;
+ import org.teavm.backend.wasm.gc.PreciseTypeInference;
+ import org.teavm.backend.wasm.gc.vtable.WasmGCVirtualTableProvider;
++import org.teavm.backend.wasm.generate.CachedExpression;
+ import org.teavm.backend.wasm.generate.ExpressionCache;
+ import org.teavm.backend.wasm.generate.TemporaryVariablePool;
+ import org.teavm.backend.wasm.generate.common.methods.BaseWasmGenerationVisitor;
+@@ -121,6 +122,7 @@ public class WasmGCGenerationVisitor extends BaseWasmGenerationVisitor {
+     private WasmGCVirtualCallGenerator virtualCallGenerator;
+     private boolean compactMode;
+     private Set<MethodReference> asyncSplitMethods;
++    private ValueType castTarget;
+ 
+     public WasmGCGenerationVisitor(WasmGCGenerationContext context, MethodReference currentMethod,
+             WasmFunction function, int firstVariable, boolean async, PreciseTypeInference types,
+@@ -191,9 +193,44 @@ public class WasmGCGenerationVisitor extends BaseWasmGenerationVisitor {
+         generateThrow(new WasmCall(context.aaiobeMethod()), location, target);
+     }
+ 
++    @Override
++    protected void generateThrowAIOOBE(WasmExpression index, WasmExpression length, TextLocation location,
++            List<WasmExpression> target) {
++        generateThrow(new WasmCall(context.aaiobeWithIndexMethod(), index, length), location, target);
++    }
++
+     @Override
+     protected void generateThrowCCE(TextLocation location, List<WasmExpression> target) {
+-        generateThrow(new WasmCall(context.cceMethod()), location, target);
++        // teavm-fork: the only caller left is teavm-0008's check of a cast between unrelated classes, which
++        // has just cached the value being cast (still in `result`) in a local; the message needs that value.
++        var value = castValueLocal(target);
++        if (value != null && castTarget != null) {
++            generateThrowCCE(new WasmGetLocal(value), castTarget, location, target);
++        } else {
++            generateThrow(new WasmCall(context.cceMethod()), location, target);
++        }
++    }
++
++    private WasmLocal castValueLocal(List<WasmExpression> body) {
++        if (result instanceof WasmGetLocal) {
++            return ((WasmGetLocal) result).getLocal();
++        }
++        for (var expression : body) {
++            if (expression instanceof WasmSetLocal && ((WasmSetLocal) expression).getValue() == result) {
++                return ((WasmSetLocal) expression).getLocal();
++            }
++        }
++        return null;
++    }
++
++    // teavm-fork: the JDK's message names the class of the value and the class it was cast to.
++    private void generateThrowCCE(WasmExpression value, ValueType castTo, TextLocation location,
++            List<WasmExpression> target) {
++        var targetName = castTo instanceof ValueType.Object
++                ? ((ValueType.Object) castTo).getClassName()
++                : castTo.toString().replace('/', '.');
++        generateThrow(new WasmCall(context.cceWithValueMethod(), value, stringLiteral(targetName)), location,
++                target);
+     }
+ 
+     @Override
+@@ -555,6 +592,7 @@ public class WasmGCGenerationVisitor extends BaseWasmGenerationVisitor {
+     @Override
+     public void visit(CastExpr expr) {
+         acceptWithType(expr.getValue(), expr.getTarget());
++        castTarget = expr.getTarget();
+         if (expr.getTarget() instanceof ValueType.Object) {
+             var className = ((ValueType.Object) expr.getTarget()).getClassName();
+             if (context.classInfoProvider().getClassInfo(className).isHeapStructure()) {
+@@ -614,17 +652,20 @@ public class WasmGCGenerationVisitor extends BaseWasmGenerationVisitor {
+ 
+             var block = new WasmBlock(false);
+             block.setLocation(expr.getLocation());
++            CachedExpression valueToCheck;
+             if (canCastNatively(expr.getTarget())) {
+                 block.setType(targetType.asBlock());
+                 if (!canInsertCast) {
+                     return;
+                 }
+-                block.getBody().add(new WasmCastBranch(WasmCastCondition.SUCCESS, result, sourceType,
+-                        targetType, block));
++                // teavm-fork: the value is kept for the exception's message instead of being left on the stack.
++                valueToCheck = exprCache.create(result, sourceType, expr.getLocation(), block.getBody());
++                block.getBody().add(new WasmDrop(new WasmCastBranch(WasmCastCondition.SUCCESS, valueToCheck.expr(),
++                        sourceType, targetType, block)));
+                 result = block;
+             } else {
+                 block.setType(sourceType.asBlock());
+-                var valueToCheck = exprCache.create(result, sourceType, expr.getLocation(), block.getBody());
++                valueToCheck = exprCache.create(result, sourceType, expr.getLocation(), block.getBody());
+                 block.getBody().add(new WasmNullConstant(sourceType));
+                 var nonNullValue = new WasmNullBranch(WasmNullCondition.NULL, valueToCheck.expr(), block);
+                 block.getBody().add(new WasmDrop(nonNullValue));
+@@ -642,7 +683,7 @@ public class WasmGCGenerationVisitor extends BaseWasmGenerationVisitor {
+                     result = cast;
+                 }
+             }
+-            generateThrowCCE(expr.getLocation(), block.getBody());
++            generateThrowCCE(valueToCheck.expr(), expr.getTarget(), expr.getLocation(), block.getBody());
+         } else if (canInsertCast) {
+             result = new WasmCast(result, targetType);
+             result.setLocation(expr.getLocation());
+diff --git a/core/src/main/java/org/teavm/backend/wasm/runtime/gc/WasmGCSupport.java b/core/src/main/java/org/teavm/backend/wasm/runtime/gc/WasmGCSupport.java
+index 6599539..f38cd24 100644
+--- a/core/src/main/java/org/teavm/backend/wasm/runtime/gc/WasmGCSupport.java
++++ b/core/src/main/java/org/teavm/backend/wasm/runtime/gc/WasmGCSupport.java
+@@ -35,6 +35,81 @@ public class WasmGCSupport {
+         return new ClassCastException();
+     }
+ 
++    // teavm-fork: the messages below reproduce the text the JDK prints for the same failures, as observed
++    // on the pinned JDK 25 ("Index 3 out of bounds for length 3", "class java.lang.String cannot be cast
++    // to class java.lang.Integer (...)"). Written from observed output only.
++    public static ArrayIndexOutOfBoundsException aiiobe(int index, int length) {
++        return new ArrayIndexOutOfBoundsException("Index " + index + " out of bounds for length " + length);
++    }
++
++    public static ClassCastException cce(Object value, String targetName) {
++        var sourceName = nameOf(value.getClass());
++        var sourceModule = moduleOf(sourceName);
++        var targetModule = moduleOf(targetName);
++        var where = sourceModule.equals(targetModule)
++                ? sourceName + " and " + targetName + " are in " + sourceModule
++                : sourceName + " is in " + sourceModule + "; " + targetName + " is in " + targetModule;
++        return new ClassCastException("class " + sourceName + " cannot be cast to class " + targetName
++                + " (" + where + ")");
++    }
++
++    // Class.getName's text. An array class's name is spelled out here from its element class, because
++    // the Wasm GC backend keeps names only for the classes the analysis sees reaching Class.getName.
++    private static String nameOf(Class<?> cls) {
++        return cls.isArray() ? "[" + descriptorOf(cls.getComponentType()) : cls.getName();
++    }
++
++    private static String descriptorOf(Class<?> cls) {
++        if (cls.isArray()) {
++            return "[" + descriptorOf(cls.getComponentType());
++        } else if (cls == int.class) {
++            return "I";
++        } else if (cls == long.class) {
++            return "J";
++        } else if (cls == double.class) {
++            return "D";
++        } else if (cls == float.class) {
++            return "F";
++        } else if (cls == char.class) {
++            return "C";
++        } else if (cls == boolean.class) {
++            return "Z";
++        } else if (cls == byte.class) {
++            return "B";
++        } else if (cls == short.class) {
++            return "S";
++        }
++        return "L" + cls.getName() + ";";
++    }
++
++    private static String sourceLoader;
++
++    // The JDK names the module and class loader of each class: java.* classes are in java.base, loaded by
++    // the bootstrap loader; a program's own classes (java Main.java) are in the unnamed module of the
++    // source launcher's loader, printed with that loader's identity hash, one value per run.
++    private static String moduleOf(String className) {
++        var javaBase = "module java.base of loader 'bootstrap'";
++        var element = className;
++        if (element.startsWith("[")) {
++            // an array class ("[I", "[[Ljava.lang.String;") lives where its element class lives
++            while (element.startsWith("[")) {
++                element = element.substring(1);
++            }
++            if (!element.startsWith("L")) {
++                return javaBase;
++            }
++            element = element.substring(1);
++        }
++        if (element.startsWith("java.")) {
++            return javaBase;
++        }
++        if (sourceLoader == null) {
++            sourceLoader = "unnamed module of loader com.sun.tools.javac.launcher.MemoryClassLoader @"
++                    + Integer.toHexString(new Object().hashCode());
++        }
++        return sourceLoader;
++    }
++
+     public static void throwCloneNotSupportedException() throws CloneNotSupportedException {
+         throw new CloneNotSupportedException();
+     }
+diff --git a/core/src/main/java/org/teavm/model/transformation/BoundCheckInsertion.java b/core/src/main/java/org/teavm/model/transformation/BoundCheckInsertion.java
+index 0c86838..e0ecba9 100644
+--- a/core/src/main/java/org/teavm/model/transformation/BoundCheckInsertion.java
++++ b/core/src/main/java/org/teavm/model/transformation/BoundCheckInsertion.java
+@@ -407,9 +407,10 @@ public class BoundCheckInsertion {
+                 if (lower) {
+                     boundCheck.setLower(true);
+                 }
+-                if (upper) {
+-                    boundCheck.setArray(arrayVar);
+-                }
++                // teavm-fork: a lower-only check keeps the array too (it used to be set only for an upper
++                // check), so the exception it throws can name the array's length ("Index -1 out of bounds
++                // for length 3"); the extra upper comparison only runs where a check was needed anyway.
++                boundCheck.setArray(arrayVar);
+                 boundCheck.setIndex(indexVar);
+                 boundCheck.setReceiver(indexVar);
+                 boundCheck.setLocation(instruction.getLocation());

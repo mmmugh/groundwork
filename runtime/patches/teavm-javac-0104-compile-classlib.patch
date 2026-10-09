@@ -1,0 +1,76 @@
+# Copyright 2026 Groundwork contributors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# Task 7b: two gaps in the classlib javac compiles against (compile-classlib-teavm.bin, which
+# StdlibConverter builds from TeaVM's classes). Written against teavm-javac's own tracked files (its
+# compiler/ sources), from the pinned JDK's observed output and the public Javadoc (clean room, D14); no
+# OpenJDK source was opened.
+#
+# G7-map-entry. javac could not name a nested library type: `Map.Entry<K, V>` gave "cannot find symbol:
+# class Entry, location: interface java.util.Map", so chapter 9's `for (Map.Entry<K, V> e :
+# m.entrySet())` did not compile (AbstractMap.SimpleEntry, Map.Entry.comparingByValue() and
+# `import java.util.Map.Entry` failed the same way). javac learns a class's member types from its
+# InnerClasses attribute. StdlibConverter renamed each class, its descriptors and its signatures from
+# TeaVM's names (org/teavm/classlib/java/util/TMap$Entry) to the JDK's (java/util/Map$Entry), but copied
+# the InnerClasses attribute unchanged, so java/util/Map.class listed a member that javac never matched.
+# Now visitInnerClass renames the member and its outer class with the same rename(); the simple name
+# ("Entry") needs no change. Nested types TeaVM's classlib does not have at all (Thread.State,
+# Character.UnicodeBlock, Locale.Category) still do not compile; that is a library gap, not this one.
+#
+# G7-suppress-warnings (with teavm-0013). TeaVM declares TAnnotation as an @interface, so once renamed,
+# java.lang.annotation.Annotation was an annotation type that extended itself. Any annotation type a
+# program declared failed with "cyclic inheritance involving java.lang.annotation.Annotation", and
+# @SuppressWarnings overflowed javac's stack ("Maximum call stack size exceeded"). The Javadoc gives
+# Annotation as a plain interface: the converter now drops ACC_ANNOTATION and the self-reference.
+#
+# Touches StdlibConverter, which teavm-javac-0103 also edits; both hunks sit away from 0103's lines, so
+# each applies with the other left out.
+#
+# Applies to: github.com/konsoletyper/teavm-javac 2ddcf02e (master, 2026-09-04)
+
+diff --git a/compiler/src/main/java/org/teavm/javac/StdlibConverter.java b/compiler/src/main/java/org/teavm/javac/StdlibConverter.java
+index 3a06931..4b81bff 100644
+--- a/compiler/src/main/java/org/teavm/javac/StdlibConverter.java
++++ b/compiler/src/main/java/org/teavm/javac/StdlibConverter.java
+@@ -134,6 +134,14 @@ public class StdlibConverter extends ClassVisitor {
+             case "java/lang/RuntimeException":
+                 superName = "java/lang/Exception";
+                 break;
++            case "java/lang/annotation/Annotation":
++                // teavm-fork: TeaVM declares TAnnotation as an @interface, so once renamed it was an
++                // annotation type extending itself. javac reported "cyclic inheritance involving
++                // java.lang.annotation.Annotation" for any annotation type a program declared, and
++                // overflowed the stack on @SuppressWarnings. In the JDK it is a plain interface.
++                access &= ~Opcodes.ACC_ANNOTATION;
++                interfaces = new String[0];
++                break;
+         }
+ 
+         if (interfaces != null) {
+@@ -196,6 +204,15 @@ public class StdlibConverter extends ClassVisitor {
+         return super.visitAnnotation(desc, visible);
+     }
+ 
++    // teavm-fork: javac finds a member type (Map.Entry, AbstractMap.SimpleEntry) through the InnerClasses
++    // attribute of the outer class and of the member itself. That attribute still named TeaVM's classes
++    // (org/teavm/classlib/java/util/TMap$Entry), so javac saw no member Entry in java.util.Map and said
++    // "cannot find symbol: class Entry". Now it names both classes by their JDK names.
++    @Override
++    public void visitInnerClass(String name, String outerName, String innerName, int access) {
++        super.visitInnerClass(rename(name), outerName != null ? rename(outerName) : null, innerName, access);
++    }
++
+     class FieldVisitorImpl extends FieldVisitor {
+         FieldVisitorImpl(FieldVisitor fv) {
+             super(Opcodes.ASM5, fv);

@@ -1,0 +1,8 @@
+{
+ "ch01-run#2": {"raises": "java.lang.ArrayIndexOutOfBoundsException", "why": "Index 3 is one past the end."},
+ "ch01-run#5": {"raises": "java.lang.StackOverflowError", "why": "down never stops calling itself."},
+ "ch01-run#6": {"stdin": ["21"]},
+ "ch01-run#7": {"stdin": ["café 😀", "Oslo"]},
+ "ch01-run#8": {"stdin": ["a", "b"]},
+ "ch01-run#10": {"reference": true}
+}

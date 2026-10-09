@@ -1,0 +1,330 @@
+# Copyright 2026 Groundwork contributors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# Task 8. java.util.Random follows the algorithms its Javadoc states, and the seed behind new Random()
+# and Math.random() comes from the host, once per Run (D16). Written from the public Javadoc (Random,
+# RandomGenerator, Math.random) and the pinned JDK's observed output (clean room, D14; no OpenJDK source
+# was opened), except the default-seed mixer, which follows SplitMix64 (its bullet below says from where)
+# and is a design choice, not JDK behavior.
+#   - TeaVM's Random ignored its seed: the seeded constructor and setSeed did nothing and every method drew
+#     from Math.random(), so new Random(42) printed different numbers on every run. Now setSeed, next(bits),
+#     nextInt(), nextInt(bound), nextLong, nextBoolean, nextFloat, nextDouble, nextGaussian and nextBytes
+#     are the Javadoc's own code, with its exception message ("bound must be positive").
+#   - nextInt(origin, bound) is inherited from RandomGenerator, whose Javadoc leaves the algorithm open. The
+#     one here was chosen black-box: on 3,000 sequences (15 ranges, 200 seeds, 20 draws each, then one more
+#     nextLong to count the draws consumed) it matched the JDK on all, where four rivals differed on 800 to
+#     2,800 (plain nextInt(n) + origin differs on power-of-two ranges). It is the int form of the
+#     nextLong(origin, bound) printed in Random's longs() Javadoc. The message is the JDK's ("bound must be
+#     greater than origin").
+#   - new Random() seeds itself from the host import teavmRandom.seed (a double: a whole number below
+#     2^53), read once per program, then stepped once per new Random() and mixed (SplitMix64), so each
+#     generator gets its own seed and a replay with the same host seed gets the same ones. The runner
+#     answers the import from the Run's randomSeed, or with a fresh value when there is none.
+#   - The default-seed mixer is a design choice, not JDK behavior: the JDK's default seed cannot be
+#     observed (it differs on every run), so nothing here can match or miss it. The mixer is a Weyl step
+#     plus the SplitMix64 finalizer (Steele, Lea and Flood, "Fast Splittable Pseudorandom Number
+#     Generators", OOPSLA 2014; Vigna's public-domain splitmix64.c at prng.di.unimi.it). Its constants
+#     (0x9E3779B97F4A7C15, 0xBF58476D1CE4E5B9, 0x94D049BB133111EB, shifts 30, 27, 31) were first written
+#     from recall, then checked against a copy of splitmix64.c fetched from prng.di.unimi.it: all match.
+#   - Both constructors call setSeed, which a subclass may override, as Random(long)'s Javadoc states (new
+#     Random(seed) is equivalent to new Random() followed by setSeed(seed)); the pinned JDK calls an
+#     overriding setSeed once from each constructor (case R8-setseed-override). ThreadLocalRandom, whose
+#     setSeed throws, passes that first call through to Random's until its own constructor has run, so
+#     its static instance still builds and still takes its seed from the Run.
+#   - Math.random() on Wasm GC draws nextDouble() from one new Random() made on first use, as its Javadoc
+#     says, instead of calling JavaScript's Math.random. Other platforms are unchanged.
+#   - Collections.shuffle, ThreadLocalRandom and SecureRandom extend or call TRandom and keep working;
+#     ThreadLocalRandom and the one-argument shuffle now take their seed from the Run too, so they replay.
+#     Collections.shuffle(list, new Random(s)) now prints the JDK's order (50 of 50 seeds).
+# Known limits, seen and not fixed (outside this patch's list of methods):
+#   - nextGaussian went through StrictMath.log, which TeaVM mapped to JavaScript's Math.log; that differed
+#     from the JDK's StrictMath.log on 1.6% of inputs in (0, 1), so about 0.75% of Gaussian values differed
+#     in the last digit (151 of 20,000 from one seed). Fixed since by teavm-0015, which ports fdlibm's log
+#     (Task 11): case R11-gaussian is now identical to the JDK.
+#   - nextLong(bound), nextLong(origin, bound), longs(origin, bound) and nextGaussian(mean, stddev) still
+#     use TeaVM's RandomGenerator defaults and differ from the JDK for every seed tried. nextDouble and
+#     nextFloat with a bound or a range, ints and doubles matched.
+#   - The default seed exists only on Wasm GC (the host import); no other TeaVM backend is built here.
+diff --git a/classlib/src/main/java/org/teavm/classlib/java/lang/TMath.java b/classlib/src/main/java/org/teavm/classlib/java/lang/TMath.java
+index 8e53c56..ac03c38 100644
+--- a/classlib/src/main/java/org/teavm/classlib/java/lang/TMath.java
++++ b/classlib/src/main/java/org/teavm/classlib/java/lang/TMath.java
+@@ -19,6 +19,7 @@ import org.teavm.backend.javascript.spi.GeneratedBy;
+ import org.teavm.backend.wasm.WasmRuntime;
+ import org.teavm.backend.wasm.runtime.WasmSupport;
+ import org.teavm.classlib.PlatformDetector;
++import org.teavm.classlib.java.util.TRandom;
+ import org.teavm.interop.Import;
+ import org.teavm.interop.NoSideEffects;
+ import org.teavm.interop.Unmanaged;
+@@ -419,8 +420,17 @@ public final class TMath extends TObject {
+     @GeneratedBy(MathNativeGenerator.class)
+     private static native double randomImpl();
+ 
+-    @Import(module = "teavmMath", name = "random")
+-    private static native double randomWasmGC();
++    // teavm-fork (teavm-0014): on Wasm GC, Math.random() draws from one java.util.Random made on first
++    // use, as its Javadoc says ("exactly as if by the expression new java.util.Random()"), so its numbers
++    // come from the Run's seed too (D16), instead of from JavaScript's Math.random.
++    private static TRandom randomSource;
++
++    private static double randomWasmGC() {
++        if (randomSource == null) {
++            randomSource = new TRandom();
++        }
++        return randomSource.nextDouble();
++    }
+ 
+     public static int min(int a, int b) {
+         return a < b ? a : b;
+diff --git a/classlib/src/main/java/org/teavm/classlib/java/util/TRandom.java b/classlib/src/main/java/org/teavm/classlib/java/util/TRandom.java
+index 163deed..aee200d 100644
+--- a/classlib/src/main/java/org/teavm/classlib/java/util/TRandom.java
++++ b/classlib/src/main/java/org/teavm/classlib/java/util/TRandom.java
+@@ -15,75 +15,173 @@
+  */
+ package org.teavm.classlib.java.util;
+ 
+-import org.teavm.classlib.impl.RandomUtils;
+ import org.teavm.classlib.java.io.TSerializable;
+ import org.teavm.classlib.java.lang.TObject;
+ import org.teavm.classlib.java.util.random.TRandomGenerator;
++import org.teavm.interop.Import;
+ 
++// teavm-fork (teavm-0014): Random follows the algorithms its Javadoc states. The Javadoc says Java
++// implementations must use them, so that a seed gives the same numbers everywhere; TeaVM's version
++// ignored its seed and drew every value from Math.random(). Written from the public Javadoc and the
++// pinned JDK's observed output (clean room, D14: no OpenJDK source was opened), except the default-seed
++// mixer below, which is SplitMix64 and is not JDK behavior. The no-argument constructor takes its seed from
++// the host (the teavmRandom.seed import, answered from the Run's randomSeed), so a program replayed with
++// the same answers sees the same numbers (D16).
+ public class TRandom extends TObject implements TRandomGenerator, TSerializable {
+-    /** A stored gaussian value for nextGaussian() */
+-    private double storedGaussian;
++    private static final long MULTIPLIER = 0x5DEECE66DL;
++    private static final long ADDEND = 0xBL;
++    private static final long MASK = (1L << 48) - 1;
+ 
+-    /** Whether storedGuassian value is valid */
+-    private boolean haveStoredGaussian;
++    private long seed;
++    private double nextNextGaussian;
++    private boolean haveNextNextGaussian;
+ 
++    // The sequence the no-argument constructor draws its seeds from: started once from the host's seed,
++    // then one step per new Random(), so every such generator in a Run gets its own seed (the Javadoc:
++    // "very likely to be distinct from any other invocation of this constructor").
++    private static long defaultSeedState;
++    private static boolean defaultSeedStarted;
++
++    // Both constructors go through setSeed, which a subclass may override: Random(long)'s Javadoc says
++    // new Random(seed) is equivalent to new Random() followed by setSeed(seed), and the pinned JDK calls
++    // an overriding setSeed once from each constructor. ThreadLocalRandom, whose setSeed throws, lets
++    // this call through until its own constructor has run.
+     public TRandom() {
++        setSeed(nextDefaultSeed());
++    }
++
++    public TRandom(long seed) {
++        setSeed(seed);
++    }
++
++    // Weyl-sequence step and the SplitMix64 finalizer (Steele, Lea and Flood, 2014; Vigna's public-domain
++    // splitmix64.c): a bijection, so distinct steps give distinct seeds, and neighboring steps give
++    // unrelated ones, which the linear congruential generator would not do for seeds that differ by a
++    // constant.
++    private static long nextDefaultSeed() {
++        if (!defaultSeedStarted) {
++            defaultSeedState = (long) hostSeed();
++            defaultSeedStarted = true;
++        }
++        defaultSeedState += 0x9E3779B97F4A7C15L;
++        long z = defaultSeedState;
++        z = (z ^ (z >>> 30)) * 0xBF58476D1CE4E5B9L;
++        z = (z ^ (z >>> 27)) * 0x94D049BB133111EBL;
++        return z ^ (z >>> 31);
+     }
+ 
+-    public TRandom(@SuppressWarnings("unused") long seed) {
++    // A whole number below 2^53, the Run's seed, or a fresh random one when the Run gives none. A double,
++    // not a long, so the host answers with a plain JavaScript number.
++    @Import(module = "teavmRandom", name = "seed")
++    private static native double hostSeed();
++
++    public void setSeed(long seed) {
++        this.seed = (seed ^ MULTIPLIER) & MASK;
++        haveNextNextGaussian = false;
++    }
++
++    protected int next(int bits) {
++        seed = (seed * MULTIPLIER + ADDEND) & MASK;
++        return (int) (seed >>> (48 - bits));
+     }
+ 
+-    public void setSeed(@SuppressWarnings("unused") long seed) {
++    @Override
++    public void nextBytes(byte[] bytes) {
++        for (int i = 0; i < bytes.length;) {
++            for (int rnd = nextInt(), n = Math.min(bytes.length - i, 4); n-- > 0; rnd >>= 8) {
++                bytes[i++] = (byte) rnd;
++            }
++        }
+     }
+ 
+     @Override
+     public int nextInt() {
+-        return (int) (0x1.0p+32 * nextDouble() + Integer.MIN_VALUE);
++        return next(32);
++    }
++
++    @Override
++    public int nextInt(int bound) {
++        if (bound <= 0) {
++            throw new IllegalArgumentException("bound must be positive");
++        }
++        if ((bound & -bound) == bound) {
++            return (int) ((bound * (long) next(31)) >> 31);
++        }
++        int bits;
++        int val;
++        do {
++            bits = next(31);
++            val = bits % bound;
++        } while (bits - val + (bound - 1) < 0);
++        return val;
+     }
+ 
++    // Random inherits nextInt(origin, bound) from RandomGenerator, whose Javadoc says only that it calls
++    // nextInt() one or more times. The algorithm here was chosen black-box: it matched the pinned JDK on
++    // 3,000 sequences of 20 draws (15 ranges, 200 seeds, including power-of-two, rejection-heavy and
++    // wider-than-int ranges, and the number of draws consumed), where four rivals failed 800 to 2,800. It
++    // is the int form of the nextLong(origin, bound) that Random's longs() Javadoc prints. The message is
++    // the JDK's.
+     @Override
+-    public int nextInt(int n) {
+-        if (n <= 0) {
+-            throw new IllegalArgumentException();
++    public int nextInt(int origin, int bound) {
++        if (origin >= bound) {
++            throw new IllegalArgumentException("bound must be greater than origin");
++        }
++        int r = nextInt();
++        int n = bound - origin;
++        int m = n - 1;
++        if ((n & m) == 0) {
++            return (r & m) + origin;
++        }
++        if (n > 0) {
++            for (int u = r >>> 1; u + m - (r = u % n) < 0; u = nextInt() >>> 1) {
++                // rejected: draw again
++            }
++            return r + origin;
+         }
+-        return (int) (nextDouble() * n);
++        while (r < origin || r >= bound) {
++            r = nextInt();
++        }
++        return r;
+     }
+ 
+     @Override
+     public long nextLong() {
+-        return ((long) nextInt() << 32) | (nextInt() & 0xFFFFFFFFL);
++        return ((long) next(32) << 32) + next(32);
++    }
++
++    @Override
++    public boolean nextBoolean() {
++        return next(1) != 0;
+     }
+ 
+     @Override
+     public float nextFloat() {
+-        return (float) nextDouble();
++        return next(24) / ((float) (1 << 24));
+     }
+ 
+     @Override
+     public double nextDouble() {
+-        return Math.random();
++        return (((long) next(26) << 27) + next(27)) / (double) (1L << 53);
+     }
+ 
+-    /**
+-     * Generate a random number with Gaussian distribution:
+-     * centered around 0 with a standard deviation of 1.0.
+-     */
+     @Override
+     public double nextGaussian() {
+-        /*
+-         * This implementation uses the polar method to generate two gaussian
+-         * values at a time. One is returned, and the other is stored to be returned
+-         * next time.
+-         */
+-        if (haveStoredGaussian) {
+-            haveStoredGaussian = false;
+-            return storedGaussian;
++        if (haveNextNextGaussian) {
++            haveNextNextGaussian = false;
++            return nextNextGaussian;
+         }
+-
+-        double[] pair = RandomUtils.pairGaussian(this::nextDouble);
+-        haveStoredGaussian = true;
+-        storedGaussian = pair[1];
+-
+-        return pair[0];
++        double v1;
++        double v2;
++        double s;
++        do {
++            v1 = 2 * nextDouble() - 1;
++            v2 = 2 * nextDouble() - 1;
++            s = v1 * v1 + v2 * v2;
++        } while (s >= 1 || s == 0);
++        double multiplier = StrictMath.sqrt(-2 * StrictMath.log(s) / s);
++        nextNextGaussian = v2 * multiplier;
++        haveNextNextGaussian = true;
++        return v1 * multiplier;
+     }
+ }
+diff --git a/classlib/src/main/java/org/teavm/classlib/java/util/concurrent/TThreadLocalRandom.java b/classlib/src/main/java/org/teavm/classlib/java/util/concurrent/TThreadLocalRandom.java
+index 72b1bfa..2877174 100644
+--- a/classlib/src/main/java/org/teavm/classlib/java/util/concurrent/TThreadLocalRandom.java
++++ b/classlib/src/main/java/org/teavm/classlib/java/util/concurrent/TThreadLocalRandom.java
+@@ -20,7 +20,13 @@ import org.teavm.classlib.java.util.TRandom;
+ public class TThreadLocalRandom extends TRandom {
+     private static final TThreadLocalRandom current = new TThreadLocalRandom();
+ 
++    // teavm-fork (teavm-0014): Random's constructors now call setSeed, as Random(long)'s Javadoc says, so
++    // the call from TRandom() must go through (it seeds this generator from the Run, D16); only a call
++    // after this constructor has run throws.
++    private boolean initialized;
++
+     private TThreadLocalRandom() {
++        initialized = true;
+     }
+ 
+     public static TThreadLocalRandom current() {
+@@ -29,6 +35,9 @@ public class TThreadLocalRandom extends TRandom {
+ 
+     @Override
+     public void setSeed(long seed) {
+-        throw new UnsupportedOperationException();
++        if (initialized) {
++            throw new UnsupportedOperationException();
++        }
++        super.setSeed(seed);
+     }
+ }

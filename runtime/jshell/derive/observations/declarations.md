@@ -1,0 +1,513 @@
+Sessions run: declarations-1 (methods: create, redefine, overload, generic, varargs, modifiers, unresolved names, compile errors), declarations-2 (classes, interfaces, enums, records, annotation types, nesting, inheritance, modifiers, unresolved types), declarations-3 (variables redeclared, dependents of redefined variables, methods and classes, `/drop` with dependents), declarations-4 (class and method redefinition with live instances, modified versus replaced edge cases, failed redefinitions), declarations-5 (imports, several unresolved names at once, import errors), declarations-6 (dependents of a redefined class, enum constants, same name as method, class and variable), declarations-7 (syntax and semantic errors in declarations, modifiers, odd signatures), declarations-8 to declarations-13 (one broken or unfinished declaration each, to see which inputs wait for more lines), declarations-14 (multi-line declarations, errors on later lines, unresolved then redefined) and declarations-15 (interfaces, enums, records, subclass instances, several declarations on one line, `/drop` and redeclare). Every output below is what the real jshell printed (default engine) or what the same tool printed with `--execution local` (marked local). Each entry index is the `[n]` of that session's report.txt.
+
+
+## Methods
+
+- RULE declarations.1: A new method prints one line, `|  created method NAME(PARAMTYPES)\n`: parameter types only (no parameter names, no return type, no modifiers), separated by commas without spaces, varargs shown as `int...`, arrays as `int[][]`, generic type parameters shown as their names (`T`, bounds dropped), generic argument lists shown with a space after the comma, parameter annotations and `final` dropped.
+  - evidence: declarations-1#0 real "|  created method square(int)\n"
+  - evidence: declarations-1#5 real "|  created method square(int,int)\n"
+  - evidence: declarations-1#7 real "|  created method first(java.util.List<T>)\n"
+  - evidence: declarations-1#8 real "|  created method sum(int...)\n"
+  - evidence: declarations-1#51 real "|  created method max(T,T)\n"
+  - evidence: declarations-7#55 real "|  created method two2(java.util.Map<String, java.util.List<Integer>>)\n"
+  - evidence: declarations-7#56 real "|  created method arr2(int[][],String...)\n"
+  - evidence: declarations-7#58 real "|  created method wc(java.util.List<? extends Number>)\n"
+  - evidence: declarations-7#60 real "|  created method ap(int)\n"
+  - evidence: declarations-7#61 real "|  created method fp(int)\n"
+  - evidence: declarations-7#54 real "|  created method ten(int,int,int,int,int,int,int,int,int,int)\n"
+- RULE declarations.2: A void method, a static method, a public method, a final method, a private method, a protected method and a strictfp method are all created with the plain created line; no note about the modifier is printed.
+  - evidence: declarations-1#9 real "|  created method hi()\n"
+  - evidence: declarations-1#11 real "|  created method twice(int)\n"
+  - evidence: declarations-1#12 real "|  created method thrice(int)\n"
+  - evidence: declarations-1#13 real "|  created method four()\n"
+  - evidence: declarations-1#14 real "|  created method five()\n"
+  - evidence: declarations-7#18 real "|  created method mp()\n"
+  - evidence: declarations-7#24 real "|  created method mf()\n"
+- RULE declarations.3: `synchronized`, `native` and `default` on a top-level method are rejected with `Modifier 'X' not permitted` and the caret under the modifier; a repeated modifier is a plain compile error.
+  - evidence: declarations-7#19 real "|  Error:\n|  Modifier 'synchronized' not permitted\n|  synchronized int ms() { return 1; }\n|  ^----------^\n"
+  - evidence: declarations-7#20 real "|  Modifier 'native' not permitted\n"
+  - evidence: declarations-7#21 real "|  Modifier 'default' not permitted\n"
+  - evidence: declarations-7#31 real "|  Error:\n|  repeated modifier\n|  final final int ff = 1;\n|        ^\n"
+- RULE declarations.4: An abstract method at top level is created, and the line says it cannot be invoked until it is declared.
+  - evidence: declarations-1#15 real "|  created method six(), however, it cannot be invoked until method six() is declared\n"
+- RULE declarations.5: Redefining a method with the same signature and a different body prints `modified method`; the local engine prints `replaced method` for the same input. The call afterward uses the new body in both.
+  - evidence: declarations-1#2 real "|  modified method square(int)\n"
+  - evidence: declarations-1#2 local "|  replaced method square(int)\n"
+  - evidence: declarations-1#3 real "$4 ==> 32\n"
+  - evidence: declarations-1#38 real "|  modified method first(java.util.List<T>)\n"
+  - evidence: declarations-1#38 local "|  replaced method first(java.util.List<T>)\n"
+- RULE declarations.6: For the same pairs the events differ: the default engine reports the new snippet as VALID from VALID with signatureChange false, the local engine reports signatureChange true; both then report the old snippet OVERWRITTEN.
+  - evidence: declarations-1#2 events "\"name\":\"square\",\"signature\":\"(int)int\",\"parameterTypes\":\"int\",\"status\":\"VALID\",\"previousStatus\":\"VALID\",\"signatureChange\":false,\"cause\":null"
+  - evidence: declarations-1#2 elocal "\"name\":\"square\",\"signature\":\"(int)int\",\"parameterTypes\":\"int\",\"status\":\"VALID\",\"previousStatus\":\"VALID\",\"signatureChange\":true,\"cause\":null"
+  - evidence: declarations-1#2 events "\"status\":\"OVERWRITTEN\",\"previousStatus\":\"VALID\",\"signatureChange\":false,\"cause\":\"1\""
+- RULE declarations.7: Changing a method's return type prints `replaced method` in both engines; a changed return type of a method with the same parameters replaces it rather than adding an overload.
+  - evidence: declarations-1#4 real "|  replaced method square(int)\n"
+  - evidence: declarations-1#4 local "|  replaced method square(int)\n"
+  - evidence: declarations-1#4 events "\"signature\":\"(int)long\",\"parameterTypes\":\"int\",\"status\":\"VALID\",\"previousStatus\":\"VALID\",\"signatureChange\":true"
+- RULE declarations.8: Methods that differ in the parameter list are separate overloads, each printed `created`; a method that differs only in return type replaces the old one.
+  - evidence: declarations-1#5 real "|  created method square(int,int)\n"
+  - evidence: declarations-1#6 real "|  created method square(String)\n"
+  - evidence: declarations-7#35 real "|  replaced method sr()\n"
+- RULE declarations.9: `modified method` (real engine) covers an edit that changes only parameter names, a throws clause, `static`, `public`, an annotation, a local variable name, a comment or whitespace, a lambda body, or nothing at all (identical text); the local engine prints `replaced method` for most of these (parameter names, throws, annotation, lambda) but also prints `modified method` for the `static` edit, the `public` edit and the identical-text edit.
+  - evidence: declarations-4#13 real "|  modified method add(int,int)\n"
+  - evidence: declarations-4#13 local "|  replaced method add(int,int)\n"
+  - evidence: declarations-4#14 real "|  modified method add(int,int)\n"
+  - evidence: declarations-4#16 real "|  modified method add(int,int)\n"
+  - evidence: declarations-4#16 local "|  modified method add(int,int)\n"
+  - evidence: declarations-4#17 local "|  modified method add(int,int)\n"
+  - evidence: declarations-4#18 real "|  modified method add(int,int)\n"
+  - evidence: declarations-4#20 real "|  modified method add(int,int)\n"
+  - evidence: declarations-4#20 local "|  modified method add(int,int)\n"
+  - evidence: declarations-4#44 real "|  modified method lam()\n"
+  - evidence: declarations-4#46 real "|  modified method lv()\n"
+  - evidence: declarations-4#47 real "|  modified method lv()\n"
+  - evidence: declarations-4#48 real "|  modified method lv()\n"
+- RULE declarations.10: A method whose body declares a local class prints `replaced method` when the local class changes.
+  - evidence: declarations-4#41 real "|  created method loc()\n"
+  - evidence: declarations-4#42 real "|  replaced method loc()\n"
+- RULE declarations.11: Two overloads whose parameter types differ only by generic arguments (same erasure) are treated as one method: the second prints `replaced method er(java.util.List<Integer>)`. A varargs method and an array method with the same erasure also replace each other, and calling with several arguments then fails.
+  - evidence: declarations-1#42 real "|  created method er(java.util.List<String>)\n"
+  - evidence: declarations-1#43 real "|  replaced method er(java.util.List<Integer>)\n"
+  - evidence: declarations-7#39 real "|  replaced method va(int[])\n"
+  - evidence: declarations-7#40 real "|  Error:\n|  method va in class  cannot be applied to given types;\n|    required: int[]\n|    found:    int,int,int\n"
+- RULE declarations.12: A method that uses an undeclared variable, method or class is created, and the line names what is missing: `|  created method NAME(), however, it cannot be invoked until variable x is declared`, `... until method foo() is declared`, `... until class Thing is declared`. The events show RECOVERABLE_DEFINED with the unresolved names.
+  - evidence: declarations-1#16 real "|  created method usesX(), however, it cannot be invoked until variable x is declared\n"
+  - evidence: declarations-1#20 real "|  created method callsFoo(), however, it cannot be invoked until method foo() is declared\n"
+  - evidence: declarations-1#25 real "|  created method useThing(), however, it cannot be invoked until class Thing is declared\n"
+  - evidence: declarations-1#16 events "\"status\":\"RECOVERABLE_DEFINED\",\"previousStatus\":\"NONEXISTENT\""
+  - evidence: declarations-1#16 events "\"unresolved\":[\"variable x\"]"
+- RULE declarations.13: When a method has several missing names the line lists them in order of first use, `a, and b` for two and `a, b, and c` for three, then `are declared`. The missing method is shown with its argument types.
+  - evidence: declarations-5#25 real "|  created method two(), however, it cannot be invoked until variable aa, and method bb() are declared\n"
+  - evidence: declarations-5#30 real "|  created method three(), however, it cannot be invoked until class Foo, variable qq, and method rr() are declared\n"
+  - evidence: declarations-5#71 real "|  created method tri(), however, it cannot be invoked until variable t1, variable t2, and variable t3 are declared\n"
+  - evidence: declarations-5#65 real "|  created method rec(int), however, it cannot be invoked until method rec2(int) is declared\n"
+- RULE declarations.14: A method whose signature (parameter type, return type, throws clause or type-parameter bound) mentions an undeclared class is created with `cannot be referenced until class X is declared` (`referenced`, not `invoked`).
+  - evidence: declarations-5#56 real "|  created method pm(Undecl), however, it cannot be referenced until class Undecl is declared\n"
+  - evidence: declarations-5#57 real "|  created method rm(), however, it cannot be referenced until class Undecl2 is declared\n"
+  - evidence: declarations-5#61 real "|  created method tm(), however, it cannot be referenced until class MyEx is declared\n"
+  - evidence: declarations-5#54 real "|  created method gm(T), however, it cannot be referenced until class Bound is declared\n"
+  - evidence: declarations-5#56 events "\"status\":\"RECOVERABLE_NOT_DEFINED\""
+- RULE declarations.15: Declaring the missing name afterward prints only the new declaration's own line; nothing is printed for the method that now works. The events show the dependent as VALID from RECOVERABLE_DEFINED (signatureChange false in the default engine, true in the local engine).
+  - evidence: declarations-1#18 real "x ==> 5\n"
+  - evidence: declarations-1#21 real "|  created method foo()\n"
+  - evidence: declarations-5#28 real "|  created method bb()\n"
+  - evidence: declarations-2#43 real "|  created method g()\n"
+  - evidence: declarations-1#18 events "\"name\":\"usesX\",\"signature\":\"()int\",\"parameterTypes\":\"\",\"status\":\"VALID\",\"previousStatus\":\"RECOVERABLE_DEFINED\",\"signatureChange\":false"
+  - evidence: declarations-1#18 elocal "\"name\":\"usesX\",\"signature\":\"()int\",\"parameterTypes\":\"\",\"status\":\"VALID\",\"previousStatus\":\"RECOVERABLE_DEFINED\",\"signatureChange\":true"
+- RULE declarations.16: Calling a method that still has unresolved names prints `|  attempted to call method NAME() which cannot be invoked until variable x is declared`, listing only the names still missing; the events carry an UnresolvedReferenceException.
+  - evidence: declarations-1#17 real "|  attempted to call method usesX() which cannot be invoked until variable x is declared\n"
+  - evidence: declarations-5#27 real "|  attempted to call method two() which cannot be invoked until method bb() is declared\n"
+  - evidence: declarations-1#17 events "\"type\":\"UnresolvedReferenceException\""
+  - evidence: declarations-5#69 real "|  attempted to call method rec(int) which cannot be invoked until method rec2(int) is declared\n"
+- RULE declarations.17: A method whose referenced name exists but no longer compiles (type changed) is treated as unresolved with the compile message: redefining a variable or method with another type prints only the new declaration's line, with no update line for the method; the later call prints `attempted to call method ... until this error is corrected:` followed by the indented compile message and source line.
+  - evidence: declarations-3#20 real "n ==> \"str\"\n"
+  - evidence: declarations-3#21 real "|  attempted to call method getN() which cannot be invoked until this error is corrected: \n|      incompatible types: java.lang.String cannot be converted to int\n|      int getN() { return n; }\n|                          ^\n"
+  - evidence: declarations-3#28 real "|  replaced method base()\n"
+  - evidence: declarations-3#29 real "|  attempted to call method top() which cannot be invoked until this error is corrected: \n|      incompatible types: possible lossy conversion from long to int\n|      int top() { return base() + 1; }\n|                         ^--------^\n"
+  - evidence: declarations-14#21 real "dep ==> 1.5\n"
+  - evidence: declarations-14#22 real "|      incompatible types: possible lossy conversion from double to int\n"
+  - evidence: declarations-1#58 real "|  attempted to call method usesY() which cannot be invoked until this error is corrected: \n"
+- RULE declarations.18: Fixing the dependency afterward (new declaration of the right type) prints only that declaration's line, and the dependent works again.
+  - evidence: declarations-3#22 real "n ==> 1\n"
+  - evidence: declarations-3#23 real "$25 ==> 1\n"
+  - evidence: declarations-3#32 real "|  replaced method base()\n"
+  - evidence: declarations-3#33 real "$35 ==> 3\n"
+  - evidence: declarations-14#23 real "dep ==> 3\n"
+  - evidence: declarations-14#24 real "$20 ==> 4\n"
+- RULE declarations.19: Redefining a method that other methods call prints only the redefined method's line (`modified method` in the default engine, `replaced method` in the local engine); in the default engine the dependents print nothing and their events are not repeated, in the local engine the events list the dependent again.
+  - evidence: declarations-1#23 real "|  modified method foo()\n"
+  - evidence: declarations-1#23 local "|  replaced method foo()\n"
+  - evidence: declarations-1#23 elocal "\"name\":\"callsFoo\",\"signature\":\"()int\",\"parameterTypes\":\"\",\"status\":\"VALID\",\"previousStatus\":\"VALID\",\"signatureChange\":true"
+  - evidence: declarations-14#27 real "|  modified method helper()\n"
+  - evidence: declarations-14#27 local "|  replaced method helper()\n"
+  - evidence: declarations-14#27 elocal "\"name\":\"UsesHelper\""
+- RULE declarations.20: A method and a variable may share a name (`int fact(int)` and `int fact = 3;`); both are kept and both resolve.
+  - evidence: declarations-1#46 real "fact ==> 3\n"
+  - evidence: declarations-1#47 real "$43 ==> 24\n"
+  - evidence: declarations-1#48 real "fact ==> 3\n"
+  - evidence: declarations-15#39 real "rd ==> 3\n"
+- RULE declarations.21: A method named like a type (`Same`, `String`), `var`, `yield`, or with Unicode letters is created normally; a method named with a keyword (`new`) is rejected with a cascade of four errors.
+  - evidence: declarations-7#43 real "|  created method String()\n"
+  - evidence: declarations-7#44 real "|  created method var()\n"
+  - evidence: declarations-7#45 real "|  created method yield()\n"
+  - evidence: declarations-7#50 real "|  created method größe()\n"
+  - evidence: declarations-6#32 real "|  created method Same()\n"
+  - evidence: declarations-7#49 real "|  Error:\n|  '.class' expected\n"
+  - evidence: declarations-7#49 real "|  unexpected type\n|    required: value\n|    found:    class\n"
+- RULE declarations.22: A method that uses `this` or `super` is rejected as in a static context; a method that throws a checked exception it does not declare is rejected with the unreported-exception message; a declared one is created and the call prints the exception with a stack of `at name (#id:line)` lines.
+  - evidence: declarations-7#47 real "|  Error:\n|  non-static variable this cannot be referenced from a static context\n|  int th() { return this.hashCode() * 0; }\n|                    ^--^\n"
+  - evidence: declarations-1#41 real "|  Error:\n|  unreported exception java.lang.Exception; must be caught or declared to be thrown\n|  void t2() { throw new Exception(\"e\"); }\n|              ^-----------------------^\n"
+  - evidence: declarations-1#39 real "|  created method thrower()\n"
+  - evidence: declarations-1#40 real "|  Exception java.lang.Exception: e\n|        at thrower (#36:1)\n|        at (#37:1)\n"
+- RULE declarations.23: `public static void main(String[] args)` is created like any method and can be called with `main(null)`.
+  - evidence: declarations-7#41 real "|  created method main(String[])\n"
+  - evidence: declarations-7#42 real "hello\n"
+
+## Classes, interfaces, enums, records, annotation types
+
+- RULE declarations.24: A new type prints `|  created KIND NAME` with KIND one of `class`, `interface`, `enum`, `record`, `annotation interface`; nested types and type parameters are not shown.
+  - evidence: declarations-2#0 real "|  created class Dog\n"
+  - evidence: declarations-2#11 real "|  created interface Shape\n"
+  - evidence: declarations-2#16 real "|  created enum Color\n"
+  - evidence: declarations-2#20 real "|  created record Point\n"
+  - evidence: declarations-2#27 real "|  created annotation interface Marker\n"
+  - evidence: declarations-2#25 real "|  created record Box\n"
+  - evidence: declarations-2#29 real "|  created class Cell\n"
+  - evidence: declarations-2#31 real "|  created class Outer\n"
+  - evidence: declarations-2#32 real "|  created class Outer2\n"
+- RULE declarations.25: The modifiers `final`, `abstract`, `public`, `static`, `private` on a top-level class print the plain created line.
+  - evidence: declarations-2#46 real "|  created class Fin\n"
+  - evidence: declarations-2#47 real "|  created class Abs\n"
+  - evidence: declarations-2#48 real "|  created class Pub\n"
+  - evidence: declarations-2#49 real "|  created class St\n"
+  - evidence: declarations-2#50 real "|  created class Pr\n"
+- RULE declarations.26: Redefining a class with only a method body changed prints `modified class`; the local engine prints `replaced class` (and, if variables hold instances, update lines, see below). Identical text also prints `modified class`.
+  - evidence: declarations-2#3 real "|  modified class Dog\n"
+  - evidence: declarations-2#3 local "|  replaced class Dog\n"
+  - evidence: declarations-2#4 real "|  modified class Dog\n"
+  - evidence: declarations-6#7 real "|  modified class A\n"
+  - evidence: declarations-6#7 local "|  replaced class A\n"
+  - evidence: declarations-3#79 real "|  modified class Q\n"
+  - evidence: declarations-3#79 local "|  replaced class Q\n"
+- RULE declarations.27: Adding a field or a method to a class prints `replaced class`, in both engines.
+  - evidence: declarations-2#2 real "|  replaced class Dog\n"
+  - evidence: declarations-2#5 real "|  replaced class Dog\n"
+  - evidence: declarations-2#6 real "|  replaced class Dog\n"
+  - evidence: declarations-2#2 local "|  replaced class Dog\n"
+- RULE declarations.28: The same modified-versus-replaced split holds for the other kinds: an interface default body is modified, an added abstract method is replaced; an enum constructor body or constant argument change is modified, an added constant is replaced; a record method body is modified, changed components or an added method are replaced; an annotation type change is replaced. The local engine prints `replaced` for the modified ones.
+  - evidence: declarations-15#1 real "|  modified interface Gr\n"
+  - evidence: declarations-15#1 local "|  replaced interface Gr\n"
+  - evidence: declarations-15#2 real "|  replaced interface Gr\n"
+  - evidence: declarations-15#4 real "|  modified enum Pl\n"
+  - evidence: declarations-15#5 real "|  modified enum Pl\n"
+  - evidence: declarations-15#5 local "|  replaced enum Pl\n"
+  - evidence: declarations-15#6 real "|  replaced enum Pl\n"
+  - evidence: declarations-2#18 real "|  replaced enum Color\n"
+  - evidence: declarations-2#22 real "|  replaced record Point\n"
+  - evidence: declarations-2#23 real "|  replaced record Point\n"
+  - evidence: declarations-2#24 real "|  modified record Point\n"
+  - evidence: declarations-2#24 local "|  replaced record Point\n"
+  - evidence: declarations-2#28 real "|  replaced annotation interface Marker\n"
+  - evidence: declarations-15#10 real "|  replaced record Rg\n"
+  - evidence: declarations-15#12 real "|  replaced record Rg\n"
+- RULE declarations.29: Other class edits: renaming a type parameter or adding `extends Object` prints modified; changing a type-parameter bound, adding a constructor, an `implements`, `final`, a different visibility on a member, or an added nested-class method prints replaced; changing a nested class method body prints modified. Adding a second type parameter (`Box2<T>` to `Box2<T, U>`) also prints modified. Changing the kind (class to interface to enum to record) prints `replaced KIND` with the new kind.
+  - evidence: declarations-4#31 real "|  modified class Gen\n"
+  - evidence: declarations-4#28 real "|  modified class Kind\n"
+  - evidence: declarations-2#30 real "|  replaced class Cell\n"
+  - evidence: declarations-4#35 real "|  replaced class Ctor\n"
+  - evidence: declarations-4#29 real "|  replaced class Kind\n"
+  - evidence: declarations-4#26 real "|  replaced class Kind\n"
+  - evidence: declarations-4#37 real "|  replaced class Vis\n"
+  - evidence: declarations-4#39 real "|  modified class Nest\n"
+  - evidence: declarations-4#40 real "|  replaced class Nest\n"
+  - evidence: declarations-4#22 real "|  replaced interface Kind\n"
+  - evidence: declarations-4#23 real "|  replaced enum Kind\n"
+  - evidence: declarations-4#24 real "|  replaced record Kind\n"
+  - evidence: declarations-2#65 real "|  replaced class Color\n"
+  - evidence: declarations-6#29 real "|  modified class Box2\n"
+- RULE declarations.30: A class that extends or implements another snippet's type, redefined parent: the redefinition prints only the parent's line; the child needs no update line and keeps working.
+  - evidence: declarations-2#36 real "|  replaced class Animal\n"
+  - evidence: declarations-2#37 real "$38 ==> \"meow\"\n"
+  - evidence: declarations-2#14 real "|  replaced interface Shape\n"
+  - evidence: declarations-2#15 real "$16 ==> 1.0\n"
+- RULE declarations.31: A class or interface that mentions an undeclared class prints `created KIND NAME, however, it cannot be referenced until class X is declared`; the same for enum, record, annotation use, and a list `class A, and class B are declared`. A class whose method body uses a missing variable or method prints `cannot be instantiated or its methods invoked until ... is declared`.
+  - evidence: declarations-2#38 real "|  created class Puppy, however, it cannot be referenced until class Dogg is declared\n"
+  - evidence: declarations-2#40 real "|  created class Owner, however, it cannot be referenced until class Pet is declared\n"
+  - evidence: declarations-2#51 real "|  created interface S, however, it cannot be referenced until class A1, and class B1 are declared\n"
+  - evidence: declarations-5#42 real "|  created interface Needs, however, it cannot be referenced until class Missing is declared\n"
+  - evidence: declarations-5#45 real "|  created enum E2, however, it cannot be referenced until class Missing2 is declared\n"
+  - evidence: declarations-5#47 real "|  created record R2, however, it cannot be referenced until class Missing3 is declared\n"
+  - evidence: declarations-5#53 real "|  created class Annotated, however, it cannot be referenced until class Nope is declared\n"
+  - evidence: declarations-5#50 real "|  created class Both, however, it cannot be referenced until class BaseX, and class IfX are declared\n"
+  - evidence: declarations-2#42 real "|  created class Calc, however, it cannot be instantiated or its methods invoked until method g() is declared\n"
+  - evidence: declarations-5#35 real "|  created class Two, however, it cannot be instantiated or its methods invoked until method u(), and method v() are declared\n"
+  - evidence: declarations-5#39 real "|  created class UsesVar, however, it cannot be instantiated or its methods invoked until variable gv is declared\n"
+  - evidence: declarations-2#38 events "\"status\":\"RECOVERABLE_NOT_DEFINED\""
+  - evidence: declarations-2#42 events "\"status\":\"RECOVERABLE_DEFINED\""
+- RULE declarations.32: Declaring the missing class prints only that class's line; the dependent class or method becomes VALID in the events (cause = the new snippet) with no output.
+  - evidence: declarations-2#39 real "|  created class Dogg\n"
+  - evidence: declarations-2#39 events "\"name\":\"Puppy\",\"typeDecl\":true,\"status\":\"VALID\",\"previousStatus\":\"RECOVERABLE_NOT_DEFINED\""
+  - evidence: declarations-2#53 events "\"status\":\"VALID\",\"previousStatus\":\"RECOVERABLE_NOT_DEFINED\""
+  - evidence: declarations-1#26 real "|  created class Thing\n"
+- RULE declarations.33: Changing a class so that a method of another snippet no longer compiles (removing field v from Thing) prints only `replaced class Thing`; the dependent method then prints the unresolved message when called, and restoring the field repairs it silently.
+  - evidence: declarations-1#30 real "|  replaced class Thing\n"
+  - evidence: declarations-1#31 real "|  attempted to call method useThing() which cannot be invoked until variable v is declared\n"
+  - evidence: declarations-1#32 real "|  replaced class Thing\n"
+  - evidence: declarations-1#33 real "$34 ==> 9\n"
+  - evidence: declarations-6#8 real "|  replaced class A\n"
+  - evidence: declarations-6#9 real "|  attempted to call method take(A) which cannot be invoked until variable v is declared\n"
+  - evidence: declarations-6#10 real "|  replaced class A\n"
+  - evidence: declarations-6#11 real "$12 ==> 5\n"
+- RULE declarations.34: Removing an enum constant used by a method prints `replaced enum` only; the call then reports `until variable HI is declared`.
+  - evidence: declarations-6#45 real "|  replaced enum Lvl\n"
+  - evidence: declarations-6#46 real "|  attempted to call method top2() which cannot be invoked until variable HI is declared\n"
+  - evidence: declarations-6#47 real "|  replaced enum Lvl\n"
+  - evidence: declarations-6#48 real "$46 ==> HI\n"
+- RULE declarations.35: Changing a class into an interface makes dependents that instantiate or extend it unresolved, with no output beyond `replaced interface A`; turning it back to a class repairs them.
+  - evidence: declarations-6#12 real "|  replaced interface A\n"
+  - evidence: declarations-6#12 events "\"code\":\"compiler.err.abstract.cant.be.instantiated\""
+  - evidence: declarations-6#12 events "\"code\":\"compiler.err.no.intf.expected.here\""
+  - evidence: declarations-6#13 real "|  replaced class A\n"
+- RULE declarations.36: A sealed interface whose permitted classes are declared later waits (created line names the missing classes); each permitted record also waits for the interface, and the last declaration makes the whole group VALID at once in the events, with only the last record's own created line printed.
+  - evidence: declarations-2#52 real "|  created record A1, however, it cannot be referenced until class S is declared\n"
+  - evidence: declarations-2#53 real "|  created record B1\n"
+  - evidence: declarations-2#53 events "\"name\":\"S\",\"typeDecl\":true,\"status\":\"VALID\",\"previousStatus\":\"RECOVERABLE_NOT_DEFINED\""
+  - evidence: declarations-2#53 events "\"name\":\"A1\",\"typeDecl\":true,\"status\":\"VALID\",\"previousStatus\":\"RECOVERABLE_NOT_DEFINED\""
+- RULE declarations.37: Compile errors inside a class or method body print `|  Error:`, the message, the source line (for a multi-line declaration only the offending line, with its indentation kept) and a caret line; no `created` line is printed. A one-character span is `^`, two `^^`, longer spans `^-...-^`. Several errors print several blocks.
+  - evidence: declarations-2#45 real "|  Error:\n|  incompatible types: java.lang.String cannot be converted to int\n|  class Bad { int f() { return \"s\"; } }\n|                               ^-^\n"
+  - evidence: declarations-1#34 real "|  Error:\n|  incompatible types: java.lang.String cannot be converted to int\n|  int bad() { return \"s\"; }\n|                     ^-^\n"
+  - evidence: declarations-1#36 real "|  Error:\n|  variable a is already defined in method dup(int,int)\n|  int dup(int a, int a) { return a; }\n|                 ^---^\n"
+  - evidence: declarations-14#6 real "|  Error:\n|  incompatible types: java.lang.String cannot be converted to int\n|      return \"s\";\n|             ^-^\n"
+  - evidence: declarations-14#7 real "|      int b = \"s\";\n|              ^-^\n"
+  - evidence: declarations-14#8 real "|  Error:\n|  incompatible types: java.lang.String cannot be converted to int\n|      int a = \"s\";\n|              ^-^\n|  Error:\n|  incompatible types: java.lang.String cannot be converted to int\n|      return \"t\";\n|             ^-^\n"
+  - evidence: declarations-7#5 real "|  incompatible types: unexpected return value\n|  void f2() { return 1; }\n|                     ^\n"
+  - evidence: declarations-1#35 real "|  missing return statement\n|  int noret() { }\n|              ^-^\n"
+- RULE declarations.38: A declaration rejected for a compile error is not defined; using the name afterward gives `cannot find symbol` with `symbol:   method NAME()` (or `class`, `variable`).
+  - evidence: declarations-1#37 real "|  Error:\n|  cannot find symbol\n|    symbol:   method bad()\n|  bad()\n|  ^-^\n"
+  - evidence: declarations-3#57 real "|    symbol:   variable w\n"
+  - evidence: declarations-3#57 real "|    symbol:   variable w\n"
+- RULE declarations.39: A rejected redefinition also removes the working definition it was replacing: after a failing `int keep()`, `class Keep2` or `int keep3` redefinition the old one is gone and the name is `cannot find symbol`. The events show REJECTED from VALID then the old snippet OVERWRITTEN.
+  - evidence: declarations-4#58 real "|  Error:\n|  incompatible types: java.lang.String cannot be converted to int\n|  int keep() { return \"s\"; }\n"
+  - evidence: declarations-4#59 real "|    symbol:   method keep()\n"
+  - evidence: declarations-4#62 real "|    symbol:   class Keep2\n"
+  - evidence: declarations-4#65 real "|    symbol:   variable keep3\n"
+  - evidence: declarations-4#58 events "\"status\":\"REJECTED\",\"previousStatus\":\"VALID\""
+  - evidence: declarations-4#58 events "\"status\":\"OVERWRITTEN\",\"previousStatus\":\"VALID\""
+- RULE declarations.40: Syntax errors: missing semicolon, missing return type, missing class name or illegal start of expression print the compiler message with the caret where the parser stopped; `foo1() { return 1; }` (no return type) prints two error blocks.
+  - evidence: declarations-7#0 real "|  Error:\n|  ';' expected\n|  int f1() { return 1 }\n|                     ^\n"
+  - evidence: declarations-7#2 real "|  Error:\n|  ';' expected\n|  foo1() { return 1; }\n|        ^\n|  Error:\n|  cannot find symbol\n|    symbol:   method foo1()\n"
+  - evidence: declarations-7#3 real "|  <identifier> expected\n|  class { }\n|       ^\n"
+  - evidence: declarations-7#4 real "|  illegal start of expression\n|  int x1 = ;\n"
+  - evidence: declarations-7#7 real "|  <identifier> expected\n|  int f3(int) { return 1; }\n"
+- RULE declarations.41: Other semantic errors in declarations: constructor returning a value, extending a final class, cyclic inheritance, an instance field in a record, an interface method with a body, an abstract method in a non-abstract class, instantiating an abstract class.
+  - evidence: declarations-7#12 real "|  incompatible types: unexpected return value\n"
+  - evidence: declarations-7#13 real "|  cannot inherit from final java.lang.String\n"
+  - evidence: declarations-7#14 real "|  cyclic inheritance involving A5\n"
+  - evidence: declarations-7#15 real "|  field declaration must be static\n|    (consider replacing field with record component)\n"
+  - evidence: declarations-7#16 real "|  interface abstract methods cannot have body\n"
+  - evidence: declarations-7#17 real "|  A6 is not abstract and does not override abstract method f() in A6\n"
+  - evidence: declarations-7#26 real "|  Ab1 is abstract; cannot be instantiated\n"
+- RULE declarations.42: A record with a compact constructor that is not `public` is rejected (`invalid canonical constructor in record Rg`, `attempting to assign stronger access privileges; was public`); with `public` it is created, and `new Rg(3, 1)` prints the thrown exception with an `at Rg.<init> (#8:1)` frame.
+  - evidence: declarations-15#7 real "|  Error:\n|  invalid canonical constructor in record Rg\n|    (attempting to assign stronger access privileges; was public)\n"
+  - evidence: declarations-15#8 real "|  created record Rg\n"
+  - evidence: declarations-15#9 real "|  Exception java.lang.IllegalArgumentException: bad\n|        at Rg.<init> (#8:1)\n|        at (#9:1)\n"
+- RULE declarations.43: `new P()` on a class with only a one-argument constructor is an error with `required:`, `found:    no arguments` and `reason:` lines; redefining the class without the constructor makes `new P()` work.
+  - evidence: declarations-2#58 real "|  Error:\n|  constructor P in class P cannot be applied to given types;\n|    required: int\n|    found:    no arguments\n|    reason: actual and formal argument lists differ in length\n|  new P()\n|  ^-----^\n"
+  - evidence: declarations-2#60 real "|  replaced class P\n"
+- RULE declarations.44: A class whose name equals an existing variable's (or a method's) name is created normally (names of different kinds do not clash).
+  - evidence: declarations-2#63 real "Counter2 ==> 4\n"
+  - evidence: declarations-2#64 real "|  created class Counter2\n"
+  - evidence: declarations-6#31 real "|  created class Same\n"
+- RULE declarations.45: A user class named like an imported one (`class List`) is created, and variables typed with the old generic `List<Integer>` become unusable: the created line is followed by an update line with the compile error; new declarations using `List<Integer>` are rejected.
+  - evidence: declarations-5#20 real "|  created class List\n|    update replaced variable li which cannot be referenced until this error is corrected: \n|      type List does not take parameters\n|      List<Integer> li = new ArrayList<>();\n|      ^-----------^\n"
+  - evidence: declarations-5#21 real "|  Error:\n|  type List does not take parameters\n"
+- RULE declarations.46: A static import of `max` plus a user method `max(int,int,int)`: the user method is added as another overload; calling it with two arguments reports `cannot be applied` using an empty class name (`method max in class  cannot be applied to given types;`, two spaces).
+  - evidence: declarations-5#22 real "|  created method max(int,int,int)\n"
+  - evidence: declarations-5#23 real "|  method max in class  cannot be applied to given types;\n|    required: int,int,int\n|    found:    int,int\n"
+  - evidence: declarations-5#24 real "$18 ==> 0\n"
+
+## Variables
+
+- RULE declarations.47: Redeclaring a variable with the same type prints just the value line `n ==> 6` (no `modified`/`replaced`); with a different type, a `var`, an array or a list type likewise only `NAME ==> VALUE`. Without an initializer the variable resets to its default (`n ==> 0`).
+  - evidence: declarations-3#1 real "n ==> 6\n"
+  - evidence: declarations-3#2 real "n ==> \"s\"\n"
+  - evidence: declarations-3#6 real "v ==> \"x\"\n"
+  - evidence: declarations-3#7 real "n ==> 0\n"
+  - evidence: declarations-3#9 real "a ==> long[1] { 1 }\n"
+  - evidence: declarations-3#11 real "names ==> []\n"
+  - evidence: declarations-3#13 real "K ==> 4\n"
+- RULE declarations.48: The events for a same-type redeclaration are VALID from VALID with signatureChange false in the default engine and true in the local engine; a different type has signatureChange true in both.
+  - evidence: declarations-3#1 events "\"status\":\"VALID\",\"previousStatus\":\"VALID\",\"signatureChange\":false,\"cause\":null,\"value\":\"6\""
+  - evidence: declarations-3#1 elocal "\"status\":\"VALID\",\"previousStatus\":\"VALID\",\"signatureChange\":true,\"cause\":null,\"value\":\"6\""
+  - evidence: declarations-3#2 events "\"status\":\"VALID\",\"previousStatus\":\"VALID\",\"signatureChange\":true,\"cause\":null,\"value\":\"\\\"s\\\"\""
+- RULE declarations.49: Variable modifiers `final`, `static`, `private`, `public`, `transient`, `volatile` print only the value line, and `final` is not enforced: `fv = 2;` after `final int fv = 1;` prints `fv ==> 2`.
+  - evidence: declarations-3#12 real "K ==> 3\n"
+  - evidence: declarations-3#14 real "S ==> 1\n"
+  - evidence: declarations-3#15 real "Pv ==> 2\n"
+  - evidence: declarations-3#16 real "Pu ==> 3\n"
+  - evidence: declarations-7#22 real "vt ==> 1\n"
+  - evidence: declarations-7#23 real "vv ==> 1\n"
+  - evidence: declarations-7#28 real "fv ==> 2\n"
+  - evidence: declarations-7#30 real "pp ==> 1\n"
+- RULE declarations.50: Several declarators print one value line each: `int p = 1, q = 2;` prints `p ==> 1` and `q ==> 2`; two declarations of the same name on one line print both values.
+  - evidence: declarations-3#17 real "p ==> 1\nq ==> 2\n"
+  - evidence: declarations-15#21 real "tw ==> 1\ntw ==> 2\n"
+- RULE declarations.51: A variable with an undeclared type and no generic wrapper is rejected (`Widget w = null;` is an error with `symbol:   class Widget`); declaring the class later does not revive it. With the undeclared type inside a type argument (`java.util.List<Gadget> gl;`) the variable is created with `however, it cannot be referenced until class Gadget is declared`, and declaring the class prints an update line that resets it to null.
+  - evidence: declarations-3#55 real "|  Error:\n|  cannot find symbol\n|    symbol:   class Widget\n|  Widget w = null;\n|  ^----^\n"
+  - evidence: declarations-3#57 real "|    symbol:   variable w\n"
+  - evidence: declarations-3#60 real "|  created variable gl, however, it cannot be referenced until class Gadget is declared\n"
+  - evidence: declarations-3#61 real "|  created class Gadget\n|    update replaced variable gl, reset to null\n"
+  - evidence: declarations-3#62 real "gl ==> null\n"
+  - evidence: declarations-14#17 real "|  created variable lv3, however, it cannot be referenced until class Later3 is declared\n"
+  - evidence: declarations-14#18 real "lv3 ==> 0\n"
+- RULE declarations.52: A variable whose initializer uses an undeclared variable or method is rejected with `cannot find symbol`; one that throws prints the exception and the variable is still declared.
+  - evidence: declarations-3#58 real "|    symbol:   variable zz\n"
+  - evidence: declarations-3#59 real "|    symbol:   method nope()\n"
+  - evidence: declarations-3#64 real "|  Exception java.lang.ArithmeticException: / by zero\n"
+  - evidence: declarations-3#63 real "|  incompatible types: java.lang.String cannot be converted to int\n"
+- RULE declarations.53: After a rejected initializer for an existing variable the name is undefined; a later declaration whose initializer throws prints the exception, and then reading the variable prints `keep3 ==> 1` in the default engine (the value from before the rejected edit) and `keep3 ==> 0` in the local engine.
+  - evidence: declarations-4#65 real "|    symbol:   variable keep3\n"
+  - evidence: declarations-4#66 real "|  Exception java.lang.ArithmeticException: / by zero\n"
+  - evidence: declarations-4#67 real "keep3 ==> 1\n"
+  - evidence: declarations-4#67 local "keep3 ==> 0\n"
+- RULE declarations.54: Redefining a class that a variable's type uses (replaced, not modified) prints `replaced class X` followed by `|    update replaced variable NAME, reset to null` for each affected variable; the variable then holds null. The same for enums, interfaces, records (when the old value still compiles) and for a class created after a variable referencing it.
+  - evidence: declarations-2#8 real "|  replaced class Dog\n|    update replaced variable d, reset to null\n"
+  - evidence: declarations-2#9 real "d ==> null\n"
+  - evidence: declarations-3#37 real "|  replaced class Acc\n|    update replaced variable acc, reset to null\n"
+  - evidence: declarations-3#67 real "|  replaced enum Dir\n|    update replaced variable dir, reset to null\n"
+  - evidence: declarations-3#75 real "|  replaced interface Fn\n|    update replaced variable inc, reset to null\n"
+  - evidence: declarations-15#19 real "|  replaced class Base\n|    update replaced variable bv, reset to null\n"
+  - evidence: declarations-3#53 real "|  created class Acc\n|    update replaced variable acc, reset to null\n|    update replaced variable accs, reset to null\n|    update replaced variable la, reset to null\n"
+  - evidence: declarations-3#41 real "|  replaced class Acc\n|    update replaced variable acc, reset to null\n"
+- RULE declarations.55: If the new class definition makes the variable's own declaration fail to compile, the update line says `which cannot be referenced until this error is corrected:` and indents the compile message; the variable is then undefined.
+  - evidence: declarations-3#71 real "|  replaced record Pt\n|    update replaced variable pt which cannot be referenced until this error is corrected: \n|      constructor Pt in record Pt cannot be applied to given types;\n|        required: int,int\n|        found:    int\n|        reason: actual and formal argument lists differ in length\n|      Pt pt = new Pt(1);\n|              ^-------^\n"
+  - evidence: declarations-3#72 real "|    symbol:   variable pt\n"
+- RULE declarations.56: When the class is only modified (body change), the default engine prints no update line and the existing instances stay alive and use the new method bodies: `c1.get()` returns 10 after the body changed from `id` to `id * 10`, the static counter keeps its value (`Ctr.made` is 3 after later modifies, though a modify changed its initializer to 100), and the variable prints its old object.
+  - evidence: declarations-4#3 real "|  modified class Ctr\n"
+  - evidence: declarations-4#4 real "$5 ==> 10\n"
+  - evidence: declarations-4#5 real "$6 ==> 2\n"
+  - evidence: declarations-4#6 real "$7 ==> 30\n"
+  - evidence: declarations-4#7 real "c2 ==> Ctr2\n"
+  - evidence: declarations-4#9 real "c1 ==> C1\n"
+  - evidence: declarations-4#11 real "c1 ==> C1\n"
+  - evidence: declarations-4#56 real "$60 ==> 3\n"
+  - evidence: declarations-3#80 real "$74 ==> 1\n"
+  - evidence: declarations-15#17 real "bv ==> Derived\n"
+  - evidence: declarations-15#18 real "$18 ==> 2\n"
+- RULE declarations.57: In the local engine the same modified class is replaced and variables holding instances are reset: update lines for every affected variable, values become null, static state restarts, and a later method call on the old variable throws a NullPointerException.
+  - evidence: declarations-4#3 local "|  replaced class Ctr\n|    update replaced variable c1, reset to null\n|    update replaced variable c2, reset to null\n"
+  - evidence: declarations-4#5 local "$6 ==> 0\n"
+  - evidence: declarations-4#7 local "c2 ==> null\n"
+  - evidence: declarations-4#4 local "|  Exception java.lang.NullPointerException: Cannot invoke"
+  - evidence: declarations-4#56 local "$60 ==> 100\n"
+  - evidence: declarations-3#80 local "$74 ==> 2\n"
+  - evidence: declarations-3#45 local "|  replaced class Acc\n|    update replaced variable acc, reset to null\n|    update replaced variable accs, reset to null\n"
+  - evidence: declarations-3#49 local "|  replaced class Acc\n|    update replaced variable acc, reset to null\n|    update replaced variable accs, reset to null\n|    update replaced variable la, reset to null\n"
+  - evidence: declarations-15#16 local "|  replaced class Base\n|    update replaced variable bv, reset to null\n"
+  - evidence: declarations-3#46 real "accs ==> Acc[2] { null, null }\n"
+  - evidence: declarations-3#46 local "accs ==> null\n"
+- RULE declarations.58: The events for a modified class in the default engine list only the class (VALID from VALID, signatureChange false, then OVERWRITTEN); in the local engine they also list every dependent variable and method as VALID from VALID with signatureChange true.
+  - evidence: declarations-3#39 events "\"name\":\"Acc\",\"typeDecl\":true,\"status\":\"VALID\",\"previousStatus\":\"VALID\",\"signatureChange\":false"
+  - evidence: declarations-3#39 elocal "\"name\":\"acc\",\"typeName\":\"Acc\",\"status\":\"VALID\",\"previousStatus\":\"VALID\",\"signatureChange\":true"
+  - evidence: declarations-3#39 elocal "\"name\":\"tot\",\"signature\":\"()int\""
+- RULE declarations.59: A modified class keeps variables even when it changes meaning: `class Box2<T, U>` replacing `class Box2<T>` is `modified` in the default engine and `b2` keeps printing; the local engine prints `replaced class Box2` and an update line saying `wrong number of type arguments; required 2`, after which `b2` is undefined.
+  - evidence: declarations-6#29 real "|  modified class Box2\n"
+  - evidence: declarations-6#30 real "b2 ==> B2\n"
+  - evidence: declarations-6#29 local "|  replaced class Box2\n|    update replaced variable b2 which cannot be referenced until this error is corrected: \n|      wrong number of type arguments; required 2\n"
+  - evidence: declarations-6#30 local "|    symbol:   variable b2\n"
+- RULE declarations.60: `/drop` of a class that variables use prints `|  dropped class NAME` and then one `update replaced variable X which cannot be referenced until class NAME is declared` line per variable; the order of these lines is not stable (it differed between the engines and between runs of the same session). Redeclaring the class then prints `created class` with `reset to null` lines.
+  - evidence: declarations-3#51 real "|  dropped class Acc\n"
+  - evidence: declarations-3#51 real "|    update replaced variable accs which cannot be referenced until class Acc is declared\n"
+  - evidence: declarations-3#51 local "|    update replaced variable acc which cannot be referenced until class Acc is declared\n"
+  - evidence: declarations-3#51 local "|    update replaced variable la which cannot be referenced until class Acc is declared\n"
+  - evidence: declarations-3#52 real "|    symbol:   variable acc\n"
+  - evidence: declarations-3#53 real "|  created class Acc\n"
+- RULE declarations.61: `/drop` of a method or class used by another snippet prints `dropped method dm1()` only; later use of the dependent says `attempted to use class UDm which cannot be instantiated or its methods invoked until method dm1() is declared` and re-declaring the name makes it work again with `created method`.
+  - evidence: declarations-15#26 real "|  dropped method dm1()\n"
+  - evidence: declarations-15#27 real "|  attempted to use class UDm which cannot be instantiated or its methods invoked until method dm1() is declared\n"
+  - evidence: declarations-15#28 real "|  created method dm1()\n"
+  - evidence: declarations-15#29 real "$31 ==> 5\n"
+  - evidence: declarations-15#33 real "|  attempted to call method udc() which cannot be invoked until class DC is declared\n"
+  - evidence: declarations-15#34 real "|  created class DC\n"
+- RULE declarations.62: `/drop NAME` drops every snippet with that name (a class and a method both named `Same`), printing one `dropped` line each; `/drop ov(int)` is not a valid argument.
+  - evidence: declarations-6#35 real "|  dropped class Same\n|  dropped method Same()\n"
+  - evidence: declarations-6#41 real "|  No such snippet: ov(int)\n"
+- RULE declarations.63: Several declarations on one line print their lines in order; an expression after a declaration on the same line also prints its value.
+  - evidence: declarations-4#52 real "|  created method one()\n|  created method two()\n"
+  - evidence: declarations-7#32 real "|  created class Dd\n|  modified class Dd\n"
+  - evidence: declarations-7#33 local "|  created method dm()\n|  replaced method dm()\n"
+  - evidence: declarations-15#22 real "vm ==> 1\n|  created method vmm()\n"
+  - evidence: declarations-15#23 real "|  created class Cv\ncv ==> Cv\n"
+  - evidence: declarations-4#53 real "|  created class Ab\n$57 ==> Ab\n"
+
+## Multi-line and unfinished declarations
+
+- RULE declarations.64: A declaration with an unclosed bracket is not an error yet: the entry prints nothing, the following lines are taken as more of the declaration (prompt `   ...> `), and the error is only printed when it finally ends, showing only the first line of the collected text.
+  - evidence: declarations-8#0 real= ""
+  - evidence: declarations-8#1 prompt "   ...> "
+  - evidence: declarations-8#2 real "|  Error:\n|  illegal start of type\n|  int bad2( { }\n|            ^\n"
+  - evidence: declarations-8#3 real "$1 ==> 4\n"
+  - evidence: declarations-10#2 real "|  Error:\n|  ',', ')', or '[' expected\n|  record R4(int x { }\n|                 ^\n"
+  - evidence: declarations-11#2 real "|  illegal start of type\n|  void f( {}\n"
+  - evidence: declarations-12#2 real "|  ',', ')', or '[' expected\n|  int f(int a { return a; }\n"
+- RULE declarations.65: A broken declaration whose brackets are balanced is reported at once and the next line is read normally (`class Z1 extends {}`, an error inside the body); a stray `}` on its own line is `illegal start of statement`.
+  - evidence: declarations-9#0 real "|  Error:\n|  illegal start of type\n|  class Z1 extends {}\n|                   ^\n"
+  - evidence: declarations-9#1 real "$1 ==> 2\n"
+  - evidence: declarations-9#2 real "|  Error:\n|  illegal start of statement\n|  }\n|  ^\n"
+  - evidence: declarations-13#0 real "|  Error:\n|  illegal start of expression\n"
+  - evidence: declarations-7#8 real "|  created class A2\n|  Error:\n|  illegal start of statement\n|   }\n|   ^\n"
+  - evidence: declarations-7#9 real "|  created method f4()\n|  Error:\n|  illegal start of statement\n"
+- RULE declarations.66: A class or method split over several lines is created when the last line closes it; the first line gives no output and the continuation prompt is `   ...> `. Blank lines and comments inside are allowed.
+  - evidence: declarations-14#0 real "|  created class Blk\n"
+  - evidence: declarations-14#1 real "$2 ==> 1\n"
+  - evidence: declarations-14#3 prompt "   ...> "
+  - evidence: declarations-14#3 real "|  created method split(int)\n"
+  - evidence: declarations-14#5 real "|  created class Cmt\n"
+  - evidence: declarations-4#48 real "|  modified method lv()\n"
+  - evidence: declarations-4#50 real "|  created class Cm\n"
+  - evidence: declarations-4#51 real "|  created class Em\n"
+- RULE declarations.67: Changing a method from unresolved to another unresolved or to resolved prints `modified` with the new missing name; a class changed likewise; fixing a rejected declaration prints `created`.
+  - evidence: declarations-14#11 real "|  created method unr(), however, it cannot be invoked until variable later is declared\n"
+  - evidence: declarations-14#12 real "|  modified method unr(), however, it cannot be invoked until variable later2 is declared\n"
+  - evidence: declarations-14#13 real "|  modified method unr()\n"
+  - evidence: declarations-14#13 local "|  replaced method unr()\n"
+  - evidence: declarations-14#14 real "|  created class UC, however, it cannot be referenced until class Later1 is declared\n"
+  - evidence: declarations-14#15 real "|  modified class UC, however, it cannot be referenced until class Later2 is declared\n"
+  - evidence: declarations-14#16 real "|  replaced class UC\n"
+  - evidence: declarations-14#9 real "|  Error:\n"
+  - evidence: declarations-14#10 real "|  created method fix()\n"
+- RULE declarations.68: A class whose method's compile state depends on another snippet breaks when that snippet changes: redefining `helper` to return String leaves `class UsesHelper` printing only `replaced method helper()`, and `new UsesHelper().h()` then prints `attempted to use class UsesHelper which cannot be instantiated or its methods invoked until this error is corrected:` with the indented compile message.
+  - evidence: declarations-14#29 real "|  replaced method helper()\n"
+  - evidence: declarations-14#30 real "|  attempted to use class UsesHelper which cannot be instantiated or its methods invoked until this error is corrected: \n|      incompatible types: java.lang.String cannot be converted to int\n|      class UsesHelper { int h() { return helper(); } }\n|                                          ^------^\n"
+  - evidence: declarations-14#28 real "$24 ==> 2\n"
+- RULE declarations.69: The temporary-variable counter in `$N ==> v` can differ between the engines: after the `Box2` change in declarations-6 the same call prints `$34` in the default engine and `$33` in the local engine, and the offset persists for later calls.
+  - evidence: declarations-6#33 real "$34 ==> 1\n"
+  - evidence: declarations-6#33 local "$33 ==> 1\n"
+  - evidence: declarations-6#40 real "$39 ==> 1\n"
+  - evidence: declarations-6#40 local "$38 ==> 1\n"
+
+## Imports
+
+- RULE declarations.70: Imports print nothing: single-type, on-demand, static (single member and `*`), and `import module java.sql;` all produce an empty output; the import takes effect (`List`, `max`, `Connection` usable). The events show kind IMPORT.
+  - evidence: declarations-5#0 events "\"kind\":\"IMPORT\""
+  - evidence: declarations-5#3 events "\"kind\":\"IMPORT\""
+  - evidence: declarations-5#4 events "\"kind\":\"IMPORT\""
+  - evidence: declarations-5#7 events "\"kind\":\"IMPORT\""
+  - evidence: declarations-5#1 real "li ==> []\n"
+  - evidence: declarations-5#5 real "$6 ==> 4\n"
+  - evidence: declarations-5#8 real "cn ==> null\n"
+- RULE declarations.71: Importing the same thing twice prints nothing; an import written without the final semicolon is accepted.
+  - evidence: declarations-5#2 events "\"status\":\"OVERWRITTEN\",\"previousStatus\":\"VALID\""
+  - evidence: declarations-5#14 events "\"source\":\"import java.io.File;\\n\""
+  - evidence: declarations-5#15 events "\"kind\":\"IMPORT\""
+- RULE declarations.72: A bad import prints `|  Error:` with the compiler message and a caret line over the offending part: unknown package (`package foo.bar does not exist`), unknown class (`cannot find symbol` with `symbol:   class Nope`), unknown static member (`symbol:   static nope`, caret across the whole line) and an unknown module (`imported module not found: no.such.mod`, caret at column 0).
+  - evidence: declarations-5#9 real "|  Error:\n|  package foo.bar does not exist\n|  import foo.bar.*;\n|         ^-----^\n"
+  - evidence: declarations-5#10 real "|  Error:\n|  cannot find symbol\n|    symbol:   class Nope\n|  import java.util.Nope;\n|         ^------------^\n"
+  - evidence: declarations-5#11 real "|  package java.utl does not exist\n"
+  - evidence: declarations-5#12 real "|  Error:\n|  cannot find symbol\n|    symbol:   static nope\n|  import static java.lang.Math.nope;\n|  ^--------------------------------^\n"
+  - evidence: declarations-5#13 real "|  Error:\n|  imported module not found: no.such.mod\n|  import module no.such.mod;\n|  ^\n"
+- RULE declarations.73: Names from the startup imports are visible in `/list -all` as `s1 : import module java.base;` before the first user snippet.
+  - evidence: declarations-6#36 real "s1 : import module java.base;\n"
+- RULE declarations.74: `import module java.sql;` and the other imports are not listed as created; a class that uses an imported type is created without any warning (`UsesFile` using `File` after `import java.io.File`).
+  - evidence: declarations-5#16 real "|  created class UsesFile\n"
+  - evidence: declarations-5#17 real "|  created method sz()\n"
+
+## Surprises
+
+- A rejected redefinition removes the working definition it was meant to replace (declarations.39), so a typo while editing a method loses the old method.
+- `final` on a variable is ignored (`fv = 2;` works), and `static`, `private`, `public`, `protected`, `transient`, `volatile`, `strictfp` are all silently accepted; only `synchronized`, `native` and `default` are rejected.
+- A modified class in the default engine keeps old instances alive and keeps static state, even when the class's shape changed in ways the local engine rejects (`Box2<T>` to `Box2<T, U>`); the local engine resets instead.
+- `abstract int six();` at top level is accepted as a method that cannot be invoked.
+- A compact record constructor without `public` is rejected, which a beginner will hit.
+- The error text for a call to an overloaded static-imported method names an empty class (`method max in class  cannot be applied`, two spaces).
+- `/drop` update lines come in a different order in the two engines.
+- The temporary-variable counter diverged between the engines after a local-only failure (declarations.69).
+- The event stream the library API reports does not include `/drop`, so the events after a drop do not match the tool.
+
+## Open questions
+
+- Exactly which edits count as `modified` versus `replaced` in the default engine was observed per case only; the common pattern is members and signatures unchanged means modified, but cases like adding `extends Object` (modified) and changing a type-parameter bound (replaced) were settled only by example.
+- Why the local engine's temporary-variable counter falls one behind after the Box2 case (declarations.69) was not isolated.
+- Whether `modified` also keeps a variable whose initializer changed to throw (declarations.53) in every kind of variable was only tried with an int.
+- Imports that name a class that exists only after a later declaration were not probed.
+

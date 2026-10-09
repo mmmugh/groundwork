@@ -1,0 +1,282 @@
+Sessions run: inspect-1 (a realistic mix of declarations, rejected entry, redefinition, then every /list form, /vars, /methods, /types, /imports and /history), inspect-2 (variables, methods and classes waiting on undeclared names, all four import forms, options and arguments on the listing commands), inspect-3 and inspect-4 (/drop of every kind of snippet, by name, by id, several at once, errors, the startup snippet, and what the listings show afterward), inspect-5 (abbreviations of every command, an unknown command, `/` alone, upper case, leading and trailing spaces, extra arguments, option and range errors), inspect-6 (a hundred snippets so ids reach three digits, multi-line snippets at those ids, redefinition and drop at three digits), inspect-7 (temporary variables, how many kinds of value look in /vars, exceptions, same-name variable and class, rejected methods, statements, comments, generic and varargs methods) and inspect-8 (redefinitions in /list and /list -all, ranges, e ids, dropping imports and ranges). Every output below is the default (real) tool's unless marked local; the local engine matched it for every inspection command, and the only differences are listed near the end. One probe combination was removed because it ended the real tool without output (see Removed probes).
+
+- RULE inspect.1: `/list` with no argument in a fresh session prints nothing at all (no blank line, no text).
+  - evidence: inspect-1#0 real= ""
+- RULE inspect.2: `/list -all` and `/list -start` in a fresh session print one blank line and then the startup snippet with the id `s1`, right-aligned in a four-character column: `  s1 : import module java.base;`.
+  - evidence: inspect-1#1 real "\n  s1 : import module java.base;\n"
+  - evidence: inspect-1#22 real "\n  s1 : import module java.base;\n"
+- RULE inspect.3: `/list` prints a blank line, then one line per live snippet in id order: the id right-aligned in four characters, ` : `, then the source as typed. A declaration typed without a closing semicolon gets one (`int x = 5` is listed `int x = 5;`), while an expression is listed exactly as typed (`x + 1`). Rejected snippets, replaced snippets and the startup snippet are not shown.
+  - evidence: inspect-1#20 real "\n   2 : String s;\n   3 : int[] arr = {1, 2, 3};\n   4 : record Point(int x, int y) {}\n"
+  - evidence: inspect-1#20 real "  16 : int x = 7;\n  17 : x + 1\n"
+  - evidence: inspect-1#20 local "  16 : int x = 7;\n  17 : x + 1\n"
+- RULE inspect.4: `/list -all` adds the startup snippet first, then every snippet in order including replaced ones and rejected ones, a rejected snippet under an id `e1`, `e2` placed at the point in the order where it was typed.
+  - evidence: inspect-1#21 real "  15 : import java.util.*;\n  e1 : int y = \"a\";\n  16 : int x = 7;\n"
+  - evidence: inspect-8#9 real "   1 : int x = 1;\n   2 : int x = 2;\n"
+  - evidence: inspect-8#24 real "   8 : int s = 3;\n  e1 : int q = \"a\";\n  e2 : String r = 5;\n"
+- RULE inspect.5: In `/list` a replaced declaration disappears and only the newest version shows, with a new id; `/list -all` keeps both. A same-signature method redefinition and a changed class are treated the same way.
+  - evidence: inspect-8#8 real "\n   2 : int x = 2;\n   4 : int f() { return 2; }\n   6 : class C { int q; }\n   8 : int s = 3;\n"
+  - evidence: inspect-8#9 real "   3 : int f() { return 1; }\n   4 : int f() { return 2; }\n   5 : class C { }\n   6 : class C { int q; }\n"
+- RULE inspect.6: `/list` with a snippet id, with a name, with `s1`, or with an error id prints the blank line and the matching snippet(s). A name prints only the newest snippet of that name; an overloaded method's name prints every overload in id order.
+  - evidence: inspect-1#23 real "\n   3 : int[] arr = {1, 2, 3};\n"
+  - evidence: inspect-1#24 real "\n  16 : int x = 7;\n"
+  - evidence: inspect-1#27 real "\n   5 : int square(int n) {\n           return n * n;\n       }\n   6 : int square(double d) {\n           return 1;\n       }\n"
+  - evidence: inspect-1#28 real "\n  e1 : int y = \"a\";\n"
+  - evidence: inspect-1#30 real "\n  s1 : import module java.base;\n"
+- RULE inspect.7: `/list` with several names or ids prints them in the order given, and repeats a snippet named twice. Extra spaces between arguments make no difference. Looking up a replaced snippet by its old id works.
+  - evidence: inspect-1#25 real "\n  16 : int x = 7;\n   2 : String s;\n"
+  - evidence: inspect-8#14 real "\n   2 : int x = 2;\n   2 : int x = 2;\n"
+  - evidence: inspect-8#13 real "\n   2 : int x = 2;\n   4 : int f() { return 2; }\n"
+  - evidence: inspect-8#11 real "\n   1 : int x = 1;\n   2 : int x = 2;\n   5 : class C { }\n"
+- RULE inspect.8: `/list` accepts an id range `a-b`, which also lists the replaced snippets between the ends; a range of error ids works once those snippets exist, and fails with the same message as an unknown id before that.
+  - evidence: inspect-1#29 real "\n   1 : int x = 5;\n   2 : String s;\n   3 : int[] arr = {1, 2, 3};\n"
+  - evidence: inspect-8#19 real "\n  e1 : int q = \"a\";\n  e2 : String r = 5;\n"
+  - evidence: inspect-8#12 real "|  No snippet with ID: e1\n"
+- RULE inspect.9: `/list` errors: an unknown name prints `No such snippet: <name>`; an unknown id prints `No snippet with ID: <id>` and lists nothing, even when other ids on the line exist (nothing is printed for the valid ones). Neither message is followed by a `See` line.
+  - evidence: inspect-1#26 real "|  No such snippet: nope\n"
+  - evidence: inspect-4#31 real "|  No snippet with ID: 13\n"
+  - evidence: inspect-6#2 real "|  No snippet with ID: 101\n"
+  - evidence: inspect-5#42 real "|  No snippet with ID: 0\n"
+  - evidence: inspect-5#51 real "|  No snippet with ID: s2\n"
+- RULE inspect.10: `/list` option and range errors: `Unknown option: <opt> -- /list <opt>`, `Options and snippets must not both be used: ...`, `Conflicting options -- ...`, `Snippet ranges require snippet IDs: <name>` and `End of snippet range less than start: 3 - 1`. `--all` is accepted and behaves like `-all`.
+  - evidence: inspect-2#31 real "|  Unknown option: -x -- /list -x\n"
+  - evidence: inspect-5#37 real "|  Unknown option: - -- /list -\n"
+  - evidence: inspect-5#41 real "|  Unknown option: -1 -- /list -1\n"
+  - evidence: inspect-5#38 real "|  Options and snippets must not both be used: /list -all x\n"
+  - evidence: inspect-5#39 real "|  Conflicting options -- /list -start -all\n"
+  - evidence: inspect-5#44 real "|  Snippet ranges require snippet IDs: x\n"
+  - evidence: inspect-5#46 real "|  End of snippet range less than start: 3 - 1\n"
+  - evidence: inspect-5#40 real "\n  s1 : import module java.base;\n   1 : int x = 5;\n"
+- RULE inspect.11: `/list` with a name that is both a class and a variable (or a method and a variable) prints both snippets in id order, class or method first when declared first; `/vars`, `/types` and `/methods` with that name show only the matching kind.
+  - evidence: inspect-7#28 real "\n  17 : class Same {}\n  18 : int Same = 4;\n"
+  - evidence: inspect-7#29 real "|    int Same = 4\n"
+  - evidence: inspect-7#30 real "|    class Same\n"
+  - evidence: inspect-7#37 real "\n  19 : String x = \"s\";\n  20 : int x() { return 1; }\n"
+  - evidence: inspect-7#39 real "|    int x()\n"
+- RULE inspect.12: Multi-line snippets in `/list`: the first line is prefixed like any snippet; each continuation line is the source line as typed, preceded by seven spaces (the width of the `   N : ` prefix, so a closing brace as typed at column zero sits seven characters in). The source lines keep whatever indentation the reader typed after those seven spaces.
+  - evidence: inspect-1#20 real "   5 : int square(int n) {\n           return n * n;\n       }\n"
+  - evidence: inspect-4#27 real "  10 : int[] big = {\n         1,\n         2\n       };\n  11 : class Long1 {\n           int a;\n           int b;\n       }\n"
+  - evidence: inspect-6#15 real "|      return \"s\";\n"
+- RULE inspect.13: Ids of three digits use the same four-character right-aligned column (` 100 : `), and multi-line continuation lines keep the same seven-space prefix; `s1` and `e1` stay right-aligned in the same column. (Ids of four digits were not reached.)
+  - evidence: inspect-6#3 real "\n 100 : int v100=100;\n"
+  - evidence: inspect-6#6 real "\n 101 : int m101() {\n           return 101;\n       }\n 102 : String[] words = {\n           \"a\",\n           \"b\"\n       };\n"
+  - evidence: inspect-6#7 real "  99 : int v99=99;\n 100 : int v100=100;\n 101 : int m101() {\n"
+- RULE inspect.14: Several snippets typed on one line each get their own id and are listed one per line, each split at its own `;`: `int v1=1;int v2=2;` becomes `   1 : int v1=1;` and `   2 : int v2=2;`.
+  - evidence: inspect-6#1 real "\n   1 : int v1=1;\n   2 : int v2=2;\n   3 : int v3=3;\n"
+- RULE inspect.15: An error id in `/list` shows the rejected source exactly as typed, including multi-line and the original indentation.
+  - evidence: inspect-6#16 real " 103 : int m101() {\n           return 202;\n       }\n  e1 : int bad() {\n           return \"s\";\n       }\n"
+- RULE inspect.16: A snippet that is a side-effect statement or loop is listed with the next id and exactly as typed (no semicolon added); a leading comment is kept; an expression that throws is still listed.
+  - evidence: inspect-7#45 real "  23 : for (int i = 0; i < 2; i++) { }\n"
+  - evidence: inspect-7#47 real "\n  24 : /* c */ int cm = 1;\n"
+  - evidence: inspect-7#49 real "  25 : System.out.println(\"hi\")\n"
+  - evidence: inspect-7#25 real "  16 : 1 / 0\n"
+- RULE inspect.17: An initializer that throws still creates the variable: it is listed, and `/vars` shows the default value.
+  - evidence: inspect-7#21 real "|  Exception java.lang.ArithmeticException: / by zero\n|        at (#15:1)\n"
+  - evidence: inspect-7#22 real "|    int z = 0\n"
+  - evidence: inspect-7#23 real "\n  15 : int z = 1 / 0;\n"
+- RULE inspect.18: An expression snippet makes a temporary variable named `$` plus the snippet's id; `/list`, `/vars` and `/drop` accept that name. A temp from an expression that threw exists too (`int $16 = 0`).
+  - evidence: inspect-1#19 real "$17 ==> 8\n"
+  - evidence: inspect-1#31 real "|    int $17 = 8\n"
+  - evidence: inspect-7#3 real "|    int $1 = 20\n|    String $2 = \"hello\"\n"
+  - evidence: inspect-7#4 real "\n   1 : 10 * 2\n"
+  - evidence: inspect-7#6 real "|  dropped variable $1\n"
+  - evidence: inspect-7#58 real "|    int $16 = 0\n"
+- RULE inspect.19: `/drop $` (a bare dollar sign) is an unknown snippet.
+  - evidence: inspect-3#32 real "|  No such snippet: $\n|  See /types, /methods, /vars, or /list\n"
+- RULE inspect.20: `/vars` prints one line per live variable, in id order (not alphabetical), formatted `|    <type> <name> = <value>`: four spaces after the bar. The value is the one the feedback shows (`int[3] { 1, 2, 3 }`, strings with their quotes, `null` for an uninitialized variable), and only the newest version of a redefined variable.
+  - evidence: inspect-1#31 real "|    String s = null\n|    int[] arr = int[3] { 1, 2, 3 }\n|    int x = 7\n"
+  - evidence: inspect-7#20 real "|    char c = 'x'\n|    double d = 0.3333333333333333\n|    boolean flag = true\n|    int[] none = null\n|    int[][] grid = int[2][] { int[2] { 1, 2 }, int[1] { 3 } }\n|    java.util.List<String> names = [a, b]\n|    P p = P[x=1, y=2]\n|    Dir dir = N\n"
+  - evidence: inspect-1#31 local "|    String s = null\n|    int[] arr = int[3] { 1, 2, 3 }\n|    int x = 7\n"
+- RULE inspect.21: `/vars` shows a long string in full, where the feedback after the declaration shortens it with ` ... ` in the middle.
+  - evidence: inspect-7#19 real "longs ==> \"abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuv ... bcdefghijklmnopqrstuvwxyz\"\n"
+  - evidence: inspect-7#20 real "|    String longs = \"abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyz\"\n"
+- RULE inspect.22: A variable whose type is not declared yet is listed in `/vars` with the value `(not-active)`; after the type is declared the variable is recreated and shows `null`. A variable dropped with its class is `(not-active)` again.
+  - evidence: inspect-2#2 real "|    Foo f = (not-active)\n"
+  - evidence: inspect-2#8 real "|    Foo f = null\n"
+  - evidence: inspect-4#10 real "|    int a = 1\n|    K k = (not-active)\n"
+- RULE inspect.23: `/list` shows the unresolved variable declaration normally.
+  - evidence: inspect-2#1 real "\n   1 : Foo f;\n"
+- RULE inspect.24: `/vars -start` and `/vars -all` list only variables; the startup snippet has none, so `-start` prints nothing and `-all` equals `/vars`, except that `-all` (and a variable named explicitly) also shows dropped variables as `(not-active)`.
+  - evidence: inspect-2#26 real= ""
+  - evidence: inspect-2#25 real "|    Foo f = null\n"
+  - evidence: inspect-7#58 real "|    int $1 = (not-active)\n|    String $2 = \"hello\"\n"
+  - evidence: inspect-6#14 real "|    int v99 = 99\n|    int v100 = (not-active)\n"
+  - evidence: inspect-8#37 real "|    int s = 3\n|    int x = (not-active)\n|    int x = (not-active)\n"
+- RULE inspect.25: `/vars`, `/methods` and `/types` with arguments filter to those names and ids; they print nothing for the others. An unknown name prints `No such snippet: <name>` and nothing else (even if another name on the line is valid). A snippet of the wrong kind prints `This command does not accept the snippet '<name>' : <source>` with no `See` line.
+  - evidence: inspect-5#28 real "|    int x = 5\n"
+  - evidence: inspect-5#30 real "|    int f()\n"
+  - evidence: inspect-5#32 real "|    class C\n"
+  - evidence: inspect-5#29 real "|  No such snippet: nope\n"
+  - evidence: inspect-8#34 real "|  No such snippet: nope\n"
+  - evidence: inspect-5#33 real "|  This command does not accept the snippet 'x' : int x = 5;\n"
+  - evidence: inspect-8#36 real "|  This command does not accept the snippet 's' : int s = 3;\n"
+  - evidence: inspect-2#24 real "|  This command does not accept the snippet 's1' : import module java.base;\n"
+- RULE inspect.26: `/vars -all` and `/vars` after a rejected snippet, redefinition, or statement are unchanged apart from the redefined variable's newest version; a name with a rejected declaration is not a variable.
+  - evidence: inspect-7#38 real "|    String x = \"s\"\n"
+- RULE inspect.27: `/methods` prints `|    <return type> <name>(<parameter types>)`: parameter types only, no names, separated by a comma with no space; varargs as `int...`, arrays as `int[][]`, generic methods with the type variable (`T id(T)`, `T max(T,T)`, `java.util.List<E> lst(E...)`). Overloads appear in id order. A `throws` clause is not shown.
+  - evidence: inspect-1#32 real "|    int square(int)\n|    int square(double)\n|    T id(T)\n|    int sum(int...)\n|    int[] mk(int[][])\n"
+  - evidence: inspect-7#52 real "|    int x()\n|    T max(T,T)\n|    java.util.List<E> lst(E...)\n"
+  - evidence: inspect-7#54 real "|    void thrower()\n"
+  - evidence: inspect-1#32 local "|    int square(int)\n|    int square(double)\n|    T id(T)\n"
+- RULE inspect.28: A method that uses a name not declared yet is listed with a second line, indented seven characters after the bar, saying why: `which cannot be invoked until method bar() is declared` when a called method is missing and `which cannot be referenced until class Baz is declared` when a type is missing. Declaring the missing name removes the second line from the earlier method.
+  - evidence: inspect-2#5 real "|    int usesBar()\n|       which cannot be invoked until method bar() is declared\n|    Baz mkBaz()\n|       which cannot be referenced until class Baz is declared\n"
+  - evidence: inspect-2#11 real "|    int usesBar()\n|    Baz mkBaz()\n|       which cannot be referenced until class Baz is declared\n|    int bar()\n"
+- RULE inspect.29: `/methods -all` equals `/methods` (the startup snippet declares no methods); a rejected method is not listed.
+  - evidence: inspect-2#27 real "|    int usesBar()\n|    Baz mkBaz()\n"
+  - evidence: inspect-7#33 real "|  Error:\n|  incompatible types: java.lang.String cannot be converted to int\n"
+- RULE inspect.30: `/types` prints `|    <kind> <name>` with the kinds `class`, `interface`, `enum`, `record` and `@interface` (annotation interface), in id order; type parameters are not shown (`class Box`). It prints nothing when there are no types.
+  - evidence: inspect-1#33 real "|    record Point\n|    class A\n|    interface I\n|    enum Color\n|    @interface Ann\n|    class Box\n"
+  - evidence: inspect-2#6 real= ""
+  - evidence: inspect-3#16 real "|    interface J\n"
+  - evidence: inspect-1#33 local "|    record Point\n|    class A\n|    interface I\n|    enum Color\n|    @interface Ann\n|    class Box\n"
+- RULE inspect.31: A class that extends a missing type is listed with the same kind of second line: `which cannot be referenced until class Missing is declared`.
+  - evidence: inspect-2#13 real "|    class Foo\n|    class Q\n|       which cannot be referenced until class Missing is declared\n"
+  - evidence: inspect-2#28 real "|    class Q\n|       which cannot be referenced until class Missing is declared\n"
+- RULE inspect.32: Redefining a class prints `replaced class R` and `/types` still shows one entry for it.
+  - evidence: inspect-7#41 real "|  replaced class R\n"
+  - evidence: inspect-7#43 real "|    class R\n"
+- RULE inspect.33: `/imports` prints `|    import <name>`, starting with the startup import written `import java.base` (no word `module`), then the user's imports in the order declared. A single-type import prints `import java.util.List`, a static import `import static java.lang.Math.abs`, a static star `import static java.lang.Math.*`, and an `import module` prints `import java.sql`. Importing prints nothing at the time; `/list` shows the same imports with the full source (`import module java.sql;`).
+  - evidence: inspect-2#15 real "|    import java.base\n"
+  - evidence: inspect-2#16 real= ""
+  - evidence: inspect-2#20 real "|    import java.base\n|    import java.util.List\n|    import static java.lang.Math.abs\n|    import static java.lang.Math.*\n|    import java.sql\n"
+  - evidence: inspect-2#21 real "   9 : import static java.lang.Math.*;\n  10 : import module java.sql;\n"
+  - evidence: inspect-1#34 real "|    import java.base\n|    import java.util.*\n"
+- RULE inspect.34: `/imports` ignores any argument or option: `foo`, `java`, `-all` and `-start` all print the full list.
+  - evidence: inspect-2#23 real "|    import java.base\n|    import java.util.List\n"
+  - evidence: inspect-2#29 real "|    import java.base\n|    import java.util.List\n"
+  - evidence: inspect-2#30 real "|    import java.base\n|    import java.util.List\n"
+  - evidence: inspect-5#34 real "|    import java.base\n|    import java.util.*\n"
+- RULE inspect.35: `/drop` of a variable, method, class or interface prints `|  dropped <kind> <name>` (a method with its parameter types, e.g. `method twice(int)`). Nothing else is printed for a plain drop. Afterwards `/list`, `/vars`, `/methods` and `/types` no longer show it.
+  - evidence: inspect-3#7 real "|  dropped variable a\n"
+  - evidence: inspect-3#8 real "\n   2 : int b = 2;\n   3 : int twice(int n) { return 2 * n; }\n"
+  - evidence: inspect-3#9 real "|    int b = 2\n"
+  - evidence: inspect-3#15 real "|  dropped class K\n"
+  - evidence: inspect-3#16 real "|    interface J\n"
+- RULE inspect.36: `/drop` by the name of an overloaded method drops every overload and prints one line per overload in id order; by id, only that overload.
+  - evidence: inspect-3#11 real "|  dropped method twice(int)\n|  dropped method twice(String)\n"
+  - evidence: inspect-4#7 real "|  dropped method twice(String)\n"
+  - evidence: inspect-4#8 real "|    int twice(int)\n|    int make()\n"
+- RULE inspect.37: `/drop` with several names or ids drops each in the order given, and a range `a-b` drops the live snippets inside it, silently skipping replaced ones in between.
+  - evidence: inspect-4#19 real "|  dropped variable a\n|  dropped method twice(int)\n"
+  - evidence: inspect-4#20 real "|  dropped method make()\n|  dropped variable k\n"
+  - evidence: inspect-8#21 real "|  dropped variable x\n|  dropped method f()\n"
+  - evidence: inspect-7#31 real "|  dropped class Same\n|  dropped variable Same\n"
+- RULE inspect.38: `/drop` is all-or-nothing: if any argument is not droppable nothing is dropped and only the error is printed.
+  - evidence: inspect-3#25 real "|  This command does not accept the snippet 'b' : int b = 2;\n"
+  - evidence: inspect-3#26 real "\n   6 : interface J {}\n"
+  - evidence: inspect-8#22 real "|  This command does not accept the snippet '4' : int f() { return 2; }\n"
+- RULE inspect.39: `/drop` errors are followed by the line `|  See /types, /methods, /vars, or /list`: an already dropped, replaced, rejected (`e1`) or expression-error snippet prints `This command does not accept the snippet '<arg>' : <source of the snippet found>`; an unknown name prints `No such snippet: <name>`; an unknown id prints `No snippet with ID: <id>`.
+  - evidence: inspect-3#10 real "|  This command does not accept the snippet 'a' : int a = 1;\n|  See /types, /methods, /vars, or /list\n"
+  - evidence: inspect-3#13 real "|  This command does not accept the snippet '4' : int twice(String s) { return 0; }\n|  See /types, /methods, /vars, or /list\n"
+  - evidence: inspect-3#22 real "|  This command does not accept the snippet 'e1' : int bad = \"q\";\n|  See /types, /methods, /vars, or /list\n"
+  - evidence: inspect-3#17 real "|  No such snippet: zzz\n|  See /types, /methods, /vars, or /list\n"
+  - evidence: inspect-8#44 real "|  This command does not accept the snippet '12' : 2 + 2\n|  See /types, /methods, /vars, or /list\n"
+- RULE inspect.40: `/drop` with no argument prints a message whose second line has no `|  ` prefix.
+  - evidence: inspect-3#18 real "|  In the /drop argument, please specify an import, variable, method, or class to drop.\nSpecify by ID or name. Use /list to see IDs. Use /reset to reset all state.\n"
+- RULE inspect.41: `/drop` does not accept `-all` or `-start`.
+  - evidence: inspect-8#45 real "|  Unknown option: -all -- /drop -all\n"
+  - evidence: inspect-8#46 real "|  Unknown option: -start -- /drop -start\n"
+- RULE inspect.42: A range that includes an already dropped snippet is rejected as a whole, naming the first such id.
+  - evidence: inspect-3#28 real "|  This command does not accept the snippet '1' : int a = 1;\n"
+- RULE inspect.43: Imports can only be dropped by id, and dropping one prints nothing: by name (`List`, `java.util.*`, `max`, `java.base`) the answer is `No such snippet`. The dropped import disappears from `/imports`.
+  - evidence: inspect-8#26 real "|  No such snippet: List\n|  See /types, /methods, /vars, or /list\n"
+  - evidence: inspect-8#27 real= ""
+  - evidence: inspect-8#31 real "|    import java.base\n"
+  - evidence: inspect-8#29 real "|  No such snippet: java.util.*\n"
+  - evidence: inspect-4#22 real "|  No such snippet: java.base\n"
+  - evidence: inspect-4#17 real= ""
+  - evidence: inspect-4#18 real "|    import java.base\n"
+- RULE inspect.44: `/drop s1` removes the startup import silently (prints nothing); `/imports` is then empty, but `/list -all` still shows `s1`.
+  - evidence: inspect-3#19 real= ""
+  - evidence: inspect-3#20 real= ""
+  - evidence: inspect-3#21 real "\n  s1 : import module java.base;\n   1 : int a = 1;\n"
+- RULE inspect.45: `/list -all` keeps showing dropped snippets, with their original ids; `/list` hides them. A redeclared name after a drop gets a new id.
+  - evidence: inspect-3#21 real "   1 : int a = 1;\n   2 : int b = 2;\n   3 : int twice(int n) { return 2 * n; }\n"
+  - evidence: inspect-6#13 real "\n 100 : int v100=100;\n"
+  - evidence: inspect-4#21 real "\n   8 : class K { int z; }\n"
+- RULE inspect.46: `/list <id>` of a dropped snippet still lists it.
+  - evidence: inspect-6#13 real "\n 100 : int v100=100;\n"
+- RULE inspect.47: Dropping a class that a variable uses prints extra lines for each snippet it affected, indented four spaces: the variable now cannot be referenced. Declaring the class again says `update replaced variable k, reset to null`.
+  - evidence: inspect-4#9 real "|  dropped class K\n|    update replaced variable k which cannot be referenced until class K is declared\n"
+  - evidence: inspect-4#14 real "|  created class K\n|    update replaced variable k, reset to null\n"
+  - evidence: inspect-2#7 real "|  created class Foo\n|    update replaced variable f, reset to null\n"
+- RULE inspect.48: `/drop` with extra spaces before or after the argument works as without them.
+  - evidence: inspect-8#44 real "|  This command does not accept the snippet '12' : 2 + 2\n"
+  - evidence: inspect-8#43 real "|  dropped variable $12\n"
+- RULE inspect.49: `/history` prints a blank line and then every line the reader typed so far, commands included (the `/history` itself is last), each on its own line with nothing added. It records unknown commands too. Options: `-all` prints the same; any other argument prints `Unexpected arguments at end of command: <arg> -- /history <arg>`.
+  - evidence: inspect-1#35 real "\n/list\n/list -all\nint x = 5\nString s\n"
+  - evidence: inspect-5#36 real "/foo\n/\n/LIST\n/VARS\n/vars\n"
+  - evidence: inspect-5#35 real "|  Unexpected arguments at end of command: 3 -- /history 3\n"
+  - evidence: inspect-3#30 real "\nint a = 1\nint b = 2\n"
+- RULE inspect.50: In `/history` a multi-line entry as fed here appears as only its first and last lines (`int square(int n) {` then `}`): the middle lines are missing.
+  - evidence: inspect-1#35 real "int square(int n) {\n}\nint square(double d) {\n}\n"
+  - evidence: inspect-6#8 real "int m101() {\n}\nString[] words = {\n}\n"
+- RULE inspect.51: Several snippets typed on one line are one line in `/history`.
+  - evidence: inspect-6#8 real "int v99=99;int v100=100;\n/list\n"
+- RULE inspect.52: Unambiguous prefixes of commands work: `/l` and `/li` for `/list`, `/v` and `/va` for `/vars`, `/m` and `/me` for `/methods`, `/t` and `/ty` for `/types`, `/i` and `/im` for `/imports`, `/dr` for `/drop`, `/hi`, `/his` and `/histo` for `/history`. They print what the full command prints.
+  - evidence: inspect-5#4 real "\n   1 : int x = 5;\n   2 : int f() { return 1; }\n"
+  - evidence: inspect-5#6 real "|    int x = 5\n"
+  - evidence: inspect-5#9 real "|    int f()\n"
+  - evidence: inspect-5#11 real "|    class C\n"
+  - evidence: inspect-5#13 real "|    import java.base\n|    import java.util.*\n"
+  - evidence: inspect-5#15 real "|  dropped method f()\n"
+  - evidence: inspect-5#16 real "\nint x = 5\nint f() { return 1; }\n"
+- RULE inspect.53: Ambiguous prefixes print `Command: '<what was typed>' is ambiguous: <candidates>` and `Type /help for help.`: `/d` (drop, debug), `/h` (history, help), `/e`, `/s`, `/r`, and `/` alone (every command, in a fixed order). `/ list` (a space after the slash) is the same as `/` alone.
+  - evidence: inspect-5#14 real "|  Command: '/d' is ambiguous: /drop, /debug\n|  Type /help for help.\n"
+  - evidence: inspect-5#17 real "|  Command: '/h' is ambiguous: /history, /help\n|  Type /help for help.\n"
+  - evidence: inspect-5#53 real "|  Command: '/e' is ambiguous: /edit, /exit, /env\n"
+  - evidence: inspect-5#54 real "|  Command: '/s' is ambiguous: /save, /set\n"
+  - evidence: inspect-5#55 real "|  Command: '/r' is ambiguous: /reset, /reload\n"
+  - evidence: inspect-5#22 real "|  Command: '/' is ambiguous: /list, /edit, /drop, /save, /open, /vars, /methods, /types, /imports, /exit, /env, /reset, /reload, /history, /debug, /help, /set, /?, /!\n|  Type /help for help.\n"
+  - evidence: inspect-5#49 real "|  Command: '/' is ambiguous: /list, /edit, /drop,"
+- RULE inspect.54: An unknown command prints `Invalid command: <typed>` and `Type /help for help.`. Commands are case sensitive: `/LIST` and `/VARS` are invalid.
+  - evidence: inspect-5#21 real "|  Invalid command: /foo\n|  Type /help for help.\n"
+  - evidence: inspect-5#23 real "|  Invalid command: /LIST\n"
+  - evidence: inspect-5#24 real "|  Invalid command: /VARS\n"
+- RULE inspect.55: Spaces before a command make it a Java snippet: `   /list` gives an `illegal start of expression` error showing the line with its leading spaces, and the rejected entry gets an error id that `/list -all` shows with the spaces. Trailing spaces after a command are ignored.
+  - evidence: inspect-5#25 real "|  Error:\n|  illegal start of expression\n|     /list\n|     ^\n"
+  - evidence: inspect-5#26 real "|  Error:\n|  illegal start of expression\n|        /vars\n|        ^\n"
+  - evidence: inspect-5#40 real "  e1 :    /list\n  e2 :       /vars\n"
+  - evidence: inspect-5#27 real "|    int x = 5\n"
+- RULE inspect.56: `//` and `/* comment */` print nothing. `/ex` is accepted as `/exit` and prints `|  Goodbye`.
+  - evidence: inspect-5#48 real= ""
+  - evidence: inspect-5#50 real= ""
+  - evidence: inspect-5#56 real "|  Goodbye\n"
+- RULE inspect.57: `/hel` (an unambiguous prefix of `/help`) prints the help text, which starts `|  Type a Java language expression, statement, or declaration.`.
+  - evidence: inspect-5#19 real "|  Type a Java language expression, statement, or declaration.\n|  Or type one of the following commands:\n"
+- RULE inspect.58: Local-engine differences seen in this area: redefining a method with the same signature prints `modified method f()` in the default tool but `replaced method f()` in the local engine; every listing and drop command printed identically in both.
+  - evidence: inspect-8#3 real "|  modified method f()\n"
+  - evidence: inspect-8#3 local "|  replaced method f()\n"
+  - evidence: inspect-6#9 real "|  modified method m101()\n"
+  - evidence: inspect-6#9 local "|  replaced method m101()\n"
+- RULE inspect.59: Events for redefining a variable or for a method that becomes defined show `signatureChange` false in the default engine's events but true in the local engine's for the updated snippet (the printed output is the same).
+  - evidence: inspect-1#18 events "\"status\":\"VALID\",\"previousStatus\":\"VALID\",\"signatureChange\":false,\"cause\":null,\"value\":\"7\""
+  - evidence: inspect-1#18 elocal "\"status\":\"VALID\",\"previousStatus\":\"VALID\",\"signatureChange\":true,\"cause\":null,\"value\":\"7\""
+- RULE inspect.60: Redefining with `class R { String b; }` over `class R { int a; }` prints `replaced class R`, and the same-signature method case prints `modified method`; declaring a method that completes an earlier one shows no message for the earlier method.
+  - evidence: inspect-7#41 real "|  replaced class R\n"
+  - evidence: inspect-2#10 real "|  created method bar()\n"
+
+## Surprises
+
+- The public API's events reuse the old id (`1`) for a redefined variable, while the tool lists the redefinition under a new id (`16`) in `/list`.
+- The `/history` output drops the middle lines of a multi-line entry as fed by this harness (`int square(int n) {` and `}` remain, `return n * n;` is gone). It may be an effect of how the lines are fed rather than of the tool; not settled.
+- `/list --all` is accepted as `/list -all`, while `/list -1` and `/list -` are unknown options.
+- `/drop s1` silently removes the startup import and `/imports` becomes empty, yet `/list -all` still prints `s1`.
+- A dropped snippet looked up by name in `/vars` prints `(not-active)`, and a name that was redefined can print twice (`int x = (not-active)` twice in inspect-8#37).
+- `/types f` named a method snippet that had been replaced (`int f() { return 1; }`, not the newer one) in its error text after the newer one was dropped (inspect-8#35).
+- `/drop` by a range such as `2-4` silently skips replaced snippet 3 and drops 2 and 4.
+- `/drop` errors append a `See /types, /methods, /vars, or /list` line, but `/vars`, `/methods` and `/types` with a wrong-kind snippet do not.
+- The second line of the `/drop` no-argument message has no `|  ` prefix.
+- Imports cannot be dropped by name, only by id, and dropping prints nothing.
+- Leading spaces before `/list` turn the entry into Java source and make an error snippet.
+- Pasting several declarations on one line gives one id per declaration but a single `/history` line.
+
+## Open questions
+
+- `/list` and `/history` formatting for four-digit ids was not reached.
+- Whether the missing middle lines in `/history` are a harness effect (lines fed one at a time) or the tool's own behavior.
+- Whether `/drop` of a class with both a variable and a method depending on it behaves differently; see Removed probes.
+
+## Removed probes
+
+- A session with `class K {}`, then a variable of type `K`, then a method returning `K`, then `/drop K` ended the real tool with exit status 1 and no output (reproducible, with the variable initialized to `null` or `new K()`). With only the variable, only the method, or a method taking a `K` parameter, the same `/drop K` works. The probe was removed from inspect-4.
+- A variable initialized with `new K()` printed an identity hash (`K@...`) that differs per run; it was changed to `null`.

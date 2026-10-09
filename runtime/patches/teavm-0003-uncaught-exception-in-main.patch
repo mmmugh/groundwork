@@ -1,0 +1,44 @@
+# Copyright 2026 Groundwork contributors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# F1. An exception escaping main() left Wasm as a raw exception the JS runtime could not decode
+# (TypeError: l.exports.teavm.js.extractException is not a function) and nothing was printed.
+# Fiber.startMain now hands it to the thread's UncaughtExceptionHandler, as the JVM does.
+#
+# Applies to: github.com/konsoletyper/teavm tag 0.13.1 (b3a245b7)
+
+diff --git a/core/src/main/java/org/teavm/runtime/Fiber.java b/core/src/main/java/org/teavm/runtime/Fiber.java
+index 01b584d..ba38811 100644
+--- a/core/src/main/java/org/teavm/runtime/Fiber.java
++++ b/core/src/main/java/org/teavm/runtime/Fiber.java
+@@ -305,7 +305,18 @@ public class Fiber {
+     }
+ 
+     static void startMain(String[] args) {
+-        start(() -> runMain(args), false);
++        // teavm-fork: an exception escaping main() used to leave Wasm as a raw exception that the JS
++        // runtime could not decode (TypeError: teavm.js.extractException is not a function) and printed
++        // nothing. Route it through the thread's uncaught-exception handler, as the JVM does, so the
++        // program itself reports it on System.err.
++        start(() -> {
++            try {
++                runMain(args);
++            } catch (Throwable e) {
++                Thread thread = Thread.currentThread();
++                thread.getUncaughtExceptionHandler().uncaughtException(thread, e);
++            }
++        }, false);
+     }
+ 
+     public static native void runMain(String[] args);

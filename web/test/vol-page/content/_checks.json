@@ -1,0 +1,6 @@
+{
+ "ch02-check#1": {"kind": "method", "name": "isEven", "returns": "boolean", "params": ["int"], "cases": [["4", "true"], ["7", "false"], ["0", "true"], ["-2", "true"]]},
+ "ch02-check#2": {"kind": "output", "expected": "Ada\n"},
+ "ch02-check#3": {"kind": "input", "runs": [{"typed": ["5"], "numbers": ["10"]}, {"typed": ["-4"], "numbers": ["-8"]}]},
+ "ch02-check#4": {"kind": "predict"}
+}

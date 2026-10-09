@@ -1,0 +1,105 @@
+# Copyright 2026 Groundwork contributors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# F4. String.format / printf / formatted. Root cause of the NPE: every DecimalFormat is built from a
+# clone of DecimalFormatSymbols, and on Wasm GC Object.clone() for that class traps (the per-class
+# clone function is not emitted: ClassMetadataRequirements never sees the type reach
+# Object.cloneObject; pre-existing in upstream, strict or not). Workaround: explicit copy in clone().
+# Also: %n was missing (UnknownFormatConversionException), %% consumed an argument index, and %f
+# rounded HALF_EVEN where java.util.Formatter rounds HALF_UP (1.005 -> "1.00" instead of "1.01").
+#
+# Applies to: github.com/konsoletyper/teavm tag 0.13.1 (b3a245b7)
+
+diff --git a/classlib/src/main/java/org/teavm/classlib/java/text/TDecimalFormatSymbols.java b/classlib/src/main/java/org/teavm/classlib/java/text/TDecimalFormatSymbols.java
+index 6252408..65c61ce 100644
+--- a/classlib/src/main/java/org/teavm/classlib/java/text/TDecimalFormatSymbols.java
++++ b/classlib/src/main/java/org/teavm/classlib/java/text/TDecimalFormatSymbols.java
+@@ -43,6 +43,23 @@ public class TDecimalFormatSymbols implements Cloneable {
+         initData();
+     }
+ 
++    // teavm-fork: copy constructor used by clone(); see clone().
++    private TDecimalFormatSymbols(TDecimalFormatSymbols other) {
++        locale = other.locale;
++        zeroDigit = other.zeroDigit;
++        groupingSeparator = other.groupingSeparator;
++        decimalSeparator = other.decimalSeparator;
++        perMill = other.perMill;
++        percent = other.percent;
++        digit = other.digit;
++        patternSeparator = other.patternSeparator;
++        nan = other.nan;
++        infinity = other.infinity;
++        minusSign = other.minusSign;
++        monetaryDecimalSeparator = other.monetaryDecimalSeparator;
++        exponentSeparator = other.exponentSeparator;
++    }
++
+     private void initData() {
+         DecimalData data = CLDRHelper.resolveDecimalData(locale.getLanguage(), locale.getCountry());
+         zeroDigit = '0';
+@@ -177,10 +194,9 @@ public class TDecimalFormatSymbols implements Cloneable {
+ 
+     @Override
+     public Object clone() {
+-        try {
+-            return super.clone();
+-        } catch (CloneNotSupportedException e) {
+-            throw new AssertionError("This exception should not been thrown", e);
+-        }
++        // teavm-fork: explicit copy instead of super.clone(). On Wasm GC the Object.clone() path traps
++        // for this class ("dereferencing a null pointer": the per-class clone function is not emitted),
++        // which broke every DecimalFormat, hence String.format("%.2f"), printf and String.formatted.
++        return new TDecimalFormatSymbols(this);
+     }
+ }
+diff --git a/classlib/src/main/java/org/teavm/classlib/java/util/TFormatter.java b/classlib/src/main/java/org/teavm/classlib/java/util/TFormatter.java
+index 3503f05..6d232d0 100644
+--- a/classlib/src/main/java/org/teavm/classlib/java/util/TFormatter.java
++++ b/classlib/src/main/java/org/teavm/classlib/java/util/TFormatter.java
+@@ -23,6 +23,7 @@ import java.io.OutputStreamWriter;
+ import java.io.PrintStream;
+ import java.io.UnsupportedEncodingException;
+ import java.math.BigDecimal;
++import java.math.RoundingMode;
+ import java.text.DecimalFormat;
+ import java.text.DecimalFormatSymbols;
+ import java.text.NumberFormat;
+@@ -188,6 +189,17 @@ public final class TFormatter implements Closeable, Flushable {
+ 
+                 formatSpecifierStart = index;
+                 char specifier = parseFormatSpecifier();
++                // teavm-fork: %n (line separator) was missing (UnknownFormatConversionException), and
++                // %% consumed an argument index, shifting every later specifier. Neither takes an
++                // argument in the JDK.
++                if (specifier == 'n') {
++                    out.append(System.lineSeparator());
++                    continue;
++                }
++                if (specifier == '%') {
++                    out.append("%");
++                    continue;
++                }
+                 configureFormat();
+                 formatValue(specifier);
+             }
+@@ -285,6 +297,8 @@ public final class TFormatter implements Closeable, Flushable {
+             }
+             format.setMaximumFractionDigits(precision);
+             format.setMinimumFractionDigits(precision);
++            // teavm-fork: java.util.Formatter rounds %f HALF_UP (DecimalFormat's default is HALF_EVEN).
++            format.setRoundingMode(RoundingMode.HALF_UP);
+             format.setGroupingUsed((flags & TFormattableFlags.GROUPING_SEPARATOR) != 0);
+             if ((flags & TFormattableFlags.PARENTHESIZED_NEGATIVE) != 0) {
+                 format.setNegativePrefix("(");

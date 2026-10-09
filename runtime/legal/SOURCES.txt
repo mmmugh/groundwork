@@ -1,0 +1,68 @@
+Pinned sources for runtime release 2026.10.08-1.
+No source here was modified from what these commits/revisions name; runtime/patches/ (in
+source.tar.gz) is applied on top at build time, not baked into any of the archives below.
+
+TeaVM
+  repo:   https://github.com/konsoletyper/teavm
+  tag:    0.13.1
+  commit: b3a245b7d9034ff35cdfab2def057a3d4f256efb
+
+teavm-javac
+  repo:   https://github.com/konsoletyper/teavm-javac
+  commit: 2ddcf02e4983e5c74d45b945c2fd41a829358828
+
+OpenJDK jdk25u (javac, compiled into compiler.wasm; revision pinned inside teavm-javac's
+gradle.properties, and inside this repo's pins.env)
+  revision:   6c48f4ed707bf0b15f9b6098de30db8aae6fa40f
+  source zip: https://github.com/openjdk/jdk25u/archive/6c48f4ed707bf0b15f9b6098de30db8aae6fa40f.zip
+  sha256:     4f3d4746948c90682ece32e4fc1b40a7828d1e68e9abd2e68316ab8076792458  jdk-6c48f4ed707bf0b15f9b6098de30db8aae6fa40f.zip
+
+Mozilla Rhino 1.7.15 (MPL-2.0; TeaVM compiles it into compiler.wasm with its packages renamed from
+org.mozilla to org.teavm.rhino, which TeaVM's settings.gradle.kts and build-logic, in the TeaVM
+archive, do)
+  source jar: https://repo1.maven.org/maven2/org/mozilla/rhino/1.7.15/rhino-1.7.15-sources.jar
+  sha256:     d3be964dc5fd505b79432a3d57659420d3ad6a8be9eea8406e1b0a4e7c6f06f2  rhino-1.7.15-sources.jar
+
+Written offer (GPLv2, section 3(b)). For at least three years after you received these files from us, and
+for as long as we distribute them, anyone may have a complete machine-readable copy of the corresponding
+source code of the GPL-licensed parts of these files (OpenJDK jdk25u, above), under the terms of the GPLv2,
+at no charge beyond the cost of physically performing the distribution, by download or on a medium
+customarily used for software interchange: ask at https://github.com/mmmugh/groundwork/issues. The same
+source is in source.tar.gz, beside these files in each GitHub release of this runtime at
+https://github.com/mmmugh/groundwork/releases, and inside the course's site zip whenever one is published.
+
+What the six runtime files were built from (dist/fork/manifest.json, checked against this source):
+  teavm commit:       b3a245b7d9034ff35cdfab2def057a3d4f256efb, patches 0001 0002 0003 0004 0005 0006 0007 0008 0009 0010 0011 0012 0013 0014 0015 0016 0017 0018 0019 0020
+  teavm-javac commit: 2ddcf02e4983e5c74d45b945c2fd41a829358828, patches 0101 0102 0103 0104 0105 0106
+  SHA-256 of each patch applied (runtime/patches/ in source.tar.gz):
+    4a9e060961fdd46313921ef6bd21f395b39d323ba2a99047fc8700357245b0e3  patches/teavm-0001-strict-implicit-exception-flow.patch
+    af56a7714af191b3b514a75dfe388f895b719d6f7beba3595c6345cd0dcac31a  patches/teavm-0002-bound-checks-and-constant-folding.patch
+    992255cd6912ecdf71e2f26197a816370e870908a85789f313236007071808eb  patches/teavm-0003-uncaught-exception-in-main.patch
+    9167c2b225478a2b29f96f097d9bbd803302637bc3301f35ad323fd49e1cd1b1  patches/teavm-0004-uncaught-handler-jdk-format.patch
+    6d5425cf35f94b53ac3f482214e893f139eba0b4ecc0d48fd8f79b35ddae05c5  patches/teavm-0005-stdin-scanner-readln.patch
+    fbe8704e752a09d8f1cef735ab004f037725eb2babe00f74bcdd9b521b99dce4  patches/teavm-0006-string-format.patch
+    d34d198ab687a42db2a0425d79eaf6f1f143b71ea9d87c22fc909f65127b4076  patches/teavm-0007-number-sum.patch
+    9f3a28e873c2be3044f80e6c7df296481de05e527d48abadab55e11084169ae2  patches/teavm-0008-strict-cast-unrelated-types.patch
+    4feb062b8b70449b550fc687dc74b0dd1be7c6d333477849080716916acc47f5  patches/teavm-0009-jdk-exception-messages.patch
+    5257f19e914f3cb87f34a1e48f1c16457b4f2e6878fe2c2f47d6d924088afe15  patches/teavm-0010-math-fidelity.patch
+    1c90dbbd93cf07502507de97c3ae07775d2f2a62d67a6ffb391d8987b31f648f  patches/teavm-0011-hash-order.patch
+    96b42be195297d1fb95a88e248a9bbb84fc63f6c784081d988b558c503c53752  patches/teavm-0012-throwable-gaps.patch
+    526480e84fee66e5c5ccc7f6becba9c44b52257377410af4feda68bfa24376b8  patches/teavm-0013-compiler-gaps.patch
+    a652d5fe31473e92efd778235909589c0bd24a5212b0ad2ee3abbe3357fc7282  patches/teavm-0014-random.patch
+    054a3e2e19c0770b604b48e3b4e5c27bee57120440fe980227dd8ee0e3a76e23  patches/teavm-0015-strictmath-fdlibm.patch
+    fb70e363c92980966cabbf43ff150efdab32f1ad50fba4db80f3bac5ce29cfda  patches/teavm-0016-flush-reaches-host.patch
+    9074f69b34f92e18c0436b8c671b3f9b2a1292957d65a7dc02bced0181381ba7  patches/teavm-0017-method-never-returns.patch
+    bf578de5c2bc3479b2265e03757225a23f68d3a5742e4073e78a545496ea41df  patches/teavm-0018-url-connection-offline.patch
+    ed920c347d364dd4ca679a922bd4d6b8ac1aca3cd1e083196c16416aa1d4c455  patches/teavm-0019-protocol-exception-before-offline.patch
+    77efd8ba630fbd477c7fb67a29b604afd44845cd98e32333eb34de67a2a8db06  patches/teavm-0020-loopback-connection-refused.patch
+    0d36260033e9718340fbe4e5f212a26764618098cd8b785eab4719b54f728ffb  patches/teavm-javac-0101-build-with-patched-teavm.patch
+    ff82dc44c929e8179a57c76a2e7ea2fe51dc193e51b0a7c7c7cbc89d0bed5da3  patches/teavm-javac-0102-strict-arithmetic.patch
+    1aa1ac2eed133c2d40015af5412d468d949aea48048502810bbf05a12d7f8a85  patches/teavm-javac-0103-stdlib-rename.patch
+    87b85a424236b1672e21e50d3e5d0198012b028ec0d022a115caf70c69772e99  patches/teavm-javac-0104-compile-classlib.patch
+    ae075083d3117b7775156397cab43e9cfd902e39461c5170f8e6b680b057f27c  patches/teavm-javac-0105-compiler-built-by-fork.patch
+    586a45ff7c8678c51f2b8645306c160c77de84631c34cbc50d8ea1a85562a927  patches/teavm-javac-0106-sdk-without-jso.patch
+  SHA-256 of the build's own inputs (in source.tar.gz):
+    fee020fef9d09c81df3a7a3e9b7df98b55d082a0df60e8de792a2143468c3d93  build.sh
+    c852e5ff3e025dcf9c81bc9af27199f3b2846c2c706c768fd6a6c0d950ab09f8  gradle/verification-metadata.xml
+    29c4f86be979a8567e8c1574995a1b30912c20e73ef96a70ac658d83f56593a6  overlay/build-overlay.sh
+    5165c59c5b218726792a0b214d7a1170ea03c466f62bddb393f2db43d92af819  pins.env

@@ -1,0 +1,438 @@
+# Copyright 2026 Groundwork contributors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# Plan 4 Task 6, D86 (the ruling on java.net): a box's program talks to nobody, so java.net
+# fails as it does on a computer with no network, with an exception the program can catch. TeaVM's
+# http(s) URLConnection (TXHRURLConnection) sent its request with an asynchronous XMLHttpRequest, which a
+# program in this runtime can never finish: with the page's network doors closed (D86) the offline stub's
+# send() threw, and the reader saw TeaVM's wrapper of that JavaScript error
+# (org.teavm.jso.impl.wasmgc.WasmGCExceptionWrapper), a RuntimeException no catch of IOException sees; in
+# Node, which has no XMLHttpRequest, the same wrapper said "XMLHttpRequest is not defined". Now the
+# connection makes no request at all:
+#   - connect(), getInputStream() and getOutputStream() throw, and getResponseCode() and
+#     getResponseMessage() throw through connect(), as HttpURLConnection does when it cannot connect;
+#     the header getters fall back to the base classes, which answer as for a failed connection.
+#   - A host name throws java.net.UnknownHostException with the host as its message: what the pinned
+#     JDK prints for a .invalid host, which never resolves (RFC 6761), and so what it prints offline
+#     (runtime/test/cases.mjs, the D86 cases, pin it against the JDK).
+#   - An address literal (four numbers 0 to 255 joined by dots, or an IPv6 address in brackets) needs no
+#     lookup, so it throws java.net.ConnectException("Network is unreachable"), the operating system's
+#     words for ENETUNREACH. That one is not pinned against the JDK: its machine has a network, so the
+#     JDK's offline answer for an address cannot be observed there.
+#   - Loopback is teavm-0020's: on top of this patch, 127.0.0.1 and localhost fail as the JDK does when
+#     nothing listens there (D100).
+#   - UnknownHostException, ConnectException and SocketException (ConnectException's superclass in the
+#     JDK) are new to TeaVM's class library. Like every class there, teavm-javac's StdlibConverter puts
+#     them into the compile classlib under their JDK names, so javac sees java.net.UnknownHostException;
+#     teavm-javac-0102 shows the other way, a class kept out of that classlib.
+# The XMLHttpRequest code is gone from java.net, so a program's java.net never reaches the network doors;
+# they stay the defense for every other path (web/runner/doors.js).
+#
+# Written from TeaVM's own sources (classlib/src/main/java/org/teavm/classlib/java/net/) and the pinned
+# JDK's observed output; no OpenJDK source was opened.
+#
+# Applies to: github.com/konsoletyper/teavm tag 0.13.1 (b3a245b7)
+
+diff --git a/classlib/src/main/java/org/teavm/classlib/java/net/TConnectException.java b/classlib/src/main/java/org/teavm/classlib/java/net/TConnectException.java
+new file mode 100644
+index 0000000..9a98e31
+--- /dev/null
++++ b/classlib/src/main/java/org/teavm/classlib/java/net/TConnectException.java
+@@ -0,0 +1,30 @@
++/*
++ *  Copyright 2026 Groundwork contributors.
++ *
++ *  Licensed under the Apache License, Version 2.0 (the "License");
++ *  you may not use this file except in compliance with the License.
++ *  You may obtain a copy of the License at
++ *
++ *       http://www.apache.org/licenses/LICENSE-2.0
++ *
++ *  Unless required by applicable law or agreed to in writing, software
++ *  distributed under the License is distributed on an "AS IS" BASIS,
++ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++ *  See the License for the specific language governing permissions and
++ *  limitations under the License.
++ */
++package org.teavm.classlib.java.net;
++
++/**
++ * teavm-fork: java.net.ConnectException, which TeaVM's class library lacked. TXHRURLConnection
++ * throws it for an address literal, which a computer with no network cannot reach.
++ */
++public class TConnectException extends TSocketException {
++    public TConnectException() {
++        super();
++    }
++
++    public TConnectException(String detailMessage) {
++        super(detailMessage);
++    }
++}
+diff --git a/classlib/src/main/java/org/teavm/classlib/java/net/TSocketException.java b/classlib/src/main/java/org/teavm/classlib/java/net/TSocketException.java
+new file mode 100644
+index 0000000..129a23d
+--- /dev/null
++++ b/classlib/src/main/java/org/teavm/classlib/java/net/TSocketException.java
+@@ -0,0 +1,32 @@
++/*
++ *  Copyright 2026 Groundwork contributors.
++ *
++ *  Licensed under the Apache License, Version 2.0 (the "License");
++ *  you may not use this file except in compliance with the License.
++ *  You may obtain a copy of the License at
++ *
++ *       http://www.apache.org/licenses/LICENSE-2.0
++ *
++ *  Unless required by applicable law or agreed to in writing, software
++ *  distributed under the License is distributed on an "AS IS" BASIS,
++ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++ *  See the License for the specific language governing permissions and
++ *  limitations under the License.
++ */
++package org.teavm.classlib.java.net;
++
++import java.io.IOException;
++
++/**
++ * teavm-fork: java.net.SocketException, which TeaVM's class library lacked; TConnectException
++ * extends it, as in the JDK.
++ */
++public class TSocketException extends IOException {
++    public TSocketException() {
++        super();
++    }
++
++    public TSocketException(String detailMessage) {
++        super(detailMessage);
++    }
++}
+diff --git a/classlib/src/main/java/org/teavm/classlib/java/net/TUnknownHostException.java b/classlib/src/main/java/org/teavm/classlib/java/net/TUnknownHostException.java
+new file mode 100644
+index 0000000..9d82e09
+--- /dev/null
++++ b/classlib/src/main/java/org/teavm/classlib/java/net/TUnknownHostException.java
+@@ -0,0 +1,32 @@
++/*
++ *  Copyright 2026 Groundwork contributors.
++ *
++ *  Licensed under the Apache License, Version 2.0 (the "License");
++ *  you may not use this file except in compliance with the License.
++ *  You may obtain a copy of the License at
++ *
++ *       http://www.apache.org/licenses/LICENSE-2.0
++ *
++ *  Unless required by applicable law or agreed to in writing, software
++ *  distributed under the License is distributed on an "AS IS" BASIS,
++ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++ *  See the License for the specific language governing permissions and
++ *  limitations under the License.
++ */
++package org.teavm.classlib.java.net;
++
++import java.io.IOException;
++
++/**
++ * teavm-fork: java.net.UnknownHostException, which TeaVM's class library lacked.
++ * TXHRURLConnection throws it for a host name, naming the host, as a JDK with no network does.
++ */
++public class TUnknownHostException extends IOException {
++    public TUnknownHostException() {
++        super();
++    }
++
++    public TUnknownHostException(String detailMessage) {
++        super(detailMessage);
++    }
++}
+diff --git a/classlib/src/main/java/org/teavm/classlib/java/net/impl/TXHRURLConnection.java b/classlib/src/main/java/org/teavm/classlib/java/net/impl/TXHRURLConnection.java
+index 7fffd9f..5131f96 100644
+--- a/classlib/src/main/java/org/teavm/classlib/java/net/impl/TXHRURLConnection.java
++++ b/classlib/src/main/java/org/teavm/classlib/java/net/impl/TXHRURLConnection.java
+@@ -15,34 +15,23 @@
+  */
+ package org.teavm.classlib.java.net.impl;
+ 
+-import java.io.ByteArrayInputStream;
+-import java.io.ByteArrayOutputStream;
+ import java.io.IOException;
+ import java.io.InputStream;
+ import java.io.OutputStream;
+-import java.util.ArrayList;
+-import java.util.HashMap;
+-import java.util.List;
+-import java.util.Map;
++import org.teavm.classlib.java.net.TConnectException;
+ import org.teavm.classlib.java.net.THttpURLConnection;
+ import org.teavm.classlib.java.net.TURL;
+-import org.teavm.interop.Async;
+-import org.teavm.interop.AsyncCallback;
+-import org.teavm.jso.ajax.XMLHttpRequest;
+-import org.teavm.jso.typedarrays.ArrayBuffer;
+-import org.teavm.jso.typedarrays.Int8Array;
+-
++import org.teavm.classlib.java.net.TUnknownHostException;
++
++/**
++ * teavm-fork: an http(s) connection that fails as it does on a computer with no network, before any request
++ * is made. This class used to send the request with an asynchronous XMLHttpRequest, which a program in the
++ * course's runtime can never finish (D86: a box's program talks to nobody). Every call that would reach the
++ * network (connect, getInputStream, getOutputStream, and through connect getResponseCode and
++ * getResponseMessage) throws what the JDK throws offline; the header getters answer as for a connection that
++ * failed (null, -1, an empty map), from the base classes.
++ */
+ public class TXHRURLConnection extends THttpURLConnection {
+-    private XMLHttpRequest xhr;
+-    private ByteArrayOutputStream outputStream;
+-    private ByteArrayInputStream inputStream;
+-    private ByteArrayInputStream errorStream;
+-    private Map<String, String> responseHeaders = new HashMap<>();
+-    private String[] responseHeaderKeys;
+-    private String[] responseHeaderValues;
+-    private Map<String, List<String>> headerFields = new HashMap<>();
+-    private boolean requestPerformed;
+-
+     public TXHRURLConnection(TURL url) {
+         super(url);
+     }
+@@ -50,191 +39,59 @@ public class TXHRURLConnection extends THttpURLConnection {
+     @Override
+     public void disconnect() {
+         connected = false;
+-        xhr = null;
+-        responseHeaders = null;
+-        responseHeaderKeys = null;
+-        responseHeaderValues = null;
+-        inputStream = null;
+-        outputStream = null;
+-        errorStream = null;
+     }
+ 
+     @Override
+     public void connect() throws IOException {
+-        if (connected) {
+-            return;
+-        }
+-
+-        xhr = new XMLHttpRequest();
+-        xhr.open(method, url.toString());
+-        for (Map.Entry<String, List<String>> entry : getRequestProperties().entrySet()) {
+-            for (String value : entry.getValue()) {
+-                xhr.setRequestHeader(entry.getKey(), value);
+-            }
+-        }
+-        xhr.setResponseType("arraybuffer");
+-        connected = true;
+-    }
+-
+-    private void performRequestIfNecessary() {
+-        if (!requestPerformed) {
+-            requestPerformed = true;
+-            performRequest();
+-        }
+-    }
+-
+-    @Async
+-    private native Boolean performRequest();
+-    private void performRequest(AsyncCallback<Boolean> callback) {
+-        xhr.setOnReadyStateChange(() -> {
+-            if (xhr.getReadyState() != XMLHttpRequest.DONE) {
+-                return;
+-            }
+-
+-            responseCode = xhr.getStatus();
+-            responseMessage = xhr.getStatusText();
+-            if (responseCode == 0) {
+-                responseCode = -1;
+-            }
+-
+-            var array = new Int8Array((ArrayBuffer) xhr.getResponse());
+-            byte[] bytes = new byte[array.getLength()];
+-            for (int i = 0; i < bytes.length; ++i) {
+-                bytes[i] = array.get(i);
+-            }
+-            ByteArrayInputStream stream = new ByteArrayInputStream(bytes);
+-
+-            parseHeaders(xhr.getAllResponseHeaders());
+-
+-            int responseGroup = responseCode / 100;
+-            if (responseGroup == 4 || responseGroup == 5) {
+-                errorStream = stream;
+-                inputStream = null;
+-            } else {
+-                inputStream = stream;
+-                errorStream = null;
+-            }
+-            callback.complete(Boolean.TRUE);
+-        });
+-
+-        if (outputStream != null) {
+-            byte[] bytes = outputStream.toByteArray();
+-            var array = new Int8Array(bytes.length);
+-            for (int i = 0; i < bytes.length; ++i) {
+-                array.set(i, bytes[i]);
+-            }
+-            xhr.send(array.getBuffer());
+-        } else {
+-            xhr.send();
+-        }
+-    }
+-
+-    private void parseHeaders(String headers) {
+-        int index = 0;
+-        List<String> keys = new ArrayList<>();
+-        List<String> values = new ArrayList<>();
+-        responseHeaders = new HashMap<>();
+-        headerFields = new HashMap<>();
+-        while (index < headers.length()) {
+-            int next = headers.indexOf("\r\n", index);
+-            if (next < 0) {
+-                next = headers.length();
+-            }
+-
+-            int colon = headers.indexOf(':', index);
+-            if (colon < 0) {
+-                colon = headers.length();
+-            }
+-            String key = colon < next ? headers.substring(index, colon) : headers.substring(index, next);
+-            String value = colon < next ? headers.substring(colon + 1, next).trim() : "";
+-            key = key.trim();
+-            keys.add(key);
+-            values.add(value);
+-
+-            List<String> headerFieldValues = headerFields.get(key);
+-            if (headerFieldValues == null) {
+-                headerFieldValues = new ArrayList<>();
+-                headerFields.put(key, headerFieldValues);
+-            }
+-            headerFieldValues.add(value);
+-
+-            key = key.toLowerCase();
+-            responseHeaders.put(key, value);
+-
+-            index = next + 2;
+-        }
+-
+-        responseHeaderKeys = keys.toArray(new String[keys.size()]);
+-        responseHeaderValues = values.toArray(new String[values.size()]);
+-    }
+-
+-    @Override
+-    public String getHeaderFieldKey(int posn) {
+-        performRequestIfNecessary();
+-        if (responseHeaderKeys == null || posn >= responseHeaderKeys.length) {
+-            return null;
+-        }
+-        return responseHeaderKeys[posn];
+-    }
+-
+-    @Override
+-    public String getHeaderField(int pos) {
+-        performRequestIfNecessary();
+-        if (responseHeaderValues == null || pos >= responseHeaderValues.length) {
+-            return null;
+-        }
+-        return responseHeaderValues[pos];
+-    }
+-
+-    @Override
+-    public String getHeaderField(String key) {
+-        performRequestIfNecessary();
+-        return responseHeaders != null ? responseHeaders.get(key.toLowerCase()) : null;
+-    }
+-
+-    @Override
+-    public Map<String, List<String>> getHeaderFields() {
+-        return headerFields;
++        throw offline();
+     }
+ 
+     @Override
+     public InputStream getInputStream() throws IOException {
+-        connect();
+-        performRequestIfNecessary();
+-
+-        int responseGroup = responseCode / 100;
+-        if (responseGroup == 4 || responseGroup == 5) {
+-            inputStream = new ByteArrayInputStream(new byte[0]);
+-            throw new IOException("HTTP status: " + responseCode + " " + responseMessage);
+-        }
+-
+-        return inputStream;
++        throw offline();
+     }
+ 
+     @Override
+-    public int getResponseCode() throws IOException {
+-        connect();
+-        performRequestIfNecessary();
+-        return super.getResponseCode();
+-    }
+-
+-    @Override
+-    public String getResponseMessage() throws IOException {
+-        connect();
+-        performRequestIfNecessary();
+-        return super.getResponseMessage();
++    public OutputStream getOutputStream() throws IOException {
++        throw offline();
+     }
+ 
+-    @Override
+-    public InputStream getErrorStream() {
+-        return errorStream;
++    // A host name resolves to nothing offline: UnknownHostException, its message the host, as the JDK says
++    // for a host no lookup finds. An address literal needs no lookup and reaches nothing: ConnectException,
++    // with the words the operating system gives for ENETUNREACH (not pinned against the JDK, whose machine has
++    // a network). Loopback and localhost fail the same way: a box has no computer of its own to connect to.
++    private IOException offline() {
++        String host = url.getHost();
++        if (host != null && isAddressLiteral(host)) {
++            return new TConnectException("Network is unreachable");
++        }
++        return new TUnknownHostException(host);
+     }
+ 
+-    @Override
+-    public OutputStream getOutputStream() throws IOException {
+-        if (outputStream == null) {
+-            outputStream = new ByteArrayOutputStream();
++    // An IPv6 literal (in brackets, as a URL writes it) or four decimal numbers from 0 to 255 joined by dots.
++    private static boolean isAddressLiteral(String host) {
++        if (host.startsWith("[")) {
++            return true;
++        }
++        int parts = 0;
++        int value = -1;
++        for (int i = 0; i <= host.length(); i++) {
++            char c = i < host.length() ? host.charAt(i) : '.';
++            if (c == '.') {
++                if (value < 0) {
++                    return false;
++                }
++                parts++;
++                value = -1;
++            } else if (c >= '0' && c <= '9') {
++                value = (value < 0 ? 0 : value * 10) + (c - '0');
++                if (value > 255) {
++                    return false;
++                }
++            } else {
++                return false;
++            }
+         }
+-        return outputStream;
++        return parts == 4;
+     }
+ }

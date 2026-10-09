@@ -1,0 +1,296 @@
+# Observations: errors
+
+Sessions run: errors-1 (core compile errors: cannot find symbol, incompatible types, missing return, unreachable, non-static, duplicate variable, generics, raw types, deprecation, division by zero, multi-line and multi-error snippets, class bodies, two snippets on one line, Unicode, rejected entries), errors-2 (an unclosed comment, how `$N` ids continue after rejected entries, spaces before an error, Unicode and emoji, very long lines, a long tour of parse errors and less common compiler messages), errors-3 to errors-6 (tabs: before an error, inside a line, in a method body, two tabs), errors-7 (deprecation and unchecked warnings alone and together with errors, division by zero, "not a statement", stray tokens, errors spanning several lines), errors-10 to errors-24 (one risky entry each that leaves the tool waiting for more input, followed by two plain expressions to see how it recovers), errors-25 (typos and beginner mistakes, errors inside class bodies, overloads, lambdas, records, enums, inheritance), errors-26 to errors-28 (try blocks), errors-29 (deprecated-for-removal warnings), errors-30 (two or three snippets on one line when one fails). Every error and warning block below is the tool's text verbatim, quoted from the default engine; the `--execution local` engine printed exactly the same text for every error and warning (the single entry that differed between engines in these sessions is a thread name, covered by the last rule).
+
+Harness note: a line that contains a tab character cannot be paced by the observer, so in sessions that contain one the output of the tab line lands in the `banner` record (sessions errors-3, errors-4, errors-6) or, when the tab is inside a multi-line snippet, in the normal entry (errors-5).
+
+- RULE errors.1: A rejected snippet prints `|  Error:`, then the compiler message line(s) each prefixed `|  `, then the offending source line prefixed `|  `, then a caret line prefixed `|  `. The caret line is one `^` for a one-character range, `^^` for two, and `^`, dashes, `^` for three or more characters, so the range runs from the first `^` to the last.
+  - evidence: errors-1#7 real "|  Error:\n|  incompatible types: int cannot be converted to java.lang.String\n|  String s = 5;\n|             ^\n"
+  - evidence: errors-2#15 real "|  Error:\n|  cannot find symbol\n|    symbol:   variable $9\n|  $9\n|  ^^\n"
+  - evidence: errors-1#0 real "|  Error:\n|  cannot find symbol\n|    symbol:   variable foo\n|  int a = foo;\n|          ^-^\n"
+  - evidence: errors-1#6 real "|  int x = \"hello\";\n|          ^-----^\n"
+- RULE errors.2: A rejected snippet changes nothing and the tool prints no other line for it (no `created`, no variable feedback line, no value line); the next prompt follows immediately.
+  - evidence: errors-1#6 real "|  Error:\n|  incompatible types: java.lang.String cannot be converted to int\n|  int x = \"hello\";\n|          ^-----^\n"
+  - evidence: errors-2#6 real "|  Error:\n|  cannot find symbol\n|    symbol:   variable foo\n|  foo\n|  ^-^\n"
+- RULE errors.3: `cannot find symbol` prints a `symbol:` line indented two extra spaces: `variable NAME`, `class NAME`, or `method NAME(ARGTYPES)` with the argument types of the call (primitives as written, classes fully qualified, no space after the comma). No `location:` line is printed (the public API message for the same diagnostic does carry one).
+  - evidence: errors-1#0 real "|    symbol:   variable foo\n"
+  - evidence: errors-1#2 real "|    symbol:   method bar(int)\n|  bar(3)\n|  ^-^\n"
+  - evidence: errors-2#53 real "|    symbol:   method foo(int,java.lang.String)\n|  str.foo(1, \"b\")\n|  ^-----^\n"
+  - evidence: errors-1#0 events "location: class "
+- RULE errors.4: For a missing class name both occurrences are reported as separate Error blocks in source order, each with its own caret.
+  - evidence: errors-1#3 real "|  Error:\n|  cannot find symbol\n|    symbol:   class Foo\n|  Foo f = new Foo();\n|  ^-^\n|  Error:\n|  cannot find symbol\n|    symbol:   class Foo\n|  Foo f = new Foo();\n|              ^-^\n"
+  - evidence: errors-25#0 real "|    symbol:   class Strin\n|  Strin s = \"a\";\n|  ^---^\n"
+- RULE errors.5: When the missing symbol is a member after a dot (method or field of a value or class), the caret starts at the receiver and ends at the member name, covering the whole `receiver.member`; the argument list is not covered.
+  - evidence: errors-1#4 real "|    symbol:   method foo()\n|  \"abc\".foo()\n|  ^-------^\n"
+  - evidence: errors-1#5 real "|    symbol:   variable size\n|  \"abc\".size\n|  ^--------^\n"
+  - evidence: errors-25#4 real "|    symbol:   method printn(java.lang.String)\n|  System.out.printn(\"a\");\n|  ^---------------^\n"
+  - evidence: errors-25#12 real "|  li.length()\n|  ^-------^\n"
+- RULE errors.6: A misspelled package-like prefix gives `package NAME does not exist`; calling a method on a primitive gives `int cannot be dereferenced`.
+  - evidence: errors-25#2 real "|  Error:\n|  package system does not exist\n|  system.out.println(\"a\");\n|  ^--------^\n"
+  - evidence: errors-25#3 real "|  package Sytem does not exist\n|  Sytem.out.println(\"a\");\n|  ^-------^\n"
+  - evidence: errors-25#22 real "|  Error:\n|  int cannot be dereferenced\n|  num.toString()\n|  ^----------^\n"
+- RULE errors.7: `incompatible types` messages name classes fully qualified (`java.lang.String`) and primitives plainly; the caret covers exactly the offending expression (a literal, a method result, a whole binary expression, or a constructor call).
+  - evidence: errors-1#6 real "|  incompatible types: java.lang.String cannot be converted to int\n"
+  - evidence: errors-1#8 real "|  int n = \"abc\".length() + \"x\";\n|          ^------------------^\n"
+  - evidence: errors-2#22 real "|  incompatible types: java.lang.String cannot be converted to int\n"
+  - evidence: errors-2#41 real "|  incompatible types: boolean cannot be converted to int\n|  int bi = true;\n|           ^--^\n"
+  - evidence: errors-2#60 real "|  incompatible types: int[] cannot be converted to int\n|  int ai = new int[2];\n|           ^--------^\n"
+- RULE errors.8: Narrowing gives `incompatible types: possible lossy conversion from double to int` (also long to int).
+  - evidence: errors-1#9 real "|  incompatible types: possible lossy conversion from double to int\n|  int d = 3.5;\n|          ^-^\n"
+  - evidence: errors-1#10 real "|  incompatible types: possible lossy conversion from long to int\n|  int i = big;\n|          ^-^\n"
+- RULE errors.9: A wrong argument type for a single candidate method (or constructor) is reported as `incompatible types` with the caret on the argument, not on the call.
+  - evidence: errors-1#21 real "|  Error:\n|  incompatible types: java.lang.String cannot be converted to int\n|  add(\"a\", 2)\n|      ^-^\n"
+  - evidence: errors-25#29 real "|  new Pt(\"a\", \"b\")\n|         ^-^\n"
+  - evidence: errors-25#13 real "|  li.get(\"a\")\n|         ^-^\n"
+- RULE errors.10: A wrong argument count for one candidate prints `method NAME in class  cannot be applied to given types;` (two spaces, the class name is empty for methods declared at top level in the session) followed by `required:`, `found:` (aligned with `found:    `) and `reason:` lines; the caret covers only the method name.
+  - evidence: errors-1#20 real "|  Error:\n|  method add in class  cannot be applied to given types;\n|    required: int,int\n|    found:    int\n|    reason: actual and formal argument lists differ in length\n|  add(1)\n|  ^-^\n"
+  - evidence: errors-25#35 real "|    found:    int,int,int\n"
+- RULE errors.11: For a constructor the message is `constructor Pt in class Pt cannot be applied to given types;` (`record Pnt` for a record), with `found:    no arguments` when none were passed; the caret covers the whole `new Pt(1)` expression.
+  - evidence: errors-25#30 real "|  Error:\n|  constructor Pt in class Pt cannot be applied to given types;\n|    required: int,int\n|    found:    no arguments\n|    reason: actual and formal argument lists differ in length\n|  new Pt()\n|  ^------^\n"
+  - evidence: errors-25#62 real "|  constructor Pnt in record Pnt cannot be applied to given types;\n"
+- RULE errors.12: With several candidate methods the message is `no suitable method found for NAME(ARGTYPES)` followed by one `method CLASS.NAME(PARAMS) is not applicable` line (indented four spaces) and a reason line (indented six) for each candidate, then the source line and a caret that covers the receiver and method name. Candidate order is the library declaration order for JDK methods; for two overloads declared in the session the later-declared one was listed first.
+  - evidence: errors-1#17 real "|  Error:\n|  no suitable method found for max(int)\n|      method java.lang.Math.max(int,int) is not applicable\n|        (actual and formal argument lists differ in length)\n|      method java.lang.Math.max(long,long) is not applicable\n"
+  - evidence: errors-1#18 real "|        (argument mismatch; java.lang.String cannot be converted to int)\n"
+  - evidence: errors-25#36 real "|  Error:\n|  no suitable method found for ov(double)\n|      method ov(java.lang.String) is not applicable\n|        (argument mismatch; double cannot be converted to java.lang.String)\n|      method ov(int) is not applicable\n|        (argument mismatch; possible lossy conversion from double to int)\n|  ov(1.5)\n|  ^^\n"
+- RULE errors.13: A no-argument constructor with many candidates prints `no suitable constructor found for Scanner(no arguments)` and lists every constructor, as `constructor java.util.Scanner.Scanner(...) is not applicable`.
+  - evidence: errors-2#54 real "|  Error:\n|  no suitable constructor found for Scanner(no arguments)\n|      constructor java.util.Scanner.Scanner(java.lang.Readable,java.util.regex.Pattern) is not applicable\n"
+- RULE errors.14: `missing return statement` is reported on the first line of the method: the caret starts at the opening brace of the body. For a one-line body the caret covers the braces; for a multi-line body it is a lone `^` under the `{`.
+  - evidence: errors-1#11 real "|  Error:\n|  missing return statement\n|  int f(int a) {\n|               ^\n"
+  - evidence: errors-2#10 real "|  Error:\n|  missing return statement\n|  int mf() { }\n|           ^-^\n"
+- RULE errors.15: `unreachable statement` shows the unreachable line (with its indentation) and the caret covers the whole statement.
+  - evidence: errors-1#12 real "|  Error:\n|  unreachable statement\n|      System.out.println(\"x\");\n|      ^----------------------^\n"
+- RULE errors.16: At the top level a bare literal with a semicolon (`5;`) is accepted and gets a temporary variable; an undefined name with a semicolon (`x + 1;`) is `cannot find symbol`, not `not a statement`.
+  - evidence: errors-1#13 real "$2 ==> 5\n"
+  - evidence: errors-1#14 real "|  Error:\n|  cannot find symbol\n|    symbol:   variable x\n|  x + 1;\n|  ^\n"
+- RULE errors.17: Inside a method or class body an expression that is not a statement gives `not a statement`, with the caret covering the expression.
+  - evidence: errors-7#26 real "|  Error:\n|  not a statement\n|  void ns() { 5; }\n|              ^\n"
+  - evidence: errors-7#27 real "|  void ns2() { \"abc\"; }\n|               ^---^\n"
+  - evidence: errors-7#28 real "|  void ns3() { nv + 1; }\n|               ^----^\n"
+  - evidence: errors-25#31 real "|  Error:\n|  not a statement\n|  class K { void m() { foo; } }\n|                       ^-^\n"
+- RULE errors.18: `illegal start of expression` puts the caret on the offending token (a lone `^`); a lone closing parenthesis or bracket gives the same message, a lone closing brace gives `illegal start of statement`.
+  - evidence: errors-1#15 real "|  Error:\n|  illegal start of expression\n|  int y = ;\n|          ^\n"
+  - evidence: errors-1#16 real "|  int z = * 3;\n|          ^\n"
+  - evidence: errors-7#32 real "|  illegal start of expression\n|  int is3 = 1 +;\n|               ^\n"
+  - evidence: errors-7#41 real "|  Error:\n|  illegal start of expression\n|  )\n|  ^\n"
+  - evidence: errors-7#40 real "|  Error:\n|  illegal start of statement\n|  }\n|  ^\n"
+- RULE errors.19: A missing semicolon gives `';' expected` with the caret on the column just after the previous token (not on the next token); other punctuation errors have the same shape.
+  - evidence: errors-2#25 real "|  Error:\n|  ';' expected\n|  int ms = 5 int mt = 6;\n|            ^\n"
+  - evidence: errors-12#0 real "|  ';' expected\n|  void ms() { int a = 1 int b = 2; }\n|                       ^\n"
+  - evidence: errors-2#33 real "|  '}' expected\n|  int[] arr = {1, 2;\n|                   ^\n"
+- RULE errors.20: Lexical errors: an unclosed string literal puts the caret on the opening quote; an unclosed character literal on the opening apostrophe; `''` is `empty character literal`; a bad escape is `illegal escape character` with the caret on the character after the backslash; a number that does not fit is `integer number too large`.
+  - evidence: errors-1#42 real "|  Error:\n|  unclosed string literal\n|  String us = \"abc;\n|              ^\n"
+  - evidence: errors-20#0 real "|  Error:\n|  unclosed character literal\n|  char c = 'a;\n|           ^\n"
+  - evidence: errors-2#34 real "|  empty character literal\n|  char c2 = '';\n|            ^\n"
+  - evidence: errors-2#35 real "|  illegal escape character\n|  String e = \"\\q\";\n|               ^\n"
+  - evidence: errors-2#36 real "|  integer number too large\n|  int big = 99999999999;\n|            ^\n"
+- RULE errors.21: Illegal characters are quoted: a backslash prints `illegal character: '\'`, a non-ASCII stray character prints its code (`'\u00bf'`) while the source line shows the character itself; a lone backtick produces two Error blocks.
+  - evidence: errors-7#44 real "|  Error:\n|  illegal character: '\\'\n|  \\\n|  ^\n"
+  - evidence: errors-7#46 real "|  illegal character: '\\u00bf'\n|  int ü = 5 ¿\n|            ^\n"
+  - evidence: errors-7#45 real "|  Error:\n|  illegal character: '`'\n|  `\n|  ^\n|  Error:\n|  reached end of file while parsing\n|  `\n|   ^\n"
+- RULE errors.22: One bad snippet can yield several unrelated Error blocks (each with its own source line and caret), for example a reserved word used as a variable name.
+  - evidence: errors-2#38 real "|  Error:\n|  '.class' expected\n|  int class = 5;\n|      ^\n|  Error:\n|  <identifier> expected\n|  int class = 5;\n|           ^\n|  Error:\n|  unexpected type\n|    required: value\n|    found:    class\n|  int class = 5;\n|  ^--^\n"
+  - evidence: errors-2#43 real "|  Error:\n|  ';' expected\n|  foo() { }\n|       ^\n|  Error:\n|  cannot find symbol\n|    symbol:   method foo()\n|  foo() { }\n|  ^-^\n"
+  - evidence: errors-7#30 real "|  Error:\n|  not a statement\n|  void is1() { int = 5; }\n|               ^-^\n|  Error:\n|  ';' expected\n|  void is1() { int = 5; }\n|                  ^\n"
+- RULE errors.23: When a snippet has several semantic errors (in a method or class body) the tool prints one Error block per error in source order, with no blank line or counter between them.
+  - evidence: errors-1#40 real "|  Error:\n|  cannot find symbol\n|    symbol:   variable foo\n|      int a = foo;\n|              ^-^\n|  Error:\n|  incompatible types: int cannot be converted to java.lang.String\n|      String s = 5;\n|                 ^\n|  Error:\n|  cannot find symbol\n|    symbol:   method bar()\n|      bar();\n|      ^-^\n"
+  - evidence: errors-1#41 real "|  Error:\n|  incompatible types: java.lang.String cannot be converted to int\n|      int f = \"x\";\n|              ^-^\n|  Error:\n|  cannot find symbol\n|    symbol:   method undefined()\n|      void m() { undefined(); }\n|                 ^-------^\n"
+  - evidence: errors-25#51 real "|  Error:\n|  cannot find symbol\n|    symbol:   method foo()\n|      foo();\n|      ^-^\n|  Error:\n|  cannot find symbol\n|    symbol:   method bar()\n|      bar();\n|      ^-^\n"
+- RULE errors.24: In a multi-line snippet only the source line that holds the error is shown (never the whole snippet), exactly as typed including its indentation, and the caret is aligned under it; an error on the second or third line shows that line.
+  - evidence: errors-1#37 real "|  Error:\n|  incompatible types: java.lang.String cannot be converted to int\n|      int u = \"x\";\n|              ^-^\n"
+  - evidence: errors-1#38 real "|  Error:\n|  cannot find symbol\n|    symbol:   variable foo\n|      foo;\n|      ^-^\n"
+  - evidence: errors-2#18 real "|  Error:\n|  incompatible types: java.lang.String cannot be converted to int\n|     int sp = \"x\";\n|              ^-^\n"
+- RULE errors.25: When the flagged range runs past the end of its first line, the first line is shown and the caret line is `^`, dashes to the end of the line, then `...` (no closing `^`). For a call whose error range covers only the method name, the first line is shown with a normal caret.
+  - evidence: errors-7#48 real "|  Error:\n|  incompatible types: int[] cannot be converted to int\n|  int sp = new int[] {\n|           ^----------...\n"
+  - evidence: errors-7#49 real "|  int sc = \"a\" +\n|           ^----...\n"
+  - evidence: errors-7#50 real "|  boolean bl = 1 +\n|               ^--...\n"
+  - evidence: errors-7#47 real "|  Math.max(1,\n|  ^------^\n"
+  - evidence: errors-27#0 real "|  } catch (java.io.IOException e) {\n|    ^------------------------------...\n"
+- RULE errors.26: A snippet typed without its closing semicolon is shown with the semicolon added in the source line.
+  - evidence: errors-30#15 real "|  Error:\n|  incompatible types: java.lang.String cannot be converted to int\n|  int bad = \"x\";\n|            ^-^\n"
+- RULE errors.27: An expression snippet without a trailing semicolon is shown as typed (no semicolon added).
+  - evidence: errors-1#1 real "|  foo + 1\n|  ^-^\n"
+  - evidence: errors-25#14 real "|  cnt++\n|  ^-^\n"
+- RULE errors.28: Non-static members used from a static context report `non-static variable v cannot be referenced from a static context` or `non-static method m() cannot be referenced from a static context`, caret on the name; typing `this` or `super` at the top level and calling an instance method on a class name give the same message family.
+  - evidence: errors-1#22 real "|  Error:\n|  non-static variable v cannot be referenced from a static context\n|      static int q() { return v; }\n|                              ^\n"
+  - evidence: errors-1#23 real "|  non-static method m() cannot be referenced from a static context\n|      static void q() { m(); }\n|                        ^\n"
+  - evidence: errors-25#27 real "|  non-static method bark() cannot be referenced from a static context\n|  Dog.bark()\n|  ^------^\n"
+  - evidence: errors-2#69 real "|  non-static variable this cannot be referenced from a static context\n|  this\n|  ^--^\n"
+- RULE errors.29: A duplicate variable inside a block typed at the top level names the method `do_it$()`; inside a declared method it names that method (`dd()`). The caret covers the whole second declaration.
+  - evidence: errors-1#24 real "|  Error:\n|  variable k is already defined in method do_it$()\n|      int k = 2;\n|      ^--------^\n"
+  - evidence: errors-1#25 real "|  variable k is already defined in method dd()\n|      int k = 2;\n|      ^--------^\n"
+- RULE errors.30: Redeclaring a top-level variable, method or class in a later snippet is not an error: the new declaration replaces the old one (`dv ==> 2`, `modified method dm()`, `replaced class Dup`), even with a different type.
+  - evidence: errors-2#84 real "dv ==> 1\ndv ==> 2\n"
+  - evidence: errors-2#85 real "dw ==> 1\ndw ==> \"a\"\n"
+  - evidence: errors-2#83 real "|  created method dm()\n|  modified method dm()\n"
+  - evidence: errors-2#82 real "|  created class Dup\n|  replaced class Dup\n"
+- RULE errors.31: Generic mismatches name the full parameterized types: `java.util.ArrayList<java.lang.Integer> cannot be converted to java.util.List<java.lang.String>`; calling `add` with the wrong element type is a plain `incompatible types` on the argument.
+  - evidence: errors-1#26 real "|  incompatible types: java.util.ArrayList<java.lang.Integer> cannot be converted to java.util.List<java.lang.String>\n|  List<String> ls = new ArrayList<Integer>();\n|                    ^----------------------^\n"
+  - evidence: errors-1#27 real "|  incompatible types: int cannot be converted to java.lang.String\n|  l2.add(5);\n|         ^\n"
+  - evidence: errors-25#43 real "|  incompatible types: inference variable T has incompatible bounds\n|      equality constraints: java.lang.String\n|      lower bounds: java.lang.Integer\n"
+  - evidence: errors-25#41 real "|  incompatible types: java.util.List<java.lang.String> cannot be converted to java.util.List<java.lang.Integer>\n|  List<Integer> lint = ls;\n|                       ^^\n"
+- RULE errors.32: Lambda errors: `incompatible types: bad return type in lambda expression` followed by an indented detail line, and `incompatible parameter types in lambda expression`; the caret covers the offending part.
+  - evidence: errors-25#45 real "|  incompatible types: bad return type in lambda expression\n|      java.lang.String cannot be converted to java.lang.Integer\n|  Function<Integer, Integer> fn = x -> \"s\";\n|                                       ^-^\n"
+  - evidence: errors-25#46 real "|  incompatible types: incompatible parameter types in lambda expression\n"
+- RULE errors.33: Other operator and type messages seen: `bad operand types for binary operator '-'` with `first type:` and `second type:` lines (caret covers the whole expression); `bad operand type int for unary operator '!'`; `'void' type not allowed here`; `int cannot be converted to boolean` in conditions; `unexpected type` with `required:`/`found:` lines.
+  - evidence: errors-2#40 real "|  Error:\n|  bad operand types for binary operator '-'\n|    first type:  java.lang.String\n|    second type: int\n|  \"a\" - 1\n|  ^-----^\n"
+  - evidence: errors-2#63 real "|  bad operand type int for unary operator '!'\n|  !5\n|  ^^\n"
+  - evidence: errors-2#72 real "|  'void' type not allowed here\n"
+  - evidence: errors-2#42 real "|  incompatible types: int cannot be converted to boolean\n|  if (1) { }\n|      ^\n"
+  - evidence: errors-2#65 real "|  unexpected type\n|    required: reference\n|    found:    int\n|  List<int> lp = new ArrayList<>();\n|       ^-^\n"
+- RULE errors.34: Other messages (verbatim): `variable z might not have been initialized`, `cannot assign a value to final variable a` (inside a method), `unreported exception java.lang.Exception; must be caught or declared to be thrown` (caret covers the whole throw statement), `incompatible types: unexpected return value`, `incompatible types: missing return value`, `v has private access in Pr`, `java.lang.Number is abstract; cannot be instantiated`, `duplicate case label`, `break outside switch or loop`, `cannot infer type for local variable vq` with a parenthesized second line.
+  - evidence: errors-2#47 real "|  variable z might not have been initialized\n"
+  - evidence: errors-2#49 real "|  cannot assign a value to final variable a\n"
+  - evidence: errors-2#51 real "|  unreported exception java.lang.Exception; must be caught or declared to be thrown\n|  void ue2() { throw new Exception(\"x\"); }\n|               ^-----------------------^\n"
+  - evidence: errors-2#44 real "|  incompatible types: unexpected return value\n"
+  - evidence: errors-2#45 real "|  incompatible types: missing return value\n"
+  - evidence: errors-2#55 real "|  java.lang.Number is abstract; cannot be instantiated\n|  new Number()\n|  ^----------^\n"
+  - evidence: errors-2#73 real "|  cannot infer type for local variable vq\n|    (cannot use 'var' on variable without initializer)\n|  var vq;\n|  ^-----^\n"
+  - evidence: errors-2#67 real "|  break outside switch or loop\n"
+- RULE errors.35: A checked exception that is not handled is rejected inside a method or class body, but a top-level statement is accepted silently: `Thread.sleep(1);` prints nothing.
+  - evidence: errors-2#50 real= ""
+  - evidence: errors-2#51 real "|  Error:\n|  unreported exception java.lang.Exception; must be caught or declared to be thrown\n"
+- RULE errors.36: A `final` modifier on a top-level variable is accepted without comment and does not stop a later reassignment (`fx ==> 2`); inside a method the same assignment is rejected.
+  - evidence: errors-2#48 real "fx ==> 1\nfx ==> 2\n"
+  - evidence: errors-2#49 real "|  cannot assign a value to final variable a\n|  void fr() { final int a = 1; a = 2; }\n|                               ^\n"
+- RULE errors.37: Errors in type declarations: `m() in Der cannot override m() in Base` with `overridden method is final`; `Sq is not abstract and does not override abstract method area() in Sh` (caret covers the whole class); `cyclic inheritance involving A1`; `cannot inherit from final Fin`; `no interface expected here`; `interface expected here`; `interface abstract methods cannot have body`. Earlier valid declarations in the same entry print their `created` lines first.
+  - evidence: errors-2#79 real "|  created class Base\n|  Error:\n|  m() in Der cannot override m() in Base\n|    overridden method is final\n|  class Der extends Base { void m() {} }\n|                           ^---------^\n"
+  - evidence: errors-2#80 real "|  Error:\n|  Sq is not abstract and does not override abstract method area() in Sh\n|  class Sq implements Sh { }\n|  ^------------------------^\n"
+  - evidence: errors-2#81 real "|  cyclic inheritance involving A1\n|  class A1 extends A1 { }\n|  ^---------------------^\n"
+  - evidence: errors-25#66 real "|  cannot inherit from final Fin\n|  class Sub extends Fin { }\n|                    ^-^\n"
+  - evidence: errors-2#77 real "|  interface abstract methods cannot have body\n"
+- RULE errors.38: A class whose method calls another of its own methods with the wrong argument count is reported twice: the usual Error block, then `created class K2, however, it cannot be instantiated or its methods invoked until this error is corrected: ` (trailing space) with the same message and source lines indented four more spaces. Other errors inside class bodies (wrong argument type, non-static, missing symbol) print only the Error block.
+  - evidence: errors-25#32 real "|  Error:\n|  method a in class K2 cannot be applied to given types;\n|    required: int\n|    found:    no arguments\n|    reason: actual and formal argument lists differ in length\n|  class K2 { void a(int x) { } void b() { a(); } }\n|                                          ^\n|  created class K2, however, it cannot be instantiated or its methods invoked until this error is corrected: \n|      method a in class K2 cannot be applied to given types;\n|        required: int\n|        found:    no arguments\n|        reason: actual and formal argument lists differ in length\n|      class K2 { void a(int x) { } void b() { a(); } }\n|                                              ^\n"
+  - evidence: errors-25#33 real "|  Error:\n|  incompatible types: java.lang.String cannot be converted to int\n"
+- RULE errors.39: A warning is printed in the same block shape as an error with `|  Warning:` as the header. The warning text comes before the value or `created` feedback of the same snippet.
+  - evidence: errors-1#28 real "|  Warning:\n|  unchecked call to add(E) as a member of the raw type java.util.List\n|  raw.add(\"a\");\n|  ^----------^\n$6 ==> true\n"
+  - evidence: errors-7#6 real "|  Warning:\n|  unchecked call to add(E) as a member of the raw type java.util.List\n|  void w2() { List r = new ArrayList(); r.add(\"a\"); }\n|                                        ^--------^\n|  created method w2()\n"
+  - evidence: errors-1#33 real "|  Warning:\n|  unchecked cast\n|    required: java.util.List<java.lang.String>\n|    found:    java.lang.Object\n|  List<String> l5 = (List<String>) o;\n|                                   ^\nl5 ==> []\n"
+  - evidence: errors-7#17 real "|  Warning:\n|  unchecked conversion\n|    required: java.util.List<java.lang.String>\n|    found:    java.util.ArrayList\n|  List<String> lc = new ArrayList();\n|                    ^-------------^\nlc ==> []\n"
+- RULE errors.40: Only some lint categories are reported. Unchecked call, unchecked cast and unchecked conversion warn; a raw type declaration alone does not (`raw ==> []`), nor does a plain `@Deprecated` use, `Character.isSpace('a')`, `new java.util.Date(99, 1, 1)`, or `new Integer(5)`.
+  - evidence: errors-1#28 real "raw ==> []\n"
+  - evidence: errors-7#1 real "$2 ==> false\n"
+  - evidence: errors-7#0 real "$1 ==> 99\n"
+  - evidence: errors-29#0 real "boxed ==> 5\n"
+  - evidence: errors-7#3 real= ""
+- RULE errors.41: A warning is printed for use of an API deprecated for removal: `NAME() in CLASS has been deprecated and marked for removal`. For JDK members the class is named; for a method or class declared in the session the class name is empty, leaving two spaces (`oldv() in  has been deprecated`). Use inside a method body warns at declaration time and the `created method` line follows.
+  - evidence: errors-29#2 real "|  Warning:\n|  runFinalization() in java.lang.System has been deprecated and marked for removal\n|  System.runFinalization();\n|  ^--------------------^\n"
+  - evidence: errors-7#5 real "|  Warning:\n|  gone() in  has been deprecated and marked for removal\n|  gone();\n|  ^--^\n"
+  - evidence: errors-29#5 real "|  Warning:\n|  oldv() in  has been deprecated and marked for removal\n|  int callold() { return oldv(); }\n|                         ^--^\n|  created method callold()\n"
+  - evidence: errors-29#8 real "|  Warning:\n|  OldC in  has been deprecated and marked for removal\n|  OldC oc = null;\n|  ^--^\noc ==> null\n"
+- RULE errors.42: A warning and an error in the same snippet print both, in source order, warning first when it comes first in the text; the snippet is still rejected.
+  - evidence: errors-7#7 real "|  Warning:\n|  unchecked call to add(E) as a member of the raw type java.util.List\n|  void w3() { List r = new ArrayList(); r.add(\"a\"); int e = \"x\"; }\n|                                        ^--------^\n|  Error:\n|  incompatible types: java.lang.String cannot be converted to int\n"
+  - evidence: errors-29#9 real "|  Warning:\n|  oldv() in  has been deprecated and marked for removal\n|  oldv() + \"a\" + foo\n|  ^--^\n|  Error:\n|  cannot find symbol\n|    symbol:   variable foo\n|  oldv() + \"a\" + foo\n|                 ^-^\n"
+- RULE errors.43: A statement that warns and also throws at run time prints the warning block first and then the exception block.
+  - evidence: errors-1#32 real "|  Warning:\n|  stop() in java.lang.Thread has been deprecated and marked for removal\n|  Thread.currentThread().stop();\n|  ^-------------------------^\n|  Exception java.lang.UnsupportedOperationException\n|        at Thread.stop (Thread.java:1557)\n|        at (#9:1)\n"
+- RULE errors.44: Division by a constant zero is not a compile error: the snippet is accepted and fails at run time with an exception block (`at (#N:1)` where N is the snippet id), and no variable feedback line is printed for the declaration. In a method it is accepted and the method is created; `1.0 / 0` is `Infinity`.
+  - evidence: errors-1#34 real "|  Exception java.lang.ArithmeticException: / by zero\n|        at (#12:1)\n"
+  - evidence: errors-1#35 real "|  Exception java.lang.ArithmeticException: / by zero\n|        at (#13:1)\n"
+  - evidence: errors-7#19 real "|  created method dz()\n"
+  - evidence: errors-7#20 real "|  Exception java.lang.ArithmeticException: / by zero\n|        at dz (#20:1)\n|        at (#21:1)\n"
+  - evidence: errors-7#22 real "$23 ==> Infinity\n"
+- RULE errors.45: Two snippets on one line: if the first is rejected, only its error is printed and the second is not run (a later reference to the second one's variable is `cannot find symbol`). If the first succeeds its feedback is printed and then the second is processed; when the second is rejected its source line is shown with the leading space that separated it (one extra column, caret shifted to match).
+  - evidence: errors-30#0 real "|  Error:\n|  incompatible types: java.lang.String cannot be converted to int\n|  int p1 = \"x\";\n|           ^-^\n"
+  - evidence: errors-30#1 real "|    symbol:   variable p2\n"
+  - evidence: errors-30#2 real "p3 ==> 1\n|  Error:\n|  incompatible types: java.lang.String cannot be converted to int\n|   int p4 = \"x\";\n|            ^-^\n"
+  - evidence: errors-1#45 real "|  int p5 = \"x\";\n|           ^-^\n"
+- RULE errors.46: The rest of the line is dropped after the first failing snippet, also after a run-time exception: with `int a1 = 1 / 0; int a2 = 5;` only the exception is printed and `a2` does not exist afterwards. The public API alone would have evaluated the remainder (events), so this dropping is the tool's behavior.
+  - evidence: errors-30#5 real "|  Exception java.lang.ArithmeticException: / by zero\n|        at (#3:1)\n"
+  - evidence: errors-30#6 real "|    symbol:   variable a2\n"
+  - evidence: errors-7#13 real "|  Exception java.lang.UnsupportedOperationException\n|        at Thread.stop (Thread.java:1557)\n|        at (#14:1)\n"
+  - evidence: errors-7#13 events "compiler.err.prob.found.req"
+- RULE errors.47: With three snippets on a line, snippets before the failing one print their feedback, the failing one prints its error, and the ones after it are dropped (`c3` is not created).
+  - evidence: errors-30#8 real "c1 ==> 1\n|  Error:\n|  incompatible types: java.lang.String cannot be converted to int\n|   int c2 = \"x\";\n|            ^-^\n"
+  - evidence: errors-30#9 real "|    symbol:   variable c3\n|  c1 + c3\n|       ^^\n"
+  - evidence: errors-30#10 real "d1 ==> 1\nd2 ==> 2\n|  Error:\n|  incompatible types: java.lang.String cannot be converted to int\n|   int d3 = \"x\";\n|            ^-^\n"
+- RULE errors.48: Type declarations ahead of a bad snippet on the same line print their `created` lines first.
+  - evidence: errors-30#12 real "|  created class Z1\n|  Error:\n|  incompatible types: java.lang.String cannot be converted to int\n|   int e3 = \"x\";\n|            ^-^\n"
+  - evidence: errors-30#13 real "|  created method z2()\n|  Error:\n|  incompatible types: java.lang.String cannot be converted to int\n|   int e4 = \"x\";\n|            ^-^\n"
+- RULE errors.49: Spaces before the error are kept in the source line and the caret is padded to the same column; tabs are kept as tab characters in the source line and count as one column each in the caret line (the caret line itself contains only spaces). Evidence: a tab at the start (`\tint tb = "x";`, caret under the `"x"` ten columns in), a tab inside the line, two tabs before a call, and a tab-indented line inside a method body.
+  - evidence: errors-2#18 real "|     int sp = \"x\";\n|              ^-^\n"
+  - evidence: errors-3#0 banner "|  Error:\n|  incompatible types: java.lang.String cannot be converted to int\n|  \tint tb = \"x\";\n|            ^-^\n"
+  - evidence: errors-4#0 banner "|  int tc = \t\"x\";\n|            ^-^\n"
+  - evidence: errors-6#0 banner "|  Error:\n|  cannot find symbol\n|    symbol:   method foo()\n|  \t\tfoo();\n|    ^-^\n"
+  - evidence: errors-5#0 real "|  Error:\n|  incompatible types: java.lang.String cannot be converted to int\n|  \tint u = \"x\";\n|           ^-^\n"
+- RULE errors.50: Unicode before an error: characters in the Basic Multilingual Plane count one column each (accented letters, CJK) so the caret lines up in code units; an emoji outside it counts two columns, so the caret sits two columns further right per emoji than it looks.
+  - evidence: errors-2#20 real "|  String u2 = \"日本語\" + foo;\n|                      ^-^\n"
+  - evidence: errors-2#21 real "|  String emo = \"😀😀\" + foo;\n|                        ^-^\n"
+  - evidence: errors-2#19 real "é ==> \"é\"\n|  Error:\n|  incompatible types: java.lang.String cannot be converted to int\n|   int uu = \"x\";\n|            ^-^\n"
+  - evidence: errors-25#49 real "|  String ue = \"é\" + foo;\n|                    ^-^\n"
+- RULE errors.51: Escapes inside string literals are shown as their source characters; the caret line counts them as typed (no re-expansion), so it stays aligned with the source line.
+  - evidence: errors-25#47 real "|  String esc = \"a\\tb\\n\" + foo;\n|                          ^-^\n"
+  - evidence: errors-25#48 real "|  String q2 = \"say \\\"hi\\\"\" + foo;\n|                             ^-^\n"
+- RULE errors.52: A very long line is shown whole (no wrapping or truncation) and the caret line is as long as needed: dashes across the full range, or padding all the way out to the error near the end.
+  - evidence: errors-2#24 real "|    symbol:   variable foo\n|  int longw = 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + foo;\n|                                                                                                                                                                                                                                                                      ^-^\n"
+- RULE errors.53: Ids: a rejected snippet does not use up a snippet id or a `$N` number; the next accepted expression takes the next number. A statement that throws does use an id (it appears in `at (#N:1)`).
+  - evidence: errors-2#5 real "$2 ==> 10\n"
+  - evidence: errors-2#7 real "$3 ==> 11\n"
+  - evidence: errors-2#9 real "$4 ==> 12\n"
+  - evidence: errors-2#11 real "$5 ==> 13\n"
+  - evidence: errors-2#13 real "$6 ==> 14\n"
+  - evidence: errors-1#34 real "at (#12:1)\n"
+  - evidence: errors-1#35 real "at (#13:1)\n"
+- RULE errors.54: A `$N` name that does not exist is `cannot find symbol` like any other variable, and a name for an id that was never an expression result stays unknown after rejected entries: after an unclosed-comment snippet and `int afterd = 2;` the first expression got `$2`, so `$1` does not exist.
+  - evidence: errors-2#17 real "|    symbol:   variable $1\n|  $1 + 1\n|  ^^\n"
+  - evidence: errors-2#5 real "$2 ==> 10\n"
+- RULE errors.55: Unbalanced brackets or parentheses, an unclosed block comment, or a trailing operator leave the tool waiting: no output, and the next prompt is the continuation prompt `   ...> `. Following lines are joined into the same snippet.
+  - evidence: errors-10#1 prompt "   ...> "
+  - evidence: errors-18#1 prompt "   ...> "
+  - evidence: errors-19#1 prompt "   ...> "
+  - evidence: errors-23#1 prompt "   ...> "
+  - evidence: errors-24#1 prompt "   ...> "
+  - evidence: errors-15#1 real "$1 ==> 20\n"
+- RULE errors.56: If the input ends while a snippet is still waiting for more, the tool prints `|  Incomplete input:` followed by everything that was pending, one line per input line.
+  - evidence: errors-10#2 real "|  Incomplete input: int is4 = (1 + 2;\n7 + 8\n9 + 1\n"
+  - evidence: errors-21#2 real "|  Incomplete input: /* abc\n7 + 8\n9 + 1\n"
+  - evidence: errors-23#2 real "|  Incomplete input: if (true) {\n7 + 8\n9 + 1\n"
+- RULE errors.57: An unclosed `/*` comment swallows every following line (including blank lines) until a `*/` closes it; the continuation prompt shows each time and nothing is printed or created for the swallowed lines.
+  - evidence: errors-2#2 prompt "   ...> "
+  - evidence: errors-2#3 prompt "   ...> "
+  - evidence: errors-2#4 real "afterd ==> 2\n"
+- RULE errors.58: Incomplete-looking input is not always held: an unterminated string literal, an unterminated character literal, `else { }` without `if` are rejected at once with an Error and the next line is a normal entry; a `try {...}` block alone, a lone `@`, or a missing closing parenthesis keep waiting.
+  - evidence: errors-14#0 real "|  unclosed string literal\n"
+  - evidence: errors-14#1 real "$1 ==> 15\n"
+  - evidence: errors-11#0 real "|  'else' without 'if'\n|  void ew() { else { } }\n|                   ^-^\n"
+  - evidence: errors-26#1 real "|  Error:\n|  'try' without 'catch', 'finally' or resource declarations\n|  try {\n|  ^\n"
+  - evidence: errors-16#1 real "|  Error:\n|  <identifier> expected\n|  @\n|   ^\n"
+- RULE errors.59: When a waiting snippet is finished by the next line, the error (if any) describes the combined snippet, and the line that finished it is consumed with it: `try {...}` followed by `7 + 8` is one rejected snippet, so `7 + 8` produces no value.
+  - evidence: errors-26#1 real "|  Error:\n|  'try' without 'catch', 'finally' or resource declarations\n"
+  - evidence: errors-26#2 real "$1 ==> 10\n"
+  - evidence: errors-16#2 real "$1 ==> 10\n"
+- RULE errors.60: A `try` block followed on the next line by `catch` is read as one snippet; a catch of a checked exception that the body cannot throw is rejected, showing the `} catch (...) {` line with a caret that ends in `...`.
+  - evidence: errors-28#0 real "|  Error:\n|  incompatible types: java.lang.String cannot be converted to int\n|      int b = \"x\";\n|              ^-^\n"
+  - evidence: errors-27#0 real "|  exception java.io.IOException is never thrown in body of corresponding try statement\n"
+- RULE errors.61: Two statements typed on separate lines whose first line is already complete are two snippets (`System.out.println("a")` then `System.out.println("b")` print `a` and `b`, and each takes an id).
+  - evidence: errors-13#0 real "a\nb\n"
+  - evidence: errors-13#1 real "$3 ==> 15\n"
+- RULE errors.62: The local engine printed the same text as the default engine for every entry in these sessions, errors and warnings included, with one exception: `Thread.currentThread().getName()` is `"main"` by default and `"Thread-6"` with `--execution local`. The only engine difference seen is in the public-API events, which for the same snippet add a `location:` line to the message and, because the events observer runs without the tool's default imports, report `List`, `ArrayList` and `Map` as unknown classes.
+  - evidence: errors-1#0 local "|  Error:\n|  cannot find symbol\n|    symbol:   variable foo\n|  int a = foo;\n|          ^-^\n"
+  - evidence: errors-7#6 local "|  Warning:\n|  unchecked call to add(E) as a member of the raw type java.util.List\n"
+  - evidence: errors-1#27 events "symbol:   class List"
+  - evidence: errors-29#3 real "$4 ==> \"main\"\n"
+  - evidence: errors-29#3 local "$4 ==> \"Thread-6\"\n"
+
+## Surprises
+
+- A snippet with a statement that throws, or that is rejected, drops the rest of the line it was on (errors-30): `int a1 = 1 / 0; int a2 = 5;` never creates `a2`, although the public API evaluates the remainder.
+- `final` at the top level is ignored: `final int fx = 1;` then `fx = 2;` prints `fx ==> 2` with no complaint.
+- `new Integer(5)`, `Character.isSpace('a')` and a user `@Deprecated` method used at the top level produce no warning; only the "deprecated and marked for removal" kind does (JDK or session-declared), and for session-declared members the class name in the message is empty (`oldv() in  has been`).
+- Methods declared in the session show an empty class name in `cannot be applied` messages (`method add in class  cannot be applied`), two spaces in a row.
+- A block-level duplicate variable at the top level says `do_it$()`, a synthetic method name the reader never typed.
+- The `created class K2, however, it cannot be instantiated ...` block appears only for the wrong-argument-count error inside a class body (errors-25 `K2`); a wrong argument type (`K3`) or a missing symbol print only the Error block.
+- A missing-return error points to the opening brace of the method, on its first line, not to the end of the method.
+- The same missing semicolon is shown in the source line when the reader omitted it on a declaration (`int bad = "x"` is displayed as `int bad = "x";`), but not on a bare expression (`foo + 1`).
+- Emoji outside the Basic Multilingual Plane push the caret two columns right each, so the caret visibly misaligns.
+- A lone backtick prints two Error blocks; `int class = 5;` and `int 1a = 5;` print three.
+- The observer cannot pace a line that contains a tab; its output lands in the banner record (errors-3, errors-4, errors-6). Inside a multi-line snippet (errors-5) it behaves normally.
+- The raw-type declaration `List raw = new ArrayList();` gives no rawtypes warning, only the unchecked call does.
+- A multi-line `try { ... }` followed by a catch on the next line is fine, but a `try` block alone swallows the next input line (errors-26).
+
+## Open questions
+
+- Why the caret for `missing return statement` is a lone `^` while a multi-line range elsewhere ends in `...`: the diagnostic ranges are both multi-line, so the rule for choosing is not settled by these probes.
+- Whether a rejected snippet drops the rest of the line only when the failure is the first snippet's or in all positions (three-snippet case shows the rest dropped after the failing middle one).
+- The cap on the number of Error blocks for a snippet with very many errors was not probed.
+- Which `cannot be applied` cases in a class body trigger the `created class ..., however, it cannot be instantiated` block beyond the one probed.
+- Whether an unclosed comment that swallowed a declaration uses up an id: only inferred from the first expression getting `$2`.
+

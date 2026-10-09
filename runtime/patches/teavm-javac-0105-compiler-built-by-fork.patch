@@ -1,0 +1,58 @@
+# Copyright 2026 Groundwork contributors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# Task 7b: compiler.wasm itself is now compiled by the patched TeaVM. teavm-javac-0101 rewrites every
+# request for teavm-core and teavm-classlib to the fork's 0.13.1-fork1 through a rule on each
+# configuration, but the TeaVM Gradle plugin runs the compiler that builds compiler.wasm from a detached
+# configuration of teavm-tooling, which that rule never reaches. So the TeaVM inside compiler.wasm was
+# patched, but the TeaVM that compiled it was stock 0.13.1, and its code generator bugs lived on in
+# javac's and TeaVM's own constant folding: "" + (0.0 / 0.0 < 1) folded to "true", -0.0 folded to 0.0,
+# and G7-nan-compare and G7-negative-zero stayed wrong after teavm-0013 fixed the code generator (worse,
+# 0013's fcmpl/dcmpl form then made the stock-compiled constant folding print "" + 0.0 / 0 as -0.0). Every
+# earlier TeaVM core patch now reaches compiler.wasm's own code too; all gates pass on it, and it grows
+# by about 5%. With a fork repo, the plugin's daemon classpath is set from an ordinary configuration
+# holding teavm-tooling, where 0101's rule applies; without one, the build is unchanged. Written against
+# teavm-javac's own tracked files (its compiler/ build), checked with the pinned JDK's observed output;
+# no OpenJDK source was opened.
+#
+# Applies to: github.com/konsoletyper/teavm-javac 2ddcf02e (master, 2026-09-04)
+
+diff --git a/compiler/build.gradle b/compiler/build.gradle
+index 0165b97..f010328 100644
+--- a/compiler/build.gradle
++++ b/compiler/build.gradle
+@@ -52,6 +52,23 @@ teavm {
+     }
+ }
+ 
++// teavm-fork: the TeaVM plugin runs the compiler that builds compiler.wasm from a detached configuration
++// of teavm-tooling, which the fork's version rule in settings.gradle never reaches, so compiler.wasm
++// itself (javac and TeaVM inside it) was compiled by the unpatched TeaVM. Its code generator then folded
++// constants wrongly at compile time: "" + (0.0 / 0.0 < 1) was "true" and -0.0 was 0.0. With a fork repo,
++// the compiler now comes from an ordinary configuration, where the rule applies.
++if (providers.gradleProperty("teavm.forkRepo").isPresent()) {
++    configurations {
++        teavmForkTools
++    }
++    dependencies {
++        teavmForkTools libs.teavm.tooling
++    }
++    tasks.withType(org.teavm.gradle.tasks.TeaVMTask).configureEach {
++        daemonClasspath.setFrom(configurations.teavmForkTools)
++    }
++}
++
+ def classlibOutDir = project.layout.buildDirectory.dir("classlib")
+ 
+ tasks.register("generateClassLib", JavaExec) {

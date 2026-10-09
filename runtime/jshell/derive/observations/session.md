@@ -1,0 +1,446 @@
+# Observations: session control and help
+
+Since 2026-10-01 the evidence quotes the real tool's help pages only in short pieces (at most a few lines each): the pages
+are OpenJDK's prose, and the course quotes no more of it than a rule needs. The full pages are in the git-ignored corpus
+(runtime/.work/corpus/session-1, session-2), and `derive/check-observations.mjs` still verifies every piece against it.
+
+Sessions run: session-1 (the whole /help screen and the main topic pages), session-2 (/help for every command name and the /set sub-pages), session-3 (the rerun commands /!, /<id>, /-<n>, ranges, out of range, on a rejected snippet, errors), session-4 and session-5 (/reset in several feedback modes and what survives it), session-6, session-27 and session-28 (/reload, /reload -restore, /reload -quiet in all modes), session-7 (/save forms, /open of saved files, missing files, history after /open, /env), session-8 (/open of a multi-line file and of DEFAULT, PRINTING and JAVASE, /env with every context option, /set start), session-29 (/set start semantics), session-9 (/debug), session-10 to session-25 (one /exit variant each, always the last entry of its own session, with the tail and exit status), and session-26 (help prefixes, ambiguity, unknown commands). The tool printed the same text for the local engine as for the default engine except where a rule below says DIFFERENCE. /edit was never run. The help pages are kept whole only in the git-ignored corpus, as evidence of the real tool's layout; under decision J2 the front end's help is the course's own text and copies none of them. Files used by /save and /open live under runtime/.work/scratch/session/ and are not part of the corpus: their contents were observed only through what /open and /list showed afterward.
+
+Exit status of each run is in the `status` field of report.txt and real.json (the checker cannot quote it); the values noted in rules below were read from there.
+
+- RULE session.1: /help with no argument prints the whole help screen: two intro lines, one pair of lines per command (usage line, then a tab-indented description), a blank line, the 'For more information' paragraph, and the list of subjects. Every line has the `|  ` prefix; a blank line is `|  ` alone.
+  - evidence: session-1#0 real "|  Type a Java language expression, statement, or declaration.\n|  Or type one of the following commands:\n"
+  - evidence: session-1#0 real "|  /imports \n|  \tlist the imported items\n"
+  - evidence: session-1#0 real "|  /! \n|  \trerun last snippet -- see /help rerun\n|  /<id> \n"
+  - evidence: session-1#0 real "|  context\n|  \ta description of the evaluation context options for /env /reload and /reset\n|  rerun\n"
+- RULE session.2: The full command list in the screen, in this order, each a usage line and a description line; the evidence quotes only its first lines (the front end's own list follows J2, not this text).
+  - evidence: session-1#0 real "|  Type a Java language expression, statement, or declaration.\n|  Or type one of the following commands:\n"
+- RULE session.3: /? with no argument prints the same screen as /help, and /hel (an abbreviation) does too, but without any 'No commands' line.
+  - evidence: session-1#12 real "|  Type a Java language expression, statement, or declaration.\n|  Or type one of the following commands:\n"
+  - evidence: session-26#10 real "|  Type a Java language expression, statement, or declaration.\n|  Or type one of the following commands:\n"
+- RULE session.4: /help intro prints the intro page: a blank line, the subject name centered, an underline of equals signs of the same length as the name and at the same indent, a blank line, then the body.
+  - evidence: session-1#1 real "|  \n|                                   intro\n|                                   =====\n|  \n"
+- RULE session.5: A topic page's title and underline are indented so the title looks centered; shorter titles get more indent (the title line and the equals line have the same indent).
+  - evidence: session-1#2 real "|  \n|                                   /list\n|                                   =====\n|  \n"
+  - evidence: session-1#4 real "|  \n|                                    /set\n|                                    ====\n|  \n"
+  - evidence: session-1#5 real "|  \n|                               /set feedback\n|                               =============\n|  \n"
+  - evidence: session-1#9 real "|  \n|                                     id\n|                                     ==\n|  \n"
+  - evidence: session-2#14 real "|  \n|                                     /!\n|                                     ==\n|  \n"
+- RULE session.6: /help /list and /help list print the same page: the leading slash on a command name is optional.
+  - evidence: session-1#2 real "|  \n|                                   /list\n|                                   =====\n|  \n"
+  - evidence: session-1#3 real "|  \n|                                   /list\n|                                   =====\n|  \n"
+- RULE session.7: /help /set prints the /set overview page, which lists every /set form with a tab-indented description.
+  - evidence: session-1#4 real "|  \n|                                    /set\n|                                    ====\n|  \n"
+- RULE session.8: /help set feedback prints the feedback page (slash optional, same as /help /set feedback).
+  - evidence: session-1#5 real "|  \n|                               /set feedback\n|                               =============\n|  \n"
+  - evidence: session-2#23 real "|  \n|                               /set feedback\n|                               =============\n|  \n"
+- RULE session.9: /help shortcuts prints the shortcuts page (tab-indented, two levels of tabs for descriptions).
+  - evidence: session-1#6 real "|  \n|                                 shortcuts\n|                                 =========\n|  \n"
+- RULE session.10: /help context prints the evaluation context page.
+  - evidence: session-1#7 real "|  \n|                                  context\n|                                  =======\n|  \n"
+- RULE session.11: /help rerun prints the rerun page, including an example transcript indented with a tab.
+  - evidence: session-1#8 real "|  \n|                                   rerun\n|                                   =====\n|  \n"
+- RULE session.12: /help id prints the snippet ID page.
+  - evidence: session-1#9 real "|  \n|                                     id\n|                                     ==\n|  \n"
+- RULE session.13: /help keys prints the line editing page (long; the evidence quotes short pieces of it).
+  - evidence: session-1#10 real "|  \n|                                    keys\n|                                    ====\n|  \n"
+  - evidence: session-1#10 real "|  Shortcuts for jshell tool:\n|  \n|  \tFor details, see: /help shortcuts\n|  \n|  \tTab\n"
+  - evidence: session-1#10 real "|  Where, for example, \"Ctrl+A\" means hold down the Control key and press A.\n"
+- RULE session.14: /help with an argument that matches nothing prints one line, 'No commands or subjects start with the provided argument: <arg>', and then the whole help screen.
+  - evidence: session-1#11 real "|  No commands or subjects start with the provided argument: nosuchtopic\n"
+  - evidence: session-26#12 real "|  No commands or subjects start with the provided argument: zzz\n|  Type a Java language expression"
+  - evidence: session-26#18 real "|  No commands or subjects start with the provided argument: /!!\n"
+- RULE session.15: Topic matching is by prefix and is case sensitive: /help LIST and /help INTRO match nothing, while /help li and /help sh match the list and shortcuts pages.
+  - evidence: session-26#8 real "|  No commands or subjects start with the provided argument: LIST\n"
+  - evidence: session-26#9 real "|  No commands or subjects start with the provided argument: INTRO\n"
+  - evidence: session-26#0 real "|  \n|                                   /list\n|                                   =====\n|  \n"
+  - evidence: session-26#3 real "|  \n|                                 shortcuts\n|                                 =========\n|  \n"
+- RULE session.16: When a prefix matches several topics, /help prints every match one after another in a fixed order: /help /s prints the /save page and then the /set page; /help i prints /imports, then intro, then id; /help / (slash alone) prints every command page.
+  - evidence: session-26#1 real "|  \n|                                   /save\n|                                   =====\n|  \n"
+  - evidence: session-26#1 real "|  \n|                                    /set\n|                                    ====\n"
+  - evidence: session-26#4 real "|  \n|                                  /imports\n|                                  ========\n|  \n"
+  - evidence: session-26#4 real "|  \n|                                   intro\n|                                   =====\n"
+  - evidence: session-26#4 real "|  \n|                                     id\n|                                     ==\n"
+  - evidence: session-26#2 real "|  \n|                                   /list\n|                                   =====\n"
+  - evidence: session-26#2 real "|  \n|                                   /-<n>\n|                                   =====\n"
+- RULE session.17: Only the first topic word is used when several are given: /help list drop prints only the list page. A slash-less command word works for every command (exit, reload, env, reset, save, open, drop, debug).
+  - evidence: session-26#7 real "|  \n|                                   /list\n|                                   =====\n|  \n"
+  - evidence: session-26#23 real "|  \n|                                   /exit\n|                                   =====\n|  \n"
+  - evidence: session-26#24 real "|  \n|                                  /reload\n|                                  =======\n|  \n"
+  - evidence: session-26#25 real "|  \n|                                    /env\n|                                    ====\n|  \n"
+  - evidence: session-26#26 real "|  \n|                                   /reset\n|                                   ======\n|  \n"
+  - evidence: session-26#27 real "|  \n|                                   /save\n|                                   =====\n|  \n"
+  - evidence: session-26#28 real "|  \n|                                   /open\n|                                   =====\n|  \n"
+  - evidence: session-26#29 real "|  \n|                                   /drop\n|                                   =====\n|  \n"
+  - evidence: session-26#30 real "|  \n|                                   /debug\n|                                   ======\n|  \n"
+- RULE session.18: /help for each command prints that command's page (title, underline, description, usage forms). The first lines of each page follow, in the order asked in session-2.
+  - evidence: session-2#0 real "|  \n|                                   /drop\n|                                   =====\n|  \n"
+  - evidence: session-2#1 real "|  \n|                                   /edit\n|                                   =====\n|  \n"
+  - evidence: session-2#2 real "|  \n|                                   /exit\n|                                   =====\n|  \n"
+  - evidence: session-2#3 real "|  \n|                                    /env\n|                                    ====\n|  \n"
+  - evidence: session-2#4 real "|  \n|                                  /history\n|                                  ========\n|  \n"
+  - evidence: session-2#5 real "|  \n|                                  /imports\n|                                  ========\n|  \n"
+  - evidence: session-2#6 real "|  \n|                                  /methods\n|                                  ========\n|  \n"
+  - evidence: session-2#7 real "|  \n|                                   /open\n|                                   =====\n|  \n"
+  - evidence: session-2#8 real "|  \n|                                  /reload\n|                                  =======\n|  \n"
+  - evidence: session-2#9 real "|  \n|                                   /reset\n|                                   ======\n|  \n"
+  - evidence: session-2#10 real "|  \n|                                   /save\n|                                   =====\n|  \n"
+  - evidence: session-2#11 real "|  \n|                                   /types\n|                                   ======\n|  \n"
+  - evidence: session-2#12 real "|  \n|                                   /vars\n|                                   =====\n|  \n"
+  - evidence: session-2#13 real "|  \n|                                   /debug\n|                                   ======\n|  \n"
+  - evidence: session-2#14 real "|  \n|                                     /!\n|                                     ==\n|  \n"
+  - evidence: session-2#15 real "|  \n|                                   /-<n>\n|                                   =====\n|  \n"
+  - evidence: session-2#16 real "|  \n|                                   /<id>\n|                                   =====\n|  \n"
+  - evidence: session-2#17 real "|  \n|                                   /help\n|                                   =====\n|  \n"
+  - evidence: session-2#28 real "|  \n|                                     /?\n|                                     ==\n|  \n"
+  - evidence: session-2#29 real "|  \n|                                   /list\n|                                   =====\n|  \n"
+- RULE session.19: The pages for the short commands are complete and small enough to quote whole.
+  - evidence: session-2#5 real "|  \n|                                  /imports\n|                                  ========\n|  \n"
+  - evidence: session-2#14 real "|  \n|                                     /!\n|                                     ==\n|  \n"
+  - evidence: session-2#15 real "|  \n|                                   /-<n>\n|                                   =====\n|  \n"
+  - evidence: session-2#13 real "|  \n|                                   /debug\n|                                   ======\n|  \n"
+  - evidence: session-2#16 real "|  \n|                                   /<id>\n|                                   =====\n|  \n"
+  - evidence: session-2#17 real "|  \n|                                   /help\n|                                   =====\n|  \n"
+  - evidence: session-2#28 real "|  \n|                                     /?\n|                                     ==\n|  \n"
+- RULE session.20: The pages for /exit, /drop, /reset, /reload, /env, /open, /save, /history, /methods, /vars, /types and /edit carry their usage forms; quoted in part (the full pages are in the corpus).
+  - evidence: session-2#0 real "|  \n|                                   /drop\n|                                   =====\n|  \n"
+  - evidence: session-2#1 real "|  \n|                                   /edit\n|                                   =====\n|  \n"
+  - evidence: session-2#2 real "|  \n|                                   /exit\n|                                   =====\n|  \n"
+  - evidence: session-2#3 real "|  \n|                                    /env\n|                                    ====\n|  \n"
+  - evidence: session-2#4 real "|  \n|                                  /history\n|                                  ========\n|  \n"
+  - evidence: session-2#6 real "|  \n|                                  /methods\n|                                  ========\n|  \n"
+  - evidence: session-2#7 real "|  \n|                                   /open\n|                                   =====\n|  \n"
+  - evidence: session-2#8 real "|  \n|                                  /reload\n|                                  =======\n|  \n"
+  - evidence: session-2#9 real "|  \n|                                   /reset\n|                                   ======\n|  \n"
+  - evidence: session-2#10 real "|  \n|                                   /save\n|                                   =====\n|  \n"
+  - evidence: session-2#11 real "|  \n|                                   /types\n|                                   ======\n|  \n"
+  - evidence: session-2#12 real "|  \n|                                   /vars\n|                                   =====\n|  \n"
+- RULE session.21: The /set sub-pages exist for start, mode, editor, format, truncation, feedback, prompt and indent; quoted in part (the full pages are in the corpus).
+  - evidence: session-2#18 real "|  \n|                                 /set start\n|                                 ==========\n|  \n"
+  - evidence: session-2#19 real "|  \n|                                 /set mode\n|                                 =========\n|  \n"
+  - evidence: session-2#20 real "|  \n|                                /set editor\n|                                ===========\n|  \n"
+  - evidence: session-2#21 real "|  \n|                                /set format\n|                                ===========\n|  \n"
+  - evidence: session-2#22 real "|  \n|                              /set truncation\n|                              ===============\n|  \n"
+  - evidence: session-2#23 real "|  \n|                               /set feedback\n|                               =============\n|  \n"
+  - evidence: session-2#24 real "|  \n|                                /set prompt\n|                                ===========\n|  \n"
+  - evidence: session-2#25 real "|  \n|                                /set indent\n|                                ===========\n|  \n"
+- RULE session.22: /help /set with an unknown second word, or retain, which is not a /set form, prints an error line and the list of valid forms, not the help screen.
+  - evidence: session-2#26 real "|  Invalid '/set' argument: colors\n"
+  - evidence: session-26#6 real "|  Invalid '/set' argument: nosuch\n"
+  - evidence: session-26#19 real "|  Invalid '/set' argument: retain\n"
+- RULE session.23: Extra words after a valid /help /set form are ignored, and /help set m (a prefix) prints the /set mode page.
+  - evidence: session-26#20 real "|  \n|                               /set feedback\n|                               =============\n|  \n"
+  - evidence: session-26#5 real "|  \n|                                 /set mode\n|                                 =========\n|  \n"
+  - evidence: session-26#21 real "|  \n|                                 /set mode\n|                                 =========\n|  \n"
+- RULE session.24: /help /retain (a name that is neither a command nor a subject) prints the no-match line and the whole screen.
+  - evidence: session-2#27 real "|  No commands or subjects start with the provided argument: /retain\n|  Type a Java language expression"
+- RULE session.25: An unknown command prints 'Invalid command: <word>' and 'Type /help for help.', whatever arguments follow.
+  - evidence: session-26#13 real "|  Invalid command: /nosuch\n|  Type /help for help.\n"
+  - evidence: session-26#14 real "|  Invalid command: /frobnicate\n|  Type /help for help.\n"
+- RULE session.26: An ambiguous command abbreviation prints "Command: '<abbr>' is ambiguous: " and the candidate commands in a fixed order; a lone slash (with or without a trailing space) lists every command. Unique prefixes work as the command.
+  - evidence: session-26#11 real "|  Command: '/h' is ambiguous: /history, /help\n|  Type /help for help.\n"
+  - evidence: session-26#15 real "|  Command: '/s' is ambiguous: /save, /set\n|  Type /help for help.\n"
+  - evidence: session-26#16 real "|  Command: '/' is ambiguous: /list, /edit, /drop, /save, /open, /vars, /methods, /types, /imports, /exit, /env, /reset, /reload, /history, /debug, /help, /set, /?, /!\n|  Type /help for help.\n"
+  - evidence: session-26#17 real "|  Command: '/' is ambiguous: /list, /edit, /drop, /save, /open, /vars, /methods, /types, /imports, /exit, /env, /reset, /reload, /history, /debug, /help, /set, /?, /!\n"
+  - evidence: session-23#1 real "|  Goodbye (4)\n"
+  - evidence: session-24#1 real "|  Goodbye\n"
+- RULE session.27: The library records nothing for a slash command: its events list holds only the command text, so help and the other commands are invisible to the event stream.
+  - evidence: session-1#0 events "{\"command\":\"/help\"}"
+  - evidence: session-3#2 events "{\"command\":\"/!\"}"
+- RULE session.28: On a fresh session /! reruns the last startup snippet: it echoes `import module java.base;` and that rerun takes snippet ID 1 (so the first user snippet is ID 2 and its temporary variable is $2).
+  - evidence: session-3#0 real "import module java.base;\n"
+  - evidence: session-3#1 real "$2 ==> 4\n"
+- RULE session.29: /! reruns the last snippet: the real tool first prints the snippet's source on its own line (the stored form, a declaration gets its semicolon, an expression does not), then the feedback it would give if typed now, with a fresh ID or $ number.
+  - evidence: session-3#2 real "2 + 2\n$3 ==> 4\n"
+  - evidence: session-3#4 real "int z = 5;\nz ==> 5\n"
+  - evidence: session-3#27 real "System.out.println(\"hi\");\nhi\n"
+- RULE session.30: /-n reruns the n-th most recent snippet counting reruns as snippets: /-1 is the latest, /-2 the one before, /-4 reaches back four.
+  - evidence: session-3#4 real "int z = 5;\nz ==> 5\n"
+  - evidence: session-3#5 real "int z = 5;\nz ==> 5\n"
+  - evidence: session-3#6 real "2 + 2\n$7 ==> 4\n"
+- RULE session.31: /-n with n beyond the history, or zero, prints 'Out of range'.
+  - evidence: session-3#7 real "|  Out of range\n"
+  - evidence: session-3#8 real "|  Out of range\n"
+- RULE session.32: /<id> reruns that snippet, /<a>-<b> reruns a range, and several IDs or ranges separated by spaces rerun in the order given, each echoed and then evaluated; startup (s1) and error (e1) IDs work.
+  - evidence: session-3#10 real "import module java.base;\n2 + 2\n$10 ==> 4\n"
+  - evidence: session-3#11 real "import module java.base;\n2 + 2\n$12 ==> 4\n"
+  - evidence: session-3#13 real "import module java.base;\n"
+  - evidence: session-3#35 real "import module java.base;\nimport module java.base;\nint q = \"text\";\n|  Error:\n"
+- RULE session.33: /<id> for an ID that does not exist prints 'No snippet with ID: <id>'.
+  - evidence: session-3#12 real "|  No snippet with ID: 77\n"
+  - evidence: session-28#15 real "|  No snippet with ID: 3\n"
+  - evidence: session-28#27 real "|  No snippet with ID: 2\n"
+- RULE session.34: Rerunning a rejected snippet (by /!, /-1 or /e1) echoes its source and prints the same error block again; each rerun creates a new e-numbered failed snippet.
+  - evidence: session-3#15 real "int q = \"text\";\n|  Error:\n|  incompatible types: java.lang.String cannot be converted to int\n"
+  - evidence: session-3#16 real "int q = \"text\";\n|  Error:\n"
+  - evidence: session-3#17 real "int q = \"text\";\n|  Error:\n"
+  - evidence: session-3#22 real "  e1 : int q = \"text\";\n  e2 : int q = \"text\";\n  e3 : int q = \"text\";\n  e4 : int q = \"text\";\n"
+  - evidence: session-3#21 real "undefinedVar + 1\n|  Error:\n|  cannot find symbol\n"
+- RULE session.35: Rerunning a method or class declaration reports it as modified, not created; rerunning an import echoes it and prints nothing more.
+  - evidence: session-3#19 real "int sq(int n) { return n * n; }\n|  modified method sq(int)\n"
+  - evidence: session-3#33 real "class A { int v; }\n|  modified class A\n"
+  - evidence: session-3#31 real "import java.util.*;\n"
+- RULE session.36: /! reruns the last snippet, not the last command: after /vars, /! reruns the earlier println. Extra text after /! is ignored.
+  - evidence: session-3#28 real "|    int $2 = 4\n"
+  - evidence: session-3#29 real "System.out.println(\"hi\");\nhi\n"
+  - evidence: session-3#23 real "undefinedVar + 1\n|  Error:\n"
+- RULE session.37: Malformed rerun forms: /-x is an invalid command, a reversed range prints 'End of snippet range less than start: 3 - 1', and a range with a missing end prints 'Snippet ranges require snippet IDs: '. A minus inside a range or letters-only range are invalid commands.
+  - evidence: session-3#24 real "|  Invalid command: /-x\n|  Type /help for help.\n"
+  - evidence: session-3#25 real "|  End of snippet range less than start: 3 - 1\n"
+  - evidence: session-27#30 real "|  Snippet ranges require snippet IDs: \n"
+  - evidence: session-28#28 real "|  Invalid command: /-3-5\n|  Type /help for help.\n"
+  - evidence: session-28#29 real "|  Invalid command: /a-b\n|  Type /help for help.\n"
+- RULE session.38: In concise and silent feedback modes a rerun still echoes the snippet source (and then gives that mode's feedback, which is none for a declaration); the prompt stays that mode's prompt.
+  - evidence: session-27#16 real "int d = 1;\n"
+  - evidence: session-27#16 prompt "jshell> "
+  - evidence: session-27#21 real "int d = 1;\n"
+  - evidence: session-27#21 prompt "-> "
+  - evidence: session-28#23 real "x + 2\n|  Error:\n"
+- RULE session.39: /reset prints '|  Resetting state.' in normal and verbose feedback modes, and nothing at all in concise and silent modes.
+  - evidence: session-5#4 real "|  Resetting state.\n"
+  - evidence: session-4#32 real "|  Resetting state.\n"
+  - evidence: session-4#8 real= ""
+  - evidence: session-5#9 real= ""
+- RULE session.40: After /reset the variables, methods and classes are gone and /list is empty; /list -all and /imports show only the startup state; a name from before the reset is unknown.
+  - evidence: session-4#9 real= ""
+  - evidence: session-4#10 real= ""
+  - evidence: session-4#11 real= ""
+  - evidence: session-4#12 real "|    import java.base\n"
+  - evidence: session-4#14 real "\n  s1 : import module java.base;\n"
+  - evidence: session-4#15 real "|  Error:\n|  cannot find symbol\n|    symbol:   variable x\n"
+- RULE session.41: After /reset snippet numbering starts over: the next expression is $1 and the first rejected snippet is e1 again.
+  - evidence: session-4#16 real "$1 ==> 10\n"
+  - evidence: session-5#7 real "$1 ==> 42\n"
+  - evidence: session-5#23 real "  e1 : String s2 = 5;\n"
+- RULE session.42: /reset keeps the feedback mode (and the prompt that goes with it) and keeps the whole /history, including lines typed before the reset.
+  - evidence: session-4#18 real "|  /set feedback concise\n"
+  - evidence: session-4#17 prompt "jshell> "
+  - evidence: session-5#9 prompt "-> "
+  - evidence: session-4#19 real "int x = 10\nx + 1\nint dbl(int n) { return n * 2; }\nimport java.util.*;\nclass P { int a; }\n/set feedback concise\nint y = 3\n/history\n/reset\n"
+  - evidence: session-5#5 real "\nint x = 10\nx + 1\nint dbl(int n) { return n * 2; }\nimport java.util.*;\n/reset\n/history\n"
+  - evidence: session-4#29 real "|  /set feedback verbose\n"
+- RULE session.43: /reset is idempotent and a trailing space changes nothing; a rejected or failing earlier snippet does not matter.
+  - evidence: session-5#12 real "|  Resetting state.\n"
+  - evidence: session-5#14 real "|  Resetting state.\n"
+  - evidence: session-5#15 real "|  Resetting state.\n"
+  - evidence: session-5#18 real "|  Resetting state.\n"
+- RULE session.44: /reset with a stray word prints 'Unexpected arguments at end of command: [foo] -- foo'; an unknown option prints 'Unknown option: ' followed by the first letter only; a class path that does not exist prints a not-found line. None of these resets anything (the variables are still listed afterward). The process exit status was 1 at end of input in each of these sessions (see Surprises).
+  - evidence: session-4#23 real "|  Unexpected arguments at end of command: [foo] -- foo\n"
+  - evidence: session-4#24 real "|  File '/nonexistent/dir' for '--class-path' is not found.\n"
+  - evidence: session-4#27 real "|  Unknown option: q\n"
+  - evidence: session-4#28 real "|  Unknown option: b\n"
+  - evidence: session-4#25 real "|    int $1 = 10\n|    int w = 1\n|    int v = 2\n"
+- RULE session.45: /reload on a fresh session prints '|  Restarting and restoring state.' and nothing else.
+  - evidence: session-6#0 real "|  Restarting and restoring state.\n"
+- RULE session.46: /reload prints '|  Restarting and restoring state.' and then every valid snippet of the history again, each as `-: <source>` (declarations with their semicolon, expressions as typed), then any output the snippet writes. No value feedback is shown for the replayed snippets. A dropped snippet is replayed and then its `/drop` is shown as `-: /drop <name>`.
+  - evidence: session-6#11 real "|  Restarting and restoring state.\n-: int x = 10;\n-: x + 1\n-: int dbl(int n) { return n * 2; }\n-: import java.util.*;\n-: class P { int a; }\n-: System.out.println(\"hello\");\nhello\n-: int gone = 1;\n-: /drop gone\n-: int x = 20;\n"
+- RULE session.47: The rejected snippet (int bad = "s") is not replayed, and after the reload /list -all no longer has its e1 line; overwritten and dropped snippets are kept as listed entries.
+  - evidence: session-6#13 real "\n  s1 : import module java.base;\n   1 : int x = 10;\n   2 : x + 1\n   3 : int dbl(int n) { return n * 2; }\n   4 : import java.util.*;\n   5 : class P { int a; }\n   6 : System.out.println(\"hello\");\n   7 : int gone = 1;\n   8 : int x = 20;\n"
+  - evidence: session-6#12 real "\n   2 : x + 1\n   3 : int dbl(int n) { return n * 2; }\n   4 : import java.util.*;\n   5 : class P { int a; }\n   6 : System.out.println(\"hello\");\n   8 : int x = 20;\n"
+  - evidence: session-6#14 real "|    int $2 = 11\n|    int x = 20\n"
+- RULE session.48: /reload keeps the whole /history, adds the /reload line itself, and later snippets carry on the numbering ($9 after the eight replayed IDs).
+  - evidence: session-6#15 real "\n/reload\nint x = 10\nx + 1\nint dbl(int n) { return n * 2; }\nimport java.util.*;\nclass P { int a; }\nSystem.out.println(\"hello\");\nint bad = \"s\";\nint gone = 1\n/drop gone\nint x = 20\n/reload\n"
+  - evidence: session-6#18 real "$9 ==> 101\n"
+- RULE session.49: /reload -quiet prints the heading line and only the user output of the replayed snippets (here 'hello'), not the `-:` echo lines.
+  - evidence: session-6#16 real "|  Restarting and restoring state.\nhello\n"
+- RULE session.50: /reload -restore prints '|  Restarting and restoring from previous state.' and replays the history that existed before the last reload or reset; -quiet may come before or after -restore.
+  - evidence: session-6#19 real "|  Restarting and restoring from previous state.\n-: int x = 10;\n"
+  - evidence: session-6#20 real "|  Restarting and restoring from previous state.\nhello\n"
+  - evidence: session-6#21 real "|  Restarting and restoring from previous state.\nhello\n"
+- RULE session.51: /reload -restore directly after /reset restores the snippets from before the reset (with the `-:` echoes), but /reload (without -restore) after a /reset replays nothing because the current history is empty.
+  - evidence: session-28#5 real "|  Restarting and restoring from previous state.\n-: int x = 10;\n-: int sq(int n) { return n * n; }\n-: int d = 1;\n-: /drop d\n"
+  - evidence: session-28#6 real "|    int x = 10\n"
+  - evidence: session-28#7 real "|    int sq(int)\n"
+  - evidence: session-27#3 real "|  Restarting and restoring state.\n"
+  - evidence: session-27#4 real= ""
+- RULE session.52: A second /reload -restore does not repeat the first: it prints only the heading and the state becomes empty (the variables restored by the first one are gone).
+  - evidence: session-28#10 real "|  Restarting and restoring from previous state.\n"
+  - evidence: session-28#11 real= ""
+  - evidence: session-27#9 real "|  Restarting and restoring from previous state.\n"
+  - evidence: session-27#10 real "\n  s1 : import module java.base;\n"
+- RULE session.53: An exception thrown by a replayed snippet is shown right after its echo line in the normal exception form; user output lines appear between the echo lines.
+  - evidence: session-6#33 real "-: int[] arr = new int[2];\n-: arr[9]\n|  Exception java.lang.ArrayIndexOutOfBoundsException: Index 9 out of bounds for length 2\n|        at (#11:1)\n"
+  - evidence: session-6#35 real "-: System.out.println(\"again\");\nagain\n"
+- RULE session.54: In concise and silent feedback modes /reload omits the heading line but still prints the `-:` echo lines; in verbose mode the heading is printed. In silent mode /reload -restore prints nothing at all, while in normal mode /reload -restore -quiet prints only the heading.
+  - evidence: session-6#26 real "-: int x = 10;\n"
+  - evidence: session-6#26 prompt "jshell> "
+  - evidence: session-27#22 real "-: int d = 1;\n-: /drop d\n"
+  - evidence: session-6#29 real "|  Restarting and restoring state.\n-: int x = 10;\n"
+  - evidence: session-28#24 real= ""
+  - evidence: session-27#24 real "|  Restarting and restoring from previous state.\n"
+- RULE session.55: /reload with a bad option, a stray word, or a missing class path prints the same one-line errors as /reset.
+  - evidence: session-6#22 real "|  Unknown option: b\n"
+  - evidence: session-6#23 real "|  File '/nonexistent/dir' for '--class-path' is not found.\n"
+  - evidence: session-6#24 real "|  Unexpected arguments at end of command: [foo] -- foo\n"
+- RULE session.56: /env with no evaluation context options set prints nothing.
+  - evidence: session-7#0 real= ""
+  - evidence: session-8#9 real= ""
+- RULE session.57: /env with at least one valid option prints '|  Setting new options and restoring state.' and keeps the session's snippets (a variable defined before still has its value afterward).
+  - evidence: session-8#11 real "|  Setting new options and restoring state.\n"
+  - evidence: session-8#13 real "|    int $2 = 2\n"
+  - evidence: session-8#16 real "kept ==> 3\n"
+- RULE session.58: /env afterward lists each option on its own line as `|     --<option> <value>` (five spaces after the bar), always with two dashes, whether the option was typed with one dash or two. A later /env -class-path replaces the earlier value.
+  - evidence: session-8#12 real "|     --class-path ../.work/scratch/session\n"
+  - evidence: session-8#17 real "|     --class-path ../.work/scratch/session/t\n"
+  - evidence: session-8#22 real "|  Setting new options and restoring state.\n"
+  - evidence: session-8#24 real "|     --add-exports java.base/jdk.internal.misc=ALL-UNNAMED\n"
+- RULE session.59: The options accumulate across /env calls and the listing order is not the order they were entered: in the default engine /env listed module-path, add-modules, class-path after those three were set in the order class-path, module-path, add-modules.
+  - evidence: session-8#20 real "|     --module-path ../.work/scratch/session\n|     --add-modules java.sql\n|     --class-path ../.work/scratch/session/t\n"
+  - evidence: session-8#24 real "|     --module-path ../.work/scratch/session\n|     --add-modules java.sql\n|     --add-exports java.base/jdk.internal.misc=ALL-UNNAMED\n|     --class-path ../.work/scratch/session\n"
+- RULE session.60: DIFFERENCE (local engine): /env lists the same options in a different order (class-path, module-path, add-modules in the first listing; add-exports before module-path in the later ones). The text of each line is the same.
+  - evidence: session-8#20 local "|     --class-path ../.work/scratch/session/t\n|     --module-path ../.work/scratch/session\n|     --add-modules java.sql\n"
+  - evidence: session-8#24 local "|     --class-path ../.work/scratch/session\n|     --add-exports java.base/jdk.internal.misc=ALL-UNNAMED\n|     --module-path ../.work/scratch/session\n|     --add-modules java.sql\n"
+- RULE session.61: The evaluation context options survive /reset and /reload: /env lists them afterward (in yet another order in the default engine: add-modules, add-exports, class-path, module-path).
+  - evidence: session-8#26 real "|     --add-modules java.sql\n|     --add-exports java.base/jdk.internal.misc=ALL-UNNAMED\n|     --class-path ../.work/scratch/session\n|     --module-path ../.work/scratch/session\n"
+  - evidence: session-8#28 real "|     --add-modules java.sql\n"
+- RULE session.62: /env with a class path that does not exist prints '|  File '<path>' for '--class-path' is not found.' (the option is named with two dashes even if typed with one) and changes nothing; an unknown option prints 'Unknown option: ' and its first letter. The process exit status was 1 at end of input in session-8 (see Surprises).
+  - evidence: session-8#10 real "|  File '/nonexistent/dir' for '--class-path' is not found.\n"
+  - evidence: session-8#21 real "|  Unknown option: b\n"
+- RULE session.63: /save <file> prints nothing when it succeeds, for the plain, -all, -history and -start forms and for a single snippet ID.
+  - evidence: session-7#9 real= ""
+  - evidence: session-7#10 real= ""
+  - evidence: session-7#11 real= ""
+  - evidence: session-7#12 real= ""
+  - evidence: session-7#16 real= ""
+- RULE session.64: A plain /save writes the active snippets only (reopened with /open after a /reset: x, dbl, the import, P and the expression, with the rejected and dropped snippets absent). The file text is the snippets' sources, one per line, with no trailing newline after the last line.
+  - evidence: session-7#19 real "\n   1 : int x = 10;\n   2 : int dbl(int n) { return n * 2; }\n   3 : import java.util.*;\n   4 : class P { int a; }\n   5 : x + 1\n"
+- RULE session.65: /save -all also writes the startup snippet, the rejected snippet and the dropped one: reopening it shows the rejected line's error again and lists the startup import as a new snippet.
+  - evidence: session-7#21 real "|  Error:\n|  incompatible types: java.lang.String cannot be converted to int\n|  int bad = \"s\";\n"
+  - evidence: session-7#22 real "\n  s1 : import module java.base;\n   1 : import module java.base;\n   2 : int x = 10;\n   3 : int dbl(int n) { return n * 2; }\n   4 : import java.util.*;\n   5 : class P { int a; }\n  e1 : int bad = \"s\";\n   6 : x + 1\n   7 : int gone = 1;\n"
+- RULE session.66: /save -history writes what was typed, in order, commands included: reopening it replays the rejected snippet's error and the snippets (the dropped one is in /list -all).
+  - evidence: session-7#24 real "|  Error:\n|  incompatible types: java.lang.String cannot be converted to int\n"
+  - evidence: session-7#25 real "\n  s1 : import module java.base;\n   1 : int x = 10;\n   2 : int dbl(int n) { return n * 2; }\n   3 : import java.util.*;\n   4 : class P { int a; }\n  e1 : int bad = \"s\";\n   5 : x + 1\n   6 : int gone = 1;\n"
+- RULE session.67: /save -start writes the startup snippets; reopening the file prints nothing.
+  - evidence: session-7#26 real= ""
+- RULE session.68: /save errors: no file prints "'/save' requires a filename argument."; an unknown option prints 'Unknown option: -bogus -- /save -bogus'; an unwritable path prints the file name and the exception class and message on one line.
+  - evidence: session-7#13 real "|  '/save' requires a filename argument.\n"
+  - evidence: session-7#14 real "|  Unknown option: -bogus -- /save -bogus\n"
+  - evidence: session-7#15 real "|  File '/nonexistent/dir/out.jsh' for '/save' threw exception: java.nio.file.NoSuchFileException: /nonexistent/dir/out.jsh\n"
+- RULE session.69: /open <file> runs the file's lines as if typed but shows no echo and, in normal feedback mode, no value feedback for the snippets (a=4 prints nothing); commands inside the file run and print (/vars), a rejected snippet prints its error block, and user output appears. Snippet IDs continue the numbering.
+  - evidence: session-7#29 real "|    int x = 10\n|    int $5 = 11\n|    int a = 4\n|    int b = 8\n|  Error:\n|  incompatible types: int cannot be converted to java.lang.String\n|  String s = 5;\n|             ^\n12\n"
+  - evidence: session-7#30 real "   8 : int a = 4;\n   9 : int b = a * 2;\n  e2 : String s = 5;\n  10 : System.out.println(a + b);\n  11 : int sq(int n) { return n * n; }\n  12 : sq(b)\n"
+- RULE session.70: A multi-line method in an opened file is read as one snippet (listed with its continuation lines indented), and /open of an empty file prints nothing.
+  - evidence: session-8#0 real= ""
+  - evidence: session-8#1 real "\n   1 : int multi(\n         int q) {\n         return q + 1;\n       }\n   2 : multi(1)\n"
+  - evidence: session-7#32 real= ""
+- RULE session.71: /open errors: a missing file prints "File '<path>' for '/open' is not found."; a directory gets the same line; two paths are treated as one file name; no argument prints "'/open' requires a filename argument."
+  - evidence: session-7#27 real "' for '/open' is not found.\n"
+  - evidence: session-7#28 real "|  '/open' requires a filename argument.\n"
+  - evidence: session-7#33 real "' for '/open' is not found.\n"
+  - evidence: session-7#38 real "empty.jsh ../.work/scratch/session/empty.jsh' for '/open' is not found.\n"
+- RULE session.72: /open DEFAULT, /open PRINTING and /open JAVASE open the predefined startup files: DEFAULT adds a new import snippet, PRINTING adds the print, println and printf methods, JAVASE adds a long list of package imports. Each prints nothing.
+  - evidence: session-8#2 real= ""
+  - evidence: session-8#3 real "   3 : import module java.base;\n"
+  - evidence: session-8#5 real "|    int multi(int)\n|    void print(boolean)\n|    void print(char)\n|    void print(int)\n"
+  - evidence: session-8#5 real "|    void printf(java.util.Locale,String,Object...)\n|    void printf(String,Object...)\n"
+  - evidence: session-8#7 real "|    import java.base\n|    import java.applet.*\n|    import java.awt.*\n"
+- RULE session.73: /open does not add the file's lines to /history; only the /open command lines are there.
+  - evidence: session-7#34 real "/open ../.work/scratch/session/input.jsh\n/list -all\n/open ../.work/scratch/session/input2.jsh\n"
+- RULE session.74: /set start with no argument shows the current setting as a command: '|  /set start -default'; after -none it shows '|  /set start -none'; setting it prints nothing.
+  - evidence: session-8#29 real "|  /set start -default\n"
+  - evidence: session-8#31 real= ""
+  - evidence: session-8#32 real "|  /set start -none\n"
+  - evidence: session-29#1 real= ""
+- RULE session.75: A /set start change takes effect at the next /reset, not at once: right after /set start -none the startup snippet is still listed and the import still shown; after /reset the list is empty.
+  - evidence: session-29#2 real "\n  s1 : import module java.base;\n   1 : int x = 1;\n"
+  - evidence: session-29#3 real "|    import java.base\n"
+  - evidence: session-29#6 real= ""
+- RULE session.76: With -none a /reset leaves no startup snippets: /list -all and /imports print nothing; /set start -default and a /reset bring back `s1 : import module java.base;`.
+  - evidence: session-8#34 real= ""
+  - evidence: session-8#35 real= ""
+  - evidence: session-8#39 real "\n  s1 : import module java.base;\n"
+  - evidence: session-29#16 real "\n  s1 : import module java.base;\n"
+- RULE session.77: /set start <file> makes the file's snippets the startup snippets (s1, s2 ...) after a /reset; the show form then prints the setting, a header with the file name and a wall-clock date and time, and the file text indented under `|  `. That timestamp changes on every run, so only its stable parts are quoted.
+  - evidence: session-8#43 real "\n  s1 : int multi(\n         int q) {\n         return q + 1;\n       }\n  s2 : multi(1)\n"
+  - evidence: session-8#41 real "|  ---- ../.work/scratch/session/input2.jsh @ Sep 30, 2026, "
+  - evidence: session-8#41 real " ----\n|  int multi(\n|    int q) {\n|    return q + 1;\n|  }\n|  multi(1)\n"
+- RULE session.78: /set start with a missing file prints "File '<path>' for '/set start' is not found." once per file; an unknown option prints 'Unknown option: -bogus -- /set start -bogus'.
+  - evidence: session-8#30 real "|  File '/nonexistent/file.jsh' for '/set start' is not found.\n"
+  - evidence: session-29#9 real "|  File '/nonexistent/a.jsh' for '/set start' is not found.\n"
+  - evidence: session-29#8 real "|  Unknown option: -bogus -- /set start -bogus\n"
+- RULE session.79: /set start DEFAULT PRINTING starts a session with the default import (s1) followed by the print, println and printf methods as s2 onward; /set start PRINTING alone leaves no import snippet (/imports prints nothing) but println works.
+  - evidence: session-8#47 real "\n  s1 : import module java.base;\n  s2 : void print(boolean b) { System.out.print(b); }\n  s3 : void print(char c) { System.out.print(c); }\n"
+  - evidence: session-29#12 real= ""
+  - evidence: session-29#13 real "p\n"
+- RULE session.80: DIFFERENCE (local engine): the /set start show form differs only in the wall-clock time in the header.
+  - evidence: session-8#41 local "|  ---- ../.work/scratch/session/input2.jsh @ Sep 30, 2026, "
+- RULE session.81: /debug with no argument prints '|  Debugging on' and /debug 0 prints '|  Debugging off'.
+  - evidence: session-9#0 real "|  Debugging on\n"
+  - evidence: session-9#2 real "|  Debugging off\n"
+- RULE session.82: /debug takes one letter each: r, g, f, c, d, e print their own 'on' line; an unknown letter prints the usage line listing 0 r g f c d e w b.
+  - evidence: session-9#5 real "|  REPL tool debugging on\n"
+  - evidence: session-9#11 real "|  General debugging on\n"
+  - evidence: session-9#14 real "|  File manager debugging on\n"
+  - evidence: session-9#8 real "|  Completion analysis debugging on\n"
+  - evidence: session-9#16 real "|  Dependency debugging on\n"
+  - evidence: session-9#18 real "|  Event debugging on\n"
+  - evidence: session-9#4 real "|  Unknown debugging option: z\n|  Use: 0 r g f c d e w b\n"
+- RULE session.83: While a debugging flag is on, snippets print extra trace lines around the normal feedback (the trace text is implementation detail and is not reproduced here); the normal feedback line is the last line of the output, and the trace goes to the error streams.
+  - evidence: session-9#1 real "x ==> 1\n"
+  - evidence: session-9#6 real "Compiling: int w = 3;\nw ==> 3\n"
+  - evidence: session-9#9 real "v ==> 4\n"
+- RULE session.84: After /debug 0 the output is normal again.
+  - evidence: session-9#3 real "y ==> 2\n"
+  - evidence: session-9#21 real "t ==> 6\n"
+- RULE session.85: /exit prints '|  Goodbye' and the tool ends: no prompt follows (the final text after the last entry is empty) and the exit status is 0.
+  - evidence: session-10#1 real "|  Goodbye\n"
+  - evidence: session-10#1 tail= ""
+- RULE session.86: /exit <integer expression> evaluates it, prints '|  Goodbye (<n>)' and ends the tool with that status: /exit 3 gives status 3, /exit -1 gives -1, /exit 300 gives 300 (no wrapping), /exit 1 + 1 gives 2, /exit k with an int variable k = 6 gives 6, /exit k + 1 gives 7, /exit 3; (trailing semicolon) gives 3.
+  - evidence: session-11#1 real "|  Goodbye (3)\n"
+  - evidence: session-14#1 real "|  Goodbye (-1)\n"
+  - evidence: session-15#1 real "|  Goodbye (300)\n"
+  - evidence: session-13#1 real "|  Goodbye (2)\n"
+  - evidence: session-17#1 real "|  Goodbye (6)\n"
+  - evidence: session-20#1 real "|  Goodbye (7)\n"
+  - evidence: session-22#1 real "|  Goodbye (3)\n"
+- RULE session.87: /exit 0 prints plain '|  Goodbye' (no parenthesized status), exit status 0.
+  - evidence: session-25#1 real "|  Goodbye\n"
+- RULE session.88: /exit with an expression that does not compile prints the usual error block for that expression and the tool keeps running (the prompt tail follows, status 0 at end of input).
+  - evidence: session-12#1 real "|  Error:\n|  cannot find symbol\n|    symbol:   variable foo\n|  foo\n|  ^-^\n"
+  - evidence: session-12#1 tail "\njshell> "
+  - evidence: session-21#1 real "|  Error:\n|  cannot find symbol\n|    symbol:   variable undefinedThing\n|  undefinedThing\n|  ^------------^\n"
+- RULE session.89: /exit with an expression that is not an int (a String or a double) prints 'The argument to /exit must be a valid integer expression. The type is <type> : <expression>' and the tool keeps running.
+  - evidence: session-16#1 real "|  The argument to /exit must be a valid integer expression. The type is String : \"s\"\n"
+  - evidence: session-18#1 real "|  The argument to /exit must be a valid integer expression. The type is double : 2.5\n"
+  - evidence: session-16#1 tail "\njshell> "
+- RULE session.90: /exit 3 extra (two words) is not a valid expression: two error blocks (';' expected, then 'not a statement') and the tool keeps running.
+  - evidence: session-19#1 real "|  Error:\n|  ';' expected\n|  3 extra\n|   ^\n|  Error:\n|  not a statement\n|  3 extra\n|    ^---^\n"
+  - evidence: session-19#1 tail "\njshell> "
+- RULE session.91: /exit may be abbreviated: /ex 4 ends with status 4 and prints '|  Goodbye (4)'; /exi prints '|  Goodbye'.
+  - evidence: session-23#1 real "|  Goodbye (4)\n"
+  - evidence: session-24#1 real "|  Goodbye\n"
+- RULE session.92: The local engine prints the same as the default engine for every /exit variant and the same status.
+  - evidence: session-11#1 local "|  Goodbye (3)\n"
+  - evidence: session-15#1 local "|  Goodbye (300)\n"
+  - evidence: session-16#1 local "The argument to /exit must be a valid integer expression. The type is String : \"s\"\n"
+  - evidence: session-12#1 local "|  cannot find symbol\n"
+- RULE session.93: DIFFERENCE (events): in session-6 entry 10 (`int x = 20` redefining x) the default engine's event for the new x has signatureChange false and the local engine's has signatureChange true; the status pair VALID<-VALID plus the OVERWRITTEN event are the same. The tool's own output is the same for both.
+  - evidence: session-6#10 events "\"status\":\"VALID\",\"previousStatus\":\"VALID\",\"signatureChange\":false,\"cause\":null,\"value\":\"20\""
+  - evidence: session-6#10 elocal "\"status\":\"VALID\",\"previousStatus\":\"VALID\",\"signatureChange\":true,\"cause\":null,\"value\":\"20\""
+- RULE session.94: Apart from the /env order, the /set start timestamp and that event flag, the local engine's output equaled the default engine's in every entry of sessions 1 to 29: help pages, reruns, reset, reload, save, open, debug and exit.
+  - evidence: session-1#0 local "|  Type a Java language expression, statement, or declaration.\n"
+  - evidence: session-3#2 local "2 + 2\n$3 ==> 4\n"
+  - evidence: session-6#11 local "|  Restarting and restoring state.\n-: int x = 10;\n"
+  - evidence: session-5#4 local "|  Resetting state.\n"
+
+## Surprises
+
+- The exit status of a run was 1 (not 0) at end of input in session-4, session-6 and session-8, where /reset, /reload or /env had been given a bad option or a missing class path earlier, even though later entries ran normally and the tail was the usual prompt. Sessions where only snippets, /nosuch, a missing /open file or a rejected snippet failed ended with status 0. The /exit family is the only place the status carries a number the reader asked for (3, -1, 300, 2, 6, 7).
+- /reload -restore does not behave as a repeatable "undo reset": the first one after a /reset brings the old snippets back, a second one finds nothing and empties the state.
+- /reload drops the rejected snippet entirely, so its e-number disappears from /list -all, while overwritten and dropped snippets stay listed with their original numbers.
+- /open runs a file silently: no echo and no value feedback in normal mode, only command output, errors and user output.
+- The default startup in this JDK is a single snippet, `import module java.base;`, and /imports shows it as `import java.base`. A /! on a brand-new session therefore reruns that import and uses up snippet ID 1.
+- The file written by /save -history was empty on disk after the run finished although /open of it, right after the save and a /reset, restored the typed snippets and commands (checked in scratch runs). The other /save forms left their text on disk, with no newline after the last line. Evidence for the file text is therefore only through /open and /list.
+- /set start <file> followed by /set start (show) prints a wall-clock time in the header, so that one entry is nondeterministic across runs; the rest of its text is stable.
+- /env lists its options in an order that depends on the engine and changes after /reset.
+- /debug output includes implementation trace text written to the error streams (streams toolErr and userErr in report.txt), interleaved before the normal feedback line.
+- A tab-indented description is used for the usage lines of the help screen and the pages; the /imports and /!, /<id>, /-<n> usage lines carry a trailing space before the newline.
+
+## Open questions
+
+- Whether a /reload -restore after more than one /reset or /reload ever restores anything beyond the single previous state was not mapped; only the cases above were run.
+- /set start -retain, /set feedback -retain, /retain-style forms and anything else that writes a persistent setting were deliberately not run, so what they print and whether they survive a restart is unobserved.
+- The cause of the empty /save -history file on disk after the run (see Surprises) is not settled; only the /open round trip is documented.
+- /edit was not run (an external editor could open), so its messages when no editor is set are unobserved.
+- /open of a URL and /open with a relative path were not run.
+- The exit status of the tool when /exit is typed inside a file read by /open was not run.

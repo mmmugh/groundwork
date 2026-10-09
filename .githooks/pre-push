@@ -1,0 +1,60 @@
+#!/bin/sh
+# Refuse to push commits or tags whose ADDED content matches a leak pattern.
+# git feeds ref updates on stdin, one per line:
+#   <local ref> <local sha> <remote ref> <remote sha>
+# and passes the remote's name as $1.
+#
+# EVERY NEW COMMIT IS SCANNED SEPARATELY, not the net difference between the
+# two ends. Scanning the net is the obvious implementation and it is wrong:
+# a leak committed with --no-verify and deleted in a later commit nets to
+# nothing, so the push is allowed -- and both commits land in the remote's
+# history, where the token is as readable as ever. Measured before this was
+# changed: such a push exited 0 and the remote's log held the token twice.
+# That is the exact case this hook exists for, since a leak that reaches here
+# has already got past pre-commit.
+set -eu
+
+HOOK_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+REMOTE="${1:-origin}"
+Z40=0000000000000000000000000000000000000000
+
+fail=0
+while read -r local_ref local_sha remote_ref remote_sha; do
+  # Deleting a remote ref (local sha all zeros) -- nothing to scan.
+  [ "$local_sha" = "$Z40" ] && continue
+
+  # Which commits are new to the remote? Prefer what git tells us this push
+  # updates. Fail closed everywhere else: a base we do not have (force-push,
+  # divergent remote, shallow clone) or a brand-new ref falls back to
+  # "everything this remote does not already have", and on a first push that
+  # is the whole history rather than nothing.
+  if [ "$remote_sha" != "$Z40" ] && git cat-file -e "${remote_sha}^{commit}" 2>/dev/null; then
+    commits=$(git rev-list "$local_sha" --not "$remote_sha" 2>/dev/null) || commits=""
+  else
+    commits=$(git rev-list "$local_sha" --not --remotes="$REMOTE" 2>/dev/null) || commits=""
+  fi
+  # An empty answer from a failed rev-list must not read as "nothing to do".
+  if [ -z "$commits" ]; then
+    commits=$(git rev-list "$local_sha" 2>/dev/null) || commits=""
+  fi
+
+  for commit in $commits; do
+    # --root so an initial commit is compared against the empty tree, -m so a
+    # merge is compared against each parent, and quotePath off so a non-ASCII
+    # filename is not octal-escaped past the patterns.
+    if ! git -c core.quotePath=false diff-tree -p -U0 --root -m --no-color "$commit" \
+         | "$HOOK_DIR/leak-scan"; then
+      echo "pre-push: leak-scan blocked $local_ref at commit $(git rev-parse --short "$commit")" >&2
+      fail=1
+    fi
+  done
+done
+
+if [ "$fail" -ne 0 ]; then
+  echo "" >&2
+  echo "pre-push: refusing to push. A commit already made cannot be fixed by" >&2
+  echo "deleting the content in a later one -- the old commit still carries it." >&2
+  echo "Rewrite the history that holds it, or override: git push --no-verify" >&2
+  exit 1
+fi
+exit 0

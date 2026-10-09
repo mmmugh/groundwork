@@ -1,0 +1,18 @@
+{
+ "about": "SHA-256 of what the proof is made of besides Ristretto: the front end's jar as runtime/jshell/build.sh builds it from src/, every session file and the J1 startup file, and the number of entries. Ristretto's five files are pinned once, in runtime/ristretto/CHECKSUMS, which also lists this jar (runtime/ristretto/package.sh refuses a jar that is not this one). test/check.mjs fails (exit 2) if a file differs, is missing or is added. Re-pin a meant change with node runtime/jshell/test/pin.mjs.",
+ "jar": "e5ee02f466698fa0548f9b93299eee22c5f858a058ae61c624b6be26587f5ae4",
+ "sessions": {
+  "commands.jsh": "72ef3a2ce644c3aff3b3ab2f14bb9a81f3b209a3cddac4413bf89da598d3c1b0",
+  "course.jsh": "37b5bd9562bea2d198f213c3a69b7dfd004474e717e636c973e42702da00c179",
+  "declarations.jsh": "b17d2751178812d7016b8f65f77e391e21dbbd10f176d6dbc489287fdd134b21",
+  "errors.jsh": "c1cb584b7078d06c0153e7c06c058e482588d3d5805a64fcf4b4d66a6d843b21",
+  "exceptions.jsh": "050cc778761c6b97fe610040c7ab0907f4f3083f46cc6bec1098abb540f6ea77",
+  "feedback.jsh": "61778df87369a2bb076b13a8d20949566a7bca7dd57296aff5af967048e7cbe0",
+  "input.jsh": "956b827992073dc2fdbf24c8301f67121031e7845fabaa582609c30559920f3b",
+  "session.jsh": "5bac4f2d91b50a14cc2090ad95aa3a18c75bff561b28484d7ad580625ed8a48b",
+  "startup.jsh": "5899d7fc610886e6e17b47e842feaa80099917d367f427845e8fcf4302f1fe8b",
+  "values.jsh": "82ee0447c20b21121784a521e9ae294e0dd6b616ec9471ae1c7c3e4617d41ca3",
+  "startup-time.jsh": "5201a7bb604fa0f933acce5600c9c7fcdc68b55c2a58c632a21c4df2c713959d"
+ },
+ "entries": 562
+}

@@ -1,0 +1,94 @@
+# Copyright 2026 Groundwork contributors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# Plan 3 Task 11 (D44). A non-void method that never returns compiles to valid WebAssembly wherever it is
+# called from. Found by Plan 3 Task 5's implementer: Check calls every case inside a try, and
+# int spin(int n) { while (true) {} } called that way made the run end fatal with "CompileError:
+# WebAssembly.compile(): Compiling function #100:"Main::spin" failed: expected 1 elements on the stack for
+# fallthru, found 0", where the pinned JDK runs it until it is killed (and prints nothing). Every
+# leave-one-out build (fork-no-NNNN) failed the same way, so this is TeaVM's own bug, not one of this
+# series' patches; it is on the upstream list (D13). Written from TeaVM's own sources and the WebAssembly
+# specification (validation: the operand stack at a function's end must match its result type, and after
+# unreachable the stack is polymorphic, so any result type matches); the pinned JDK was only observed.
+#   - The cause: on Wasm GC, WasmGCMethodGenerator emits a method's body as the generation visitor leaves
+#     it, and for a body that ends in a loop no path leaves (while (true) {}, for (;;) {}, with or without
+#     statements inside) that is just "loop ... br 0 end". The end of the loop is reachable as far as
+#     validation is concerned, with nothing on the stack, so a function with a result fails to compile.
+#     A body whose loop holds a return or a throw is laid out with a value or a terminating instruction
+#     last, and is valid.
+#   - Why a try at the call site mattered: TeaVM inlines a small method called bare, so the loop landed
+#     in void main and no function with a result was emitted (the disassembled program shows main's body
+#     as the bare loop); a call inside a try is not inlined, so the method became a function of its own.
+#     A method called through an interface (a lambda that loops forever) failed even outside a try.
+#   - The fix: after the body is generated, if the function has a result and the body's last instruction
+#     neither produces a value nor always transfers control (br, br_table, return, throw, unreachable),
+#     an unreachable is added. Java never lets a non-void method complete normally, so control never
+#     reaches it; it only makes the function valid. The same applies inside a synchronized method's try.
+#     Bodies that end in a value or a terminating instruction are emitted as before.
+#   - Other backends (JavaScript, Wasm, C) are unchanged.
+#
+# Applies to: github.com/konsoletyper/teavm tag 0.13.1 (b3a245b7), after teavm-0001 to teavm-0016. Touches
+# no line an earlier patch added: WasmGCMethodGenerator is touched by no earlier patch. So the patch applies
+# in every leave-one-out build, which leaves out one patch and the patches that declare they build on it.
+
+diff --git a/core/src/main/java/org/teavm/backend/wasm/generate/gc/methods/WasmGCMethodGenerator.java b/core/src/main/java/org/teavm/backend/wasm/generate/gc/methods/WasmGCMethodGenerator.java
+index 40a1579..b54c6dc 100644
+--- a/core/src/main/java/org/teavm/backend/wasm/generate/gc/methods/WasmGCMethodGenerator.java
++++ b/core/src/main/java/org/teavm/backend/wasm/generate/gc/methods/WasmGCMethodGenerator.java
+@@ -61,6 +61,7 @@ import org.teavm.backend.wasm.model.expression.WasmStructSet;
+ import org.teavm.backend.wasm.model.expression.WasmThrow;
+ import org.teavm.backend.wasm.model.expression.WasmTry;
+ import org.teavm.backend.wasm.model.expression.WasmUnreachable;
++import org.teavm.backend.wasm.render.WasmTypeInference;
+ import org.teavm.backend.wasm.transformation.gc.CoroutineTransformation;
+ import org.teavm.dependency.DependencyInfo;
+ import org.teavm.diagnostics.Diagnostics;
+@@ -384,6 +385,9 @@ public class WasmGCMethodGenerator implements BaseWasmFunctionRepository {
+         var target = function.getBody();
+         target = wrapSynchronizedMethod(method, visitor, function, target);
+         visitor.generate(ast.getBody(), target);
++        if (endsWithoutResult(function, target)) {
++            target.add(new WasmUnreachable());
++        }
+         if (isSuspend) {
+             if (coroutineTransformation == null) {
+                 coroutineTransformation = new CoroutineTransformation(functionTypes, this, classInfoProvider);
+@@ -392,6 +396,27 @@ public class WasmGCMethodGenerator implements BaseWasmFunctionRepository {
+         }
+     }
+ 
++    // A non-void method whose body ends in a loop that nothing leaves (int f() { while (true) {} }) left the end of
++    // its body reachable with no value on the stack, which WebAssembly validation rejects ("expected 1 elements on
++    // the stack for fallthru"). Java never lets a non-void method complete normally, so control never gets there, and
++    // an unreachable at the end only makes the function valid. It showed up only when such a method was not inlined,
++    // for example when it was called inside a try.
++    private boolean endsWithoutResult(WasmFunction function, List<WasmExpression> body) {
++        if (function.getType().getReturnTypes().isEmpty()) {
++            return false;
++        }
++        if (body.isEmpty()) {
++            return true;
++        }
++        var last = body.get(body.size() - 1);
++        if (last.isImmediateTerminating()) {
++            return false;
++        }
++        var typeInference = new WasmTypeInference();
++        last.acceptVisitor(typeInference);
++        return typeInference.getResult().isEmpty();
++    }
++
+     private List<WasmExpression> wrapSynchronizedMethod(MethodHolder method, WasmGCGenerationVisitor visitor,
+             WasmFunction function, List<WasmExpression> target) {
+         if (!method.hasModifier(ElementModifier.SYNCHRONIZED)) {

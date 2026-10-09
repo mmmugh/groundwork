@@ -1,0 +1,70 @@
+# Copyright 2026 Groundwork contributors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# Plan 4b Task 7 (D99). getOutputStream() on a connection whose doOutput is false throws
+# java.net.ProtocolException, as the pinned JDK does, before the offline exception teavm-0018 throws. A
+# program that writes to a URL without calling setDoOutput(true) first saw teavm-0018's UnknownHostException
+# or ConnectException, which points at the network; the JDK points at the missing call, online or offline.
+#   - The rule, from the pinned JDK's observed output (runtime/test/cases.mjs, the D99 cases): with doOutput
+#     false, getOutputStream() printed
+#       java.net.ProtocolException: cannot write to a URLConnection if doOutput=false - call setDoOutput(true)
+#     for a .invalid host, where a lookup fails with UnknownHostException; for 127.0.0.1 port 1, where the same
+#     call with doOutput true is refused ("Connection refused"); and with the request method set to POST. A
+#     catch of ProtocolException placed before one of UnknownHostException is the one that ran. So the check
+#     comes before any lookup or connection, and the method does not change it. With doOutput true the call
+#     fails offline as before (the control case, which agreed before this patch).
+#   - doOutput is TeaVM's own field (TURLConnection), false until setDoOutput(true), and TeaVM's class library
+#     already has java.net.ProtocolException (TProtocolException), so no class is added.
+#
+# Written from TeaVM's own sources (classlib/src/main/java/org/teavm/classlib/java/net/) and the pinned
+# JDK's observed output; no OpenJDK source was opened (clean room, D14). Written by a fresh subagent (Claude
+# Opus 5.5), a language model whose training may include OpenJDK, so before the build the patch was read for
+# names or structure that look recalled rather than derived: it adds no name (doOutput and TProtocolException
+# are TeaVM's, the message is the JDK's observed text) and its one check is the form the observed rule takes;
+# nothing was renamed. The audit of the session's transcript for forbidden paths is recorded in the commit
+# that adds this patch.
+#
+# Applies to: github.com/konsoletyper/teavm tag 0.13.1 (b3a245b7), after teavm-0001 to teavm-0018. It adds an
+# import and changes getOutputStream(), which teavm-0018 wrote; teavm-0020 applies with or without it. It
+# cannot apply without teavm-0018 (D99 refines what teavm-0018's connection throws), so the leave-one-out build
+# without teavm-0018 leaves it out too (runtime/build.sh and runtime/test/negatives.mjs read the line below).
+# Builds on: teavm-0018
+
+diff --git a/classlib/src/main/java/org/teavm/classlib/java/net/impl/TXHRURLConnection.java b/classlib/src/main/java/org/teavm/classlib/java/net/impl/TXHRURLConnection.java
+index 5131f96..d1a9ed4 100644
+--- a/classlib/src/main/java/org/teavm/classlib/java/net/impl/TXHRURLConnection.java
++++ b/classlib/src/main/java/org/teavm/classlib/java/net/impl/TXHRURLConnection.java
+@@ -20,6 +20,7 @@ import java.io.InputStream;
+ import java.io.OutputStream;
+ import org.teavm.classlib.java.net.TConnectException;
+ import org.teavm.classlib.java.net.THttpURLConnection;
++import org.teavm.classlib.java.net.TProtocolException;
+ import org.teavm.classlib.java.net.TURL;
+ import org.teavm.classlib.java.net.TUnknownHostException;
+ 
+@@ -51,8 +52,14 @@ public class TXHRURLConnection extends THttpURLConnection {
+         throw offline();
+     }
+ 
++    // A connection whose doOutput is still false, the default, is refused output before its host is looked up
++    // or reached, so a program that never called setDoOutput(true) is told that, online or off (D99). The
++    // words are the pinned JDK's (runtime/test/cases.mjs, the D99 cases).
+     @Override
+     public OutputStream getOutputStream() throws IOException {
++        if (!doOutput) {
++            throw new TProtocolException("cannot write to a URLConnection if doOutput=false - call setDoOutput(true)");
++        }
+         throw offline();
+     }
+ 

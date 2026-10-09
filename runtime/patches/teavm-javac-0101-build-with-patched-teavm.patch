@@ -1,0 +1,66 @@
+# Copyright 2026 Groundwork contributors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# Build: -Pteavm.forkRepo=<dir> adds a file-based Maven repo holding org.teavm:teavm-core and
+# teavm-classlib 0.13.1-fork1 (TeaVM 0.13.1 + the teavm-000x patches, built by
+# overlay/build-overlay.sh) and rewrites every request for those two artifacts to that version.
+# Without the property the build is unchanged.
+#
+# Applies to: github.com/konsoletyper/teavm-javac 2ddcf02e (master, 2026-09-04)
+
+diff --git a/settings.gradle b/settings.gradle
+index ffbfff4..471f3ae 100644
+--- a/settings.gradle
++++ b/settings.gradle
+@@ -23,8 +23,19 @@ pluginManagement {
+      }
+ }
+ 
++// teavm-fork: -Pteavm.forkRepo=<dir> points at a file-based Maven repo holding patched
++// org.teavm:teavm-core / teavm-classlib 0.13.1-fork1 (built by overlay/build-overlay.sh), and every
++// request for those two artifacts is rewritten to that version (the Gradle plugin itself stays 0.13.1).
++def teavmForkRepo = providers.gradleProperty("teavm.forkRepo")
++
+ dependencyResolutionManagement {
+     repositories {
++        if (teavmForkRepo.isPresent()) {
++            maven {
++                name = "teavmFork"
++                url = uri(teavmForkRepo.get())
++            }
++        }
+         maven { url = uri("https://teavm.org/maven/repository") }
+         mavenCentral()
+         mavenLocal()
+@@ -51,6 +62,20 @@ gradle.allprojects {
+     }
+ }
+ 
++if (teavmForkRepo.isPresent()) {
++    gradle.allprojects {
++        configurations.configureEach {
++            resolutionStrategy.eachDependency { details ->
++                if (details.requested.group == "org.teavm"
++                        && details.requested.name in ["teavm-core", "teavm-classlib"]) {
++                    details.useVersion("0.13.1-fork1")
++                    details.because("teavm-fork patches")
++                }
++            }
++        }
++    }
++}
++
+ gradle.afterProject {
+     def java = extensions.findByType(JavaPluginExtension)
+     if (java != null) {

@@ -1,0 +1,102 @@
+# Copyright 2026 Groundwork contributors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# F1. (a) BoundCheckInsertion dropped the upper bound check for ANY constant index into a
+# constant-sized array (new int[2]; a[5] = 1 trapped instead of throwing AIOOBE). (b) BoundCheckInsertion
+# folded x / 0 and x % 0 with no guard: ArithmeticException on the JVM, an uncatchable trap inside
+# compiler.wasm, so 'int z = 0; x / z' killed the compiler in strict mode. (c) GlobalValueNumbering and
+# BoundCheckInsertion folded MIN_VALUE / -1, which traps in Wasm ("divide result unrepresentable")
+# although Java defines it as MIN_VALUE: any program containing it (even via an inlined method) killed
+# the compiler. Semantics on the JVM are unchanged.
+#
+# Applies to: github.com/konsoletyper/teavm tag 0.13.1 (b3a245b7)
+
+diff --git a/core/src/main/java/org/teavm/model/optimization/GlobalValueNumbering.java b/core/src/main/java/org/teavm/model/optimization/GlobalValueNumbering.java
+index 27bd008..968c8da 100644
+--- a/core/src/main/java/org/teavm/model/optimization/GlobalValueNumbering.java
++++ b/core/src/main/java/org/teavm/model/optimization/GlobalValueNumbering.java
+@@ -367,13 +367,15 @@ public class GlobalValueNumbering implements MethodOptimization {
+                             evaluatedConstant = p * q;
+                             break;
+                         case DIVIDE:
++                            // teavm-fork: q == -1 is folded as negation because MIN_VALUE / -1
++                            // traps in Wasm (inside compiler.wasm) instead of overflowing as in Java.
+                             if (q != 0) {
+-                                evaluatedConstant = p / q;
++                                evaluatedConstant = q == -1 ? -p : p / q;
+                             }
+                             break;
+                         case MODULO:
+                             if (q != 0) {
+-                                evaluatedConstant = p % q;
++                                evaluatedConstant = q == -1 ? 0 : p % q;
+                             }
+                             break;
+                         case COMPARE:
+@@ -414,13 +416,15 @@ public class GlobalValueNumbering implements MethodOptimization {
+                             evaluatedConstant = p * q;
+                             break;
+                         case DIVIDE:
++                            // teavm-fork: q == -1 is folded as negation because MIN_VALUE / -1
++                            // traps in Wasm (inside compiler.wasm) instead of overflowing as in Java.
+                             if (q != 0) {
+-                                evaluatedConstant = p / q;
++                                evaluatedConstant = q == -1 ? -p : p / q;
+                             }
+                             break;
+                         case MODULO:
+                             if (q != 0) {
+-                                evaluatedConstant = p % q;
++                                evaluatedConstant = q == -1 ? 0 : p % q;
+                             }
+                             break;
+                         case COMPARE:
+diff --git a/core/src/main/java/org/teavm/model/transformation/BoundCheckInsertion.java b/core/src/main/java/org/teavm/model/transformation/BoundCheckInsertion.java
+index 1c26ac6..0c86838 100644
+--- a/core/src/main/java/org/teavm/model/transformation/BoundCheckInsertion.java
++++ b/core/src/main/java/org/teavm/model/transformation/BoundCheckInsertion.java
+@@ -268,10 +268,19 @@ public class BoundCheckInsertion {
+                         r = Integer.compare(a, b);
+                         break;
+                     case DIVIDE:
+-                        r = a / b;
++                        // teavm-fork: never fold x / 0 (on the JVM this threw ArithmeticException out of
++                        // the compiler; inside compiler.wasm it is an uncatchable trap), and avoid
++                        // MIN_VALUE / -1, which traps in Wasm but is MIN_VALUE in Java.
++                        if (b == 0) {
++                            return;
++                        }
++                        r = b == -1 ? -a : a / b;
+                         break;
+                     case MODULO:
+-                        r = a % b;
++                        if (b == 0) {
++                            return;
++                        }
++                        r = b == -1 ? 0 : a % b;
+                         break;
+                     case MULTIPLY:
+                         r = a * b;
+@@ -370,7 +379,10 @@ public class BoundCheckInsertion {
+             int index = index(indexVar);
+             int array = index(arrayVar);
+             if (isConstant[index]) {
+-                if (isConstantSizedArray[array]) {
++                // teavm-fork: the upper check may only be dropped when the constant index is actually
++                // below the constant array size; previously any constant index into any constant-sized
++                // array (new int[2]; a[5] = 1) was treated as in range and trapped in Wasm.
++                if (isConstantSizedArray[array] && constantValue[index] < constantValue[array]) {
+                     upper = false;
+                 }
+             }

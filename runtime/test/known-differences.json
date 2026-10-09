@@ -1,0 +1,196 @@
+{
+ "F1-npe-catch-exception": {
+  "reason": "The fork's caught NullPointerException omits the JDK's helpful detail message (\"Cannot invoke \\\"String.length()\\\" because \\\"<local1>\\\" is null\"). Left out on purpose (D11): the helpful message names the JDK's own internal variable slots, and no course page shows it. Apart from the differences listed here, the runtime errors this suite checks carry the JDK's text: array and String indexes, number parsing and casts since patch teavm-0009; division by zero since teavm-javac-0102 (StrictArithmetic); ArrayList and StringBuilder indexes and negative array sizes since teavm-0012.",
+  "fork": {
+   "status": "ok",
+   "stdout": "caught: java.lang.NullPointerException\nafter\n",
+   "stderrHead": ""
+  },
+  "jdk": {
+   "status": "ok",
+   "stdout": "caught: java.lang.NullPointerException: Cannot invoke \"String.length()\" because \"<local1>\" is null\nafter\n",
+   "stderrHead": ""
+  }
+ },
+ "F1-npe-uncaught": {
+  "reason": "Same missing NullPointerException helpful message, surfacing on the uncaught path's stderr line; left out on purpose (D11), no course page shows it. The program's own frame, at Main.main(Main.java:4), matches the JDK's.",
+  "fork": {
+   "status": "uncaught",
+   "stdout": "before\n",
+   "stderrHead": "Exception in thread \"main\" java.lang.NullPointerException",
+   "frames": [
+    "\tat Main.main(Main.java:4)"
+   ]
+  },
+  "jdk": {
+   "status": "uncaught",
+   "stdout": "before\n",
+   "stderrHead": "Exception in thread \"main\" java.lang.NullPointerException: Cannot invoke \"String.length()\" because \"<local1>\" is null",
+   "frames": [
+    "\tat Main.main(Main.java:4)"
+   ]
+  }
+ },
+ "F1-aioobe_loop-catch-specific": {
+  "reason": "TeaVM's optimizer deletes the loop's array read because the accumulated `sum` is never used afterward, so the throwing access—and the exception it would raise—disappears entirely; known limitation of the fork's current optimizer settings, no fix planned.",
+  "fork": {
+   "status": "ok",
+   "stdout": "after\n",
+   "stderrHead": ""
+  },
+  "jdk": {
+   "status": "ok",
+   "stdout": "caught\nafter\n",
+   "stderrHead": ""
+  }
+ },
+ "F1-aioobe_loop-catch-exception": {
+  "reason": "Same dead-code elimination of the unused throwing read as F1-aioobe_loop-catch-specific; known limitation, no fix planned.",
+  "fork": {
+   "status": "ok",
+   "stdout": "after\n",
+   "stderrHead": ""
+  },
+  "jdk": {
+   "status": "ok",
+   "stdout": "caught: java.lang.ArrayIndexOutOfBoundsException: Index 3 out of bounds for length 3\nafter\n",
+   "stderrHead": ""
+  }
+ },
+ "F1-aioobe_loop-uncaught": {
+  "reason": "Same dead-code elimination of the unused throwing read removes the exception the JDK would throw, so the fork runs the loop to completion instead of stopping uncaught; known limitation, no fix planned.",
+  "fork": {
+   "status": "ok",
+   "stdout": "before\nunreachable\n",
+   "stderrHead": ""
+  },
+  "jdk": {
+   "status": "uncaught",
+   "stdout": "before\n",
+   "stderrHead": "Exception in thread \"main\" java.lang.ArrayIndexOutOfBoundsException: Index 3 out of bounds for length 3",
+   "frames": [
+    "\tat Main.main(Main.java:4)"
+   ]
+  }
+ },
+ "F1-unused-throwing-read": {
+  "reason": "TeaVM's optimizer deletes the array read a[3] because its result is never used, so the exception it would have thrown never happens; known limitation of the fork's current optimizer settings, no fix planned. An unused cast is dropped the same way (F1-unused-cast).",
+  "fork": {
+   "status": "ok",
+   "stdout": "no exception\n",
+   "stderrHead": ""
+  },
+  "jdk": {
+   "status": "ok",
+   "stdout": "caught: java.lang.ArrayIndexOutOfBoundsException: Index 3 out of bounds for length 3\n",
+   "stderrHead": ""
+  }
+ },
+ "F1-unused-cast": {
+  "reason": "TeaVM's optimizer drops the cast (String) o because its result is never used, so the ClassCastException the JDK throws never happens; a cast whose result is used throws with the JDK's text (G7-cast-temp). Known limitation of the fork's current optimizer settings, no fix planned.",
+  "fork": {
+   "status": "ok",
+   "stdout": "no exception\n",
+   "stderrHead": ""
+  },
+  "jdk": {
+   "status": "ok",
+   "stdout": "caught: class java.lang.Integer cannot be cast to class java.lang.String (java.lang.Integer and java.lang.String are in module java.base of loader 'bootstrap')\n",
+   "stderrHead": ""
+  }
+ },
+ "F3-two-scanners": {
+  "reason": "With piped stdin the JDK's first Scanner reads ahead, past the line it returns, so the second Scanner finds nothing left; the fork's Scanner reads only as far as the line it needs (teavm-0005 reads input lazily, one line at a time), so the second one still sees \"two\". Known limitation; the course reads stdin through one reader per program.",
+  "fork": {
+   "status": "ok",
+   "stdout": "one\ntwo\n",
+   "stderrHead": ""
+  },
+  "jdk": {
+   "status": "ok",
+   "stdout": "one\n<nothing left>\n",
+   "stderrHead": ""
+  }
+ },
+ "F3-readln-then-scanner": {
+  "reason": "Same cause as F3-two-scanners: with piped stdin the JDK's IO.readln reads ahead, past the line it returns, so the Scanner opened after it finds nothing and the program prints -1; the fork's IO.readln reads only its own line, so the Scanner still sees 7. Known limitation; the course reads stdin through one reader per program.",
+  "fork": {
+   "status": "ok",
+   "stdout": "Ada 7\n",
+   "stderrHead": ""
+  },
+  "jdk": {
+   "status": "ok",
+   "stdout": "Ada -1\n",
+   "stderrHead": ""
+  }
+ },
+ "F4-format-grouped-float": {
+  "reason": "The fork's Formatter does not implement the %e conversion, throwing UnknownFormatConversionException where the JDK prints scientific notation; known limitation, the course's formatting material never uses %e.",
+  "fork": {
+   "status": "uncaught",
+   "stdout": "1,234,567.89\n",
+   "stderrHead": "Exception in thread \"main\" java.util.UnknownFormatConversionException: Unknown format conversion: e",
+   "frames": [
+    "\tat Main.main(Main.java:3)"
+   ]
+  },
+  "jdk": {
+   "status": "ok",
+   "stdout": "1,234,567.89\n1.235e+04\n",
+   "stderrHead": ""
+  }
+ },
+ "G7-array-store": {
+  "reason": "The fork does not check stores into an array: storing an Integer into a String[] held as Object[] throws no ArrayStoreException, so the catch never runs and nothing is printed where the JDK prints \"caught\". The store only looks harmless because this case never reads the element back; reading it back traps, and no catch can handle a trap (G7-array-store-read-back). Listed on purpose (Task 7); the course never stores into a covariant array.",
+  "fork": {
+   "status": "ok",
+   "stdout": "",
+   "stderrHead": ""
+  },
+  "jdk": {
+   "status": "ok",
+   "stdout": "caught\n",
+   "stderrHead": ""
+  }
+ },
+ "G7-array-store-read-back": {
+  "reason": "The same unchecked store as G7-array-store, with the element read back: the store goes through (\"stored\") where the JDK throws ArrayStoreException, and reading the element back through the String[] traps inside a catch (RuntimeException) that cannot handle it, so the run ends in a trap with nothing after \"stored\". Listed on purpose (Task 7); the course never stores into a covariant array.",
+  "fork": {
+   "status": "trap",
+   "stdout": "stored\n",
+   "stderrHead": ""
+  },
+  "jdk": {
+   "status": "ok",
+   "stdout": "caught: java.lang.Integer\nread: null\nafter\n",
+   "stderrHead": ""
+  }
+ },
+ "R11-hex-float-literal": {
+  "reason": "The fork's javac compiles every hexadecimal floating-point literal (0x1p0, 0x1.8p1, 0x1p-52) to NaN instead of the value the JDK's javac gives, and its Double.parseDouble/Double.valueOf reject a hex string with NumberFormatException where the JDK parses it; known limitation, to be fixed only when a course example needs hex float literals (D34).",
+  "fork": {
+   "status": "ok",
+   "stdout": "NaN\nNaN\nNaN\nNFE For input string: \"0x1p4\"\n",
+   "stderrHead": ""
+  },
+  "jdk": {
+   "status": "ok",
+   "stdout": "1.0\n3.0\n2.220446049250313E-16\n16.0\n",
+   "stderrHead": ""
+  }
+ },
+ "R11-math-ulp": {
+  "reason": "TeaVM's own TMath.ulp(double) masks the exponent bits with 0xEFF0000000000000L instead of 0x7FF0000000000000L, so ulp(1.0) comes out many orders of magnitude too large; ulp(1e10), ulp(1.0f) and ulp(0.0) already agree with the JDK by coincidence of that same mask. Upstream TeaVM bug, unrelated to any patch in this series; known limitation, to be fixed only when a course example needs it (D34).",
+  "fork": {
+   "status": "ok",
+   "stdout": "1.9176146348819244E-93\n1.9073486328125E-6\n1.1920929E-7\n4.9E-324\n",
+   "stderrHead": ""
+  },
+  "jdk": {
+   "status": "ok",
+   "stdout": "2.220446049250313E-16\n1.9073486328125E-6\n1.1920929E-7\n4.9E-324\n",
+   "stderrHead": ""
+  }
+ }
+}

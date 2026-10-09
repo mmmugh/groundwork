@@ -1,0 +1,1 @@
+scratchpad fixture: THIRD-PARTY.txt

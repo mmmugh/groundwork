@@ -1,0 +1,9 @@
+{
+ "name": "groundwork",
+ "private": true,
+ "type": "module",
+ "description": "Test tooling only: the course itself installs nothing.",
+ "devDependencies": {
+  "playwright-core": "1.63.0"
+ }
+}
