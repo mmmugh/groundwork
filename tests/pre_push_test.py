@@ -50,8 +50,8 @@ def main():
     with tempfile.TemporaryDirectory() as tmp:
         tmp = Path(tmp)
         remote, work = tmp / "remote.git", tmp / "work"
-        subprocess.run(["git", "init", "-q", "--bare", str(remote)], check=True)
-        subprocess.run(["git", "init", "-q", str(work)], check=True)
+        subprocess.run(["git", "init", "-q", "--bare", "-b", "main", str(remote)], check=True)
+        subprocess.run(["git", "init", "-q", "-b", "main", str(work)], check=True)
         for k, v in (("user.email", "t@example.invalid"), ("user.name", "t"),
                      ("core.hooksPath", str(ROOT / ".githooks"))):
             git(work, "config", k, v)
