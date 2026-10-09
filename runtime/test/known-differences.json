@@ -167,6 +167,22 @@
    "stderrHead": ""
   }
  },
+ "R11-math-log": {
+  "reason": "The x86-64 JDK only (D112). The fork's Math.log is fdlibm's, as StrictMath.log is on every platform (D33), and so is the pinned JDK's on arm64 (the Mac), where Math.log equals StrictMath.log on all 20,000 of this case's values. The same pinned JDK on x86-64 Linux computes Math.log another way, as Math's Javadoc allows (within 1 ulp of the exact result): 458 of the 20,000 differ from StrictMath.log by exactly 1 ulp (the first is Math.log(0.0822), -2.4985999769200027 where StrictMath.log gives -2.498599976920003), so the hash differs while Math.log(10) and Math.log(0.5) agree. Measured on the first public CI run (ubuntu, x86-64) and with the pinned Linux JDK under x86-64 emulation on the Mac, where -Xint gives the same.",
+  "platforms": [
+   "linux-x64"
+  ],
+  "fork": {
+   "status": "ok",
+   "stdout": "-1282171740190103762\n2.302585092994046\n-0.6931471805599453\n",
+   "stderrHead": ""
+  },
+  "jdk": {
+   "status": "ok",
+   "stdout": "6228828048626917602\n2.302585092994046\n-0.6931471805599453\n",
+   "stderrHead": ""
+  }
+ },
  "R11-hex-float-literal": {
   "reason": "The fork's javac compiles every hexadecimal floating-point literal (0x1p0, 0x1.8p1, 0x1p-52) to NaN instead of the value the JDK's javac gives, and its Double.parseDouble/Double.valueOf reject a hex string with NumberFormatException where the JDK parses it; known limitation, to be fixed only when a course example needs hex float literals (D34).",
   "fork": {

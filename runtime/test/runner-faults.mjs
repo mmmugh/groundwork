@@ -21,7 +21,7 @@ import { fileURLToPath } from "node:url";
 import { NodeRunner } from "../runner/node-runner.mjs";
 import { checkJdk, runJdk } from "./jdk.mjs";
 const RUNTIME = path.resolve(fileURLToPath(new URL("..", import.meta.url)));
-const DIST = path.join(RUNTIME, "dist", "fork");
+const DIST = process.env.JF_DIST || path.join(RUNTIME, "dist", "fork");
 const results = [];
 const check = (label, ok, got) => { results.push(ok); console.log(`  ${ok ? "ok  " : "FAIL"}  ${label}${ok ? "" : "  got " + JSON.stringify(got)}`); };
 // A hang must fail the check, not the whole test, so every await on a dying worker is bounded.

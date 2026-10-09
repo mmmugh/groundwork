@@ -16,7 +16,7 @@
 // The smallest proof the runtime exists: compile and run Hello World through the Node runner.
 import { fileURLToPath } from "node:url";
 import { NodeRunner } from "../runner/node-runner.mjs";
-const DIST = fileURLToPath(new URL("../dist/fork/", import.meta.url));
+const DIST = process.env.JF_DIST || fileURLToPath(new URL("../dist/fork/", import.meta.url));
 const r = new NodeRunner(DIST);
 const out = await r.compileAndRun('void main() { IO.println("Hello, world!"); }', { deadlineMs: 10000 });
 await r.close();

@@ -95,6 +95,11 @@ the JDK. It does run the JDK's own jshell engine, which is where the course uses
   In Safari (on the Mac, iPhone and iPad), an uncaught exception also loses the `at` lines under its
   first line, because Safari does not tell the page where in the compiled program it happened; a way
   around that is planned.
+- **`Math.log` can differ from an x86-64 JDK in the last digit.** A box computes it with fdlibm, the library
+  `StrictMath.log` is defined by, which is what the JDK gives on a Mac with Apple silicon. The JDK on an x86-64 machine
+  may compute it another way, as Java allows (within one unit in the last place): on x86-64 Linux, 458 of 20,000 values
+  tested differ, and `Math.log(0.0822)` prints `-2.498599976920003` in a box where that JDK prints
+  `-2.4985999769200027` (D112).
 - **Keyboard input in Run** works by replay: the program stops at a question, the reader answers in
   place, and the program re-runs with the answers so far. The transcript reads like a terminal.
   `Random` holds steady across replays, no example times the reader, and Ctrl-D ends input.

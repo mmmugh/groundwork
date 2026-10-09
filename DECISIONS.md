@@ -9,7 +9,7 @@ the author's words are paraphrased here. The working notes these entries were fi
 plans the course was built from are in docs/superpowers/plans/. A commit hash in an entry names a commit of the history
 before the public repository's first commit, which stays private too (D96; D17's 2e05eb9 is the Python course's).
 
-## D1-D110
+## D1-D112
 
 - D1 (2026-09-27) RUNTIME: keep both promises (nothing installed; page talks to nobody) by OWNING
   the runtime: fork teavm-javac, fix it, pin and self-host it. The build will also diff every
@@ -574,6 +574,13 @@ before the public repository's first commit, which stays private too (D96; D17's
   after reviewing the revised plan (c7b68b9). Recommended option.
 - D111 (2026-10-08) MERGE PLAN 4B'S LOCAL HALF: fast-forward main to plan-4b, local only, nothing pushed (there is no
   remote); then delete the branch. Recommended option.
+- D112 (2026-10-09) MATH.LOG STAYS ON FDLIBM; THE X86-64 JDK DIFFERS IN THE LAST PLACE: the first public CI run found
+  that the pinned JDK on x86-64 Linux computes `Math.log` another way than `StrictMath.log`, as Math's Javadoc allows
+  (within 1 ulp of the exact result): 458 of the differential case R11-math-log's 20,000 values differ by exactly 1 ulp,
+  where on the Mac's arm64 the two agree on all of them, which D33's measurement had taken for every platform. The fork
+  keeps fdlibm (D33): it cannot match both, and fdlibm is what `StrictMath` gives everywhere. The differential gate holds
+  the difference on linux-x64 only, with the measured value and the reason, and requires the case identical elsewhere
+  (Plan 4b's V-17); DESIGN says what a reader with an x86-64 JDK may see. Shown to the author before the push.
 
 ## R1-R4: the design review's defaults (2026-09-27)
 

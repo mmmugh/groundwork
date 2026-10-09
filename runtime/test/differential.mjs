@@ -16,6 +16,9 @@
 // Runs every case on the fork and on the pinned JDK. Passes only when each difference is listed in
 // known-differences.json with a reason, and each listed difference is still exactly what was recorded.
 // A listed case that has become identical is a failure too: the list must shrink when the fork improves.
+// A difference only some platforms' JDK shows (D112: Math.log on x86-64) names them in its entry's "platforms", spelled
+// process.platform-process.arch ("linux-x64"); there it is held as any entry is, everywhere else the case must be
+// identical, and --record keeps the entry as it was.
 //   node runtime/test/differential.mjs            the gate
 //   node runtime/test/differential.mjs --record   rewrite the list from this run (a new entry gets
 //                                                 reason "UNEXPLAINED", a changed one "UNEXPLAINED (was:
@@ -37,7 +40,10 @@ const WORK = path.join(RUNTIME, ".work", "jdk-cases");
 const unexplained = (old) => (old ?? "").startsWith("UNEXPLAINED") ? old : `UNEXPLAINED (was: ${old})`;
 
 checkJdk();
-const known = fs.existsSync(LIST) ? JSON.parse(fs.readFileSync(LIST, "utf8")) : {};
+const PLATFORM = `${process.platform}-${process.arch}`;
+const listed = fs.existsSync(LIST) ? JSON.parse(fs.readFileSync(LIST, "utf8")) : {};
+const elsewhere = (e) => e.platforms !== undefined && !e.platforms.includes(PLATFORM);
+const known = Object.fromEntries(Object.entries(listed).filter(([, e]) => !elsewhere(e)));
 // JF_DIST points the gate at another build, which is how a negative proof runs it without a patch.
 const runner = new NodeRunner(process.env.JF_DIST || path.join(RUNTIME, "dist", "fork"));
 const problems = [], recorded = {};
@@ -52,15 +58,24 @@ for (const c of cases) {
     continue;
   }
   const changed = entry && (!same(entry.fork, fork) || !same(entry.jdk, jdk));
-  recorded[c.id] = { reason: !entry ? "UNEXPLAINED" : changed ? unexplained(entry.reason) : entry.reason, fork, jdk };
-  if (!entry) problems.push(`${c.id}: NEW difference\n    fork ${JSON.stringify(fork)}\n    jdk  ${JSON.stringify(jdk)}`);
+  recorded[c.id] = { reason: !entry ? "UNEXPLAINED" : changed ? unexplained(entry.reason) : entry.reason,
+    ...(entry?.platforms && { platforms: entry.platforms }), fork, jdk };
+  const only = listed[c.id] && !entry ? ` on ${PLATFORM} (its entry lists only ${listed[c.id].platforms.join(", ")})` : "";
+  if (!entry) problems.push(`${c.id}: NEW difference${only}\n    fork ${JSON.stringify(fork)}\n    jdk  ${JSON.stringify(jdk)}`);
   else if (changed) problems.push(`${c.id}: the difference changed; re-record and review\n    fork ${JSON.stringify(fork)}\n    jdk  ${JSON.stringify(jdk)}`);
   else if (!entry.reason || entry.reason.startsWith("UNEXPLAINED")) problems.push(`${c.id}: listed without a reason`);
 }
 await runner.close();
-for (const id of Object.keys(known)) if (!cases.some((c) => c.id === id)) problems.push(`${id}: listed but no such case`);
+for (const id of Object.keys(listed)) if (!cases.some((c) => c.id === id)) problems.push(`${id}: listed but no such case`);
 if (process.argv.includes("--record")) {
-  fs.writeFileSync(LIST, JSON.stringify(recorded, null, 1) + "\n");
+  // In case order, as before; another platform's entry stays unless the case now differs here too, when this
+  // platform's UNEXPLAINED entry takes its place and the gate rejects it until someone reviews both.
+  const out = {};
+  for (const c of cases) {
+    const e = recorded[c.id] ?? (listed[c.id] && elsewhere(listed[c.id]) ? listed[c.id] : undefined);
+    if (e) out[c.id] = e;
+  }
+  fs.writeFileSync(LIST, JSON.stringify(out, null, 1) + "\n");
   console.log(`recorded ${Object.keys(recorded).length} differences to ${LIST}`);
 }
 for (const p of problems) console.log(`  !! ${p}`);

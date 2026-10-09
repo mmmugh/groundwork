@@ -15,13 +15,14 @@
  */
 // web/page/sha256.js under Node: the FIPS 180-4 example vectors, every length 0..300 against node:crypto (padding
 // crosses into a second block at 56 and into the length field at every boundary), the scratchpad's real jdk.zip
-// against its CHECKSUMS line, the three input shapes the page can hand over, and K and H0 against their definition.
+// against its line in runtime/ristretto/CHECKSUMS, the three input shapes the page can hand over, and K and H0 against
+// their definition.
 //   node web/test/sha256.mjs
 import fs from "node:fs";
 import path from "node:path";
 import { createHash } from "node:crypto";
 import { sha256Hex, K, H0 } from "../page/sha256.js";
-import { check, done, SCRATCHPAD } from "./harness.mjs";
+import { check, done, REPO, SCRATCHPAD } from "./harness.mjs";
 
 const text = (s) => new TextEncoder().encode(s);
 const VECTORS = [
@@ -45,8 +46,10 @@ for (let n = 0; n <= 300; n++) if (sha256Hex(pattern(n)) !== reference(pattern(n
 check("every length 0..300 of a byte pattern matches node:crypto (the padding's every boundary)", wrong.length === 0, wrong);
 
 const jdk = fs.readFileSync(path.join(SCRATCHPAD, "jdk.zip"));
-const line = fs.readFileSync(path.join(SCRATCHPAD, "CHECKSUMS"), "utf8").split("\n").find((l) => /\sjdk\.zip$/.test(l));
-check("the scratchpad's real jdk.zip (22 MB) hashes to its CHECKSUMS line", line !== undefined && sha256Hex(jdk) === line.split(/\s+/)[0],
+// The tracked pin, as every other reader of the scratchpad takes it: a fetched release (CI, a fresh clone) has no
+// CHECKSUMS beside jdk.zip; only one runtime/ristretto/package.sh made has its own.
+const line = fs.readFileSync(path.join(REPO, "runtime/ristretto/CHECKSUMS"), "utf8").split("\n").find((l) => /\sjdk\.zip$/.test(l));
+check("the scratchpad's real jdk.zip (22 MB) hashes to its line in runtime/ristretto/CHECKSUMS", line !== undefined && sha256Hex(jdk) === line.split(/\s+/)[0],
   { line, got: sha256Hex(jdk) });
 
 const big = pattern(1000), want = reference(big.subarray(37, 37 + 500));
