@@ -125,4 +125,21 @@ final class BoxesTest {
     T.fails("ch01-first-programs#4: a reference box", () -> Boxes.validate(v, all(v)), "reference takes nothing else");
     T.fails("ch02-types-and-input#3: varies needs a why", () -> Boxes.validate(v, all(v)), "every exemption says why");
   }
+  static void testANoCheckIsWordsOnARunnableBoxWithoutACheck() throws Exception {
+    // Interface 3, DESIGN section 3 ("where a verdict cannot be trusted, there is no Check button, and the page says
+    // so"): noCheck is what the page says, so it is plain words; a reference box has nothing to check in the first place;
+    // and a box that has a check cannot also say it has none. #4 is the fixture's checked box.
+    Path p = Fixtures.project("boxes-nocheck");
+    Files.writeString(p.resolve("volumes/vol-fixture/content/_boxes.json"), """
+        {"ch01-first-programs#1": {"noCheck": true},
+         "ch01-first-programs#2": {"raises": "java.lang.ArrayIndexOutOfBoundsException", "why": "Index 3 is one past the end.", "noCheck": " "},
+         "ch01-first-programs#3": {"reference": true, "noCheck": "Nothing to check."},
+         "ch01-first-programs#4": {"noCheck": "Any name is right."}}
+        """);
+    Volume v = Volume.loadAll(p.resolve("volumes")).get(0);
+    T.fails("ch01-first-programs#1: \"noCheck\" must be the words the page shows in place of Check", () -> Boxes.validate(v, all(v)), "not a string");
+    T.fails("ch01-first-programs#2: \"noCheck\" must be the words the page shows in place of Check", () -> Boxes.validate(v, all(v)), "blank");
+    T.fails("ch01-first-programs#3: a reference box takes no key but why", () -> Boxes.validate(v, all(v)), "a reference box has nothing to check");
+    T.fails("ch01-first-programs#4: a box with \"noCheck\" cannot also have a check", () -> Boxes.validate(v, all(v)), "never beside a check");
+  }
 }

@@ -113,6 +113,8 @@ final class Checks {
         continue;
       }
       if (b.decl().reference()) { problems.add(id + ": check on a reference box"); continue; }
+      // Decl.from reads one _boxes.json entry and never sees _checks.json: this is where both are known.
+      if (b.decl().noCheck() != null) problems.add(id + ": a box with \"noCheck\" cannot also have a check");
       Set<String> keys = KEYS.get(kind);
       if (keys == null) {
         problems.add(id + ": unknown check kind \"" + kind + "\" (method, input, output or predict)");

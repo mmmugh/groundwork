@@ -43,6 +43,25 @@ final class Bundle {
     for (Volume v : volumes) writeVolume(v, boxes.get(v), site);
   }
 
+  /** The boxes of page p that get a file in the bundle: on a chapter's own page only (never practice, front matter or
+   *  appendices), every box but a reference box and a box whose check has a starter (that box publishes the starter,
+   *  never its own fence, which is the author's answer: the starter rule). Pages links a chapter's programs only when
+   *  this is not empty, so the link never names a section bundle.html does not have. */
+  static List<Box> downloads(Volume v, Page p, List<Box> boxes) {
+    List<Box> runnable = new ArrayList<>();
+    if (p.chapter() < 0 || p.practice()) return runnable;
+    for (Box b : boxes) {
+      Checks.Check c = Checks.of(v, b);
+      if (!b.decl().reference() && (c == null || c.starter() == null)) runnable.add(b);
+    }
+    return runnable;
+  }
+
+  /** Chapter p's directory under bundle/ and its section's id in bundle.html: "ch" and its number in two digits. */
+  static String chapterId(Page p) {
+    return "ch" + String.format("%02d", p.chapter());
+  }
+
   private static void writeVolume(Volume v, Map<Page, List<Box>> pageBoxes, Path site) throws BuildError {
     Path volDir = site.resolve(v.slug());
     Path bundleDir = volDir.resolve("bundle");
@@ -51,19 +70,13 @@ final class Bundle {
     body.append("<h1>").append(escape(v.title())).append("—downloadable examples</h1>");
 
     for (Page p : v.pages()) {
-      if (p.chapter() < 0 || p.practice()) continue;
-      List<Box> runnable = new ArrayList<>();
-      // A box whose check has a starter publishes the starter, never its own fence, which is the author's
-      // answer (the starter rule): it simply has no download.
-      for (Box b : pageBoxes.get(p)) {
-        Checks.Check c = Checks.of(v, b);
-        if (!b.decl().reference() && (c == null || c.starter() == null)) runnable.add(b);
-      }
+      List<Box> runnable = downloads(v, p, pageBoxes.get(p));
       if (runnable.isEmpty()) continue;
 
       String chNN = String.format("%02d", p.chapter());
-      Path chDir = bundleDir.resolve("ch" + chNN);
-      body.append("<section><h2>").append(escape(p.slug())).append("</h2><ul>");
+      Path chDir = bundleDir.resolve(chapterId(p));
+      // Its id is what the chapter's own page links (Pages.links): bundle.html#chNN.
+      body.append("<section id=\"").append(chapterId(p)).append("\"><h2>").append(escape(p.slug())).append("</h2><ul>");
       for (Box b : runnable) {
         String name = "ch" + chNN + "_" + String.format("%02d", b.index());
         writeFile(chDir.resolve(name + ".java"), b.source() + commentBlock(v, p, name, b));

@@ -137,7 +137,10 @@ export function wireBox(box, runner) {
   if (check) resetButton.before(button("Check", checkCode));
   const out = element("div", "run");
   out.setAttribute("aria-live", "polite");
-  code.after(controls, out);
+  // An exercise with no fair verdict says so where Check would be (DESIGN section 3): the build writes its note right
+  // after the code, and it stays right under the controls, above what a Run prints.
+  const noCheck = box.querySelector(":scope > p.nocheck");
+  code.after(controls, ...(noCheck ? [noCheck] : []), out);
 
   // The Run in progress: every callback of an older one finds it replaced and does nothing.
   let current = null;

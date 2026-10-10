@@ -4,5 +4,6 @@
  "ch01-run#6": {"stdin": ["21"]},
  "ch01-run#7": {"stdin": ["café 😀", "Oslo"]},
  "ch01-run#8": {"stdin": ["a", "b"]},
- "ch01-run#10": {"reference": true}
+ "ch01-run#10": {"reference": true},
+ "ch02-check#5": {"noCheck": "Any short poem is right, so there is nothing to check: run it and read it."}
 }

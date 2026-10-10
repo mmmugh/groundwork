@@ -20,14 +20,16 @@ import java.util.Set;
 import java.util.regex.Pattern;
 
 /** A box's declaration from _boxes.json: the exemptions the author claims (it raises, it never compiles,
- *  its output varies, it is a syntax reference with nothing to run) and, for a runnable box, its typed
- *  stdin. Boxes.validate is what enforces the rules below; this class only knows how to read one entry. */
-record Decl(boolean reference, String raises, String compileError, boolean varies, List<String> stdin, String why) {
+ *  its output varies, it is a syntax reference with nothing to run), for a runnable box its typed stdin, and, for an
+ *  exercise whose answers cannot be judged fairly, noCheck: the words the page shows where Check would be (DESIGN
+ *  section 3). Boxes.validate is what enforces the rules below, with Checks.problems for the one that needs
+ *  _checks.json (no check beside a noCheck); this class only knows how to read one entry. */
+record Decl(boolean reference, String raises, String compileError, boolean varies, List<String> stdin, String why, String noCheck) {
 
   /** A box with no entry in _boxes.json at all. */
-  static final Decl EMPTY = new Decl(false, null, null, false, List.of(), null);
+  static final Decl EMPTY = new Decl(false, null, null, false, List.of(), null, null);
 
-  private static final Set<String> KEYS = Set.of("reference", "raises", "compileError", "varies", "stdin", "why");
+  private static final Set<String> KEYS = Set.of("reference", "raises", "compileError", "varies", "stdin", "why", "noCheck");
   private static final Pattern RAISES = Pattern.compile("[a-z][\\w.]*\\.[A-Z]\\w*");
 
   /** Parses one _boxes.json entry, enforcing every rule Boxes.validate reports. Throws BuildError, prefixed
@@ -45,12 +47,15 @@ record Decl(boolean reference, String raises, String compileError, boolean varie
     String raises = raw.get("raises") instanceof String s ? s : null;
     String compileError = raw.get("compileError") instanceof String s ? s : null;
     String why = raw.get("why") instanceof String s ? s : null;
+    String noCheck = raw.get("noCheck") instanceof String s ? s : null;
     List<String> stdin = stdinOf(id, raw.get("stdin"));
 
     if (raises != null && !RAISES.matcher(raises).matches())
       throw new BuildError(id + ": \"raises\" is not a qualified class name");
     if (raises != null && compileError != null)
       throw new BuildError(id + ": raises and compileError cannot both be declared");
+    if (raw.containsKey("noCheck") && isBlank(noCheck))
+      throw new BuildError(id + ": \"noCheck\" must be the words the page shows in place of Check");
 
     if (reference) {
       for (Object k : raw.keySet()) {
@@ -66,7 +71,7 @@ record Decl(boolean reference, String raises, String compileError, boolean varie
       throw new BuildError(id + ": compileError needs a why");
     }
 
-    return new Decl(reference, raises, compileError, varies, stdin, why);
+    return new Decl(reference, raises, compileError, varies, stdin, why, noCheck);
   }
 
   private static boolean isBlank(String s) { return s == null || s.isBlank(); }

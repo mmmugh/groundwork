@@ -290,4 +290,85 @@ final class PagesTest {
     T.check(step >= 0 && shown > step && shown < practice.indexOf("</div>", step),
         "a practice step reveals its worked solution the same way, inside its own box");
   }
+  // The index names each page by its title, in publish order, with a chapter's practice pages under that chapter: the
+  // file slugs it showed were the build's names, not the reader's.
+  static void testTheIndexListsEachPageByItsTitleWithPracticeUnderItsChapter() throws Exception {
+    Path p = Fixtures.project("index-titles");
+    T.eq(0, Fixtures.build(p).exit(), "build");
+    String index = Files.readString(p.resolve("site/index.html"));
+    T.check(index.contains("<ul class=\"contents\">"
+        + "<li><a href=\"vol-fixture/00-front-matter.html\">Before you begin</a></li>"
+        + "<li><a href=\"vol-fixture/ch01-first-programs.html\">Chapter 1: First programs</a></li>"
+        + "<li><a href=\"vol-fixture/ch02-types-and-input.html\">Chapter 2: Types and input</a>"
+        + "<ul><li><a href=\"vol-fixture/ch02-types-and-input-practice.html\">Practice: doubling</a></li></ul></li>"
+        + "<li><a href=\"vol-fixture/99-appendices.html\">Appendix A: What you will see elsewhere</a></li></ul>"),
+        "every page by its title, in publish order, each practice page under its chapter: " + index);
+  }
+  static void testAPageWithoutATitleFailsLoud() throws Exception {
+    // A page's title is its first "# " heading: its tab, the pager and the index name the page by it. A page with only a
+    // "##" heading would be an empty link in the index, so it stops the build, naming the file.
+    Path p = Fixtures.project("index-no-title");
+    Files.writeString(p.resolve("volumes/vol-fixture/content/00-front-matter.md"), "## Before you begin\n\nThis page has no title of its own.\n");
+    var r = Fixtures.build(p);
+    T.eq(1, r.exit(), "a page with no \"# \" heading stops the build: " + r.out());
+    T.check(r.out().contains("00-front-matter.md: no \"# \" heading"), "and names the file: " + r.out());
+  }
+  // A chapter's page ends with what a reader does next with it: its quiz, when the volume has one named for it, and its
+  // programs in bundle.html, when the bundle has a section for it, so neither link can lead nowhere. Chapter 3 here has a
+  // quiz and only a syntax reminder, so it links its quiz and no programs. No page but a chapter's own has either link.
+  static void testAChapterLinksItsQuizAndItsProgramsWhenItHasThem() throws Exception {
+    Path p = Fixtures.project("chapter-links");
+    Path vol = p.resolve("volumes/vol-fixture");
+    Files.writeString(vol.resolve("content/ch03-reading.md"), "# Chapter 3: Reading code\n\n```java\nif (ready) {\n```\n");
+    Path boxesJson = vol.resolve("content/_boxes.json");
+    String decls = Files.readString(boxesJson);
+    Files.writeString(boxesJson, decls.substring(0, decls.lastIndexOf('}')) + ", \"ch03-reading#1\": {\"reference\": true}\n}\n");
+    Files.writeString(vol.resolve("quizzes/ch03-quiz.txt"), "Quiz: chapter 3\n1. What starts with if (ready) {?\n");
+    var r = Fixtures.build(p);
+    T.eq(0, r.exit(), "build: " + r.out());
+    Path site = p.resolve("site/vol-fixture");
+    String ch1 = Files.readString(site.resolve("ch01-first-programs.html"));
+    T.check(ch1.contains("<ul class=\"chapter-links\">"
+        + "<li><a href=\"quizzes/ch01-quiz.txt\">Chapter 1 quiz</a> (plain text: fill it in, then print it or show it)</li>"
+        + "<li><a href=\"bundle.html#ch01\">Chapter 1's programs as .java files</a>, to run with <code>java</code> on a computer</li>"
+        + "</ul>\n</main>"), "chapter 1 ends with its quiz and its programs, last in the page's main text");
+    String ch2 = Files.readString(site.resolve("ch02-types-and-input.html"));
+    T.check(ch2.contains("<ul class=\"chapter-links\"><li><a href=\"bundle.html#ch02\">") && !ch2.contains("quizzes/"),
+        "chapter 2 links its programs and no quiz, since it has none");
+    String ch3 = Files.readString(site.resolve("ch03-reading.html"));
+    T.check(ch3.contains("<ul class=\"chapter-links\"><li><a href=\"quizzes/ch03-quiz.txt\">") && !ch3.contains("bundle.html"),
+        "chapter 3 links its quiz and no programs, since it has nothing to download");
+    for (String other : List.of("00-front-matter", "ch02-types-and-input-practice", "99-appendices"))
+      T.check(!Files.readString(site.resolve(other + ".html")).contains("chapter-links"), other + " is not a chapter's own page: no links");
+    String bundle = Files.readString(site.resolve("bundle.html"));
+    T.check(bundle.contains("<section id=\"ch01\">") && bundle.contains("<section id=\"ch02\">") && !bundle.contains("id=\"ch03\""),
+        "each programs link names a section bundle.html has, and only those: " + bundle);
+    T.check(Files.isRegularFile(site.resolve("quizzes/ch01-quiz.txt")) && Files.isRegularFile(site.resolve("quizzes/ch03-quiz.txt")),
+        "and each quiz link a published quiz");
+  }
+  static void testAQuizNoChapterPageLinksFailsLoud() throws Exception {
+    // A quiz is published to be found from its chapter's page. Named any other way (here, after the chapter's whole file
+    // name, as Python Foundations names its quizzes), it would be published and linked from nowhere: refused by name.
+    Path p = Fixtures.project("quiz-unlinked");
+    Path quizzes = p.resolve("volumes/vol-fixture/quizzes");
+    Files.move(quizzes.resolve("ch01-quiz.txt"), quizzes.resolve("ch01-first-programs-quiz.txt"));
+    var r = Fixtures.build(p);
+    T.eq(1, r.exit(), "a quiz no chapter page links stops the build: " + r.out());
+    T.check(r.out().contains("quizzes/ch01-first-programs-quiz.txt: no chapter page links this quiz"), "and names it: " + r.out());
+  }
+  static void testANoCheckBoxSaysSoWhereCheckWouldBe() throws Exception {
+    // Interface 3: the author's words, escaped, right after the box's code, where the controls and Check go (box.js keeps
+    // them right under the controls), and on that box alone.
+    Path p = Fixtures.project("pages-nocheck");
+    Path f = p.resolve("volumes/vol-fixture/content/_boxes.json");
+    Files.writeString(f, Files.readString(f).replace("\"ch01-first-programs#3\": {\"reference\": true},",
+        "\"ch01-first-programs#3\": {\"reference\": true},\n \"ch01-first-programs#1\": {\"noCheck\": \"Any greeting is right: <run it> & read it.\"},"));
+    var r = Fixtures.build(p);
+    T.eq(0, r.exit(), "build: " + r.out());
+    String ch1 = Files.readString(p.resolve("site/vol-fixture/ch01-first-programs.html"));
+    T.check(ch1.contains("IO.println(&quot;Hello, &lt;world&gt; &amp; café 😀&quot;);\n}\n</textarea>"
+        + "<p class=\"nocheck\">Any greeting is right: &lt;run it&gt; &amp; read it.</p><pre class=\"output\">Hello, &lt;world&gt; &amp; café 😀\n</pre>"),
+        "the words, escaped, right after the code and before the stated output");
+    T.eq(1, ch1.split("class=\"nocheck\"", -1).length - 1, "and on that box alone");
+  }
 }

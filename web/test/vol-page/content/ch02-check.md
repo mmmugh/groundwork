@@ -42,3 +42,11 @@ void main() {
 5
 x2
 ```
+
+Write a short poem of your own. Any poem is right:
+
+```java
+void main() {
+    IO.println("Roses are red");
+}
+```

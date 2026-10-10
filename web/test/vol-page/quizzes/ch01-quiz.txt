@@ -1,0 +1,2 @@
+Quiz: chapter 1
+1. What does IO.println("Hi") print?

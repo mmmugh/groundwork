@@ -56,14 +56,15 @@ final class Pages {
     }
 
     List<Map<String, Object>> entries = new ArrayList<>();
+    Map<Page, String> titles = new LinkedHashMap<>();
     for (Volume v : volumes) {
       Map<Page, List<Box>> pageBoxes = boxes.get(v);
-      write(v, pageBoxes, site);
+      titles.putAll(write(v, pageBoxes, site));
       for (Page p : v.pages()) for (Box b : pageBoxes.get(p)) entries.add(entry(v, b));
     }
 
     writeFile(site.resolve("boxes.json"), Json.write(entries));
-    writeIndex(site, volumes);
+    writeIndex(site, volumes, titles);
     try {
       Files.copy(web.resolve("app.css"), site.resolve("app.css"), StandardCopyOption.REPLACE_EXISTING);
     } catch (IOException e) {
@@ -101,9 +102,9 @@ final class Pages {
     }
   }
 
-  /** Renders one volume's pages to site/<slug>/<page>.html from web/page.html. site is the project's site/
-   *  directory; web/page.html is read from the web/ directory beside it. */
-  static void write(Volume v, Map<Page, List<Box>> boxes, Path site) throws BuildError {
+  /** Renders one volume's pages to site/<slug>/<page>.html from web/page.html and returns each page's title, for the
+   *  index. site is the project's site/ directory; web/page.html is read from the web/ directory beside it. */
+  static Map<Page, String> write(Volume v, Map<Page, List<Box>> boxes, Path site) throws BuildError {
     Path web = site.getParent().resolve("web");
     Path pageHtml = web.resolve("page.html");
     // No .gitattributes normalizes this on checkout: a CRLF copy must strip exactly like an LF one, not
@@ -118,14 +119,25 @@ final class Pages {
     }
 
     List<Page> pages = v.pages();
+    // A quiz is published (Publish.copyQuizzes) to be found from its chapter's page, so each must be named for one: a
+    // quiz no chapter page links would be published where no reader finds it.
+    for (Path q : v.quizzes()) {
+      boolean linked = false;
+      for (Page p : pages) linked |= q.getFileName().toString().equals(quizName(p));
+      if (!linked)
+        throw new BuildError(q + ": no chapter page links this quiz; name it after its chapter's own digits, as chNN-quiz.txt"
+            + " (a chapter file ch01-<anything>.md takes ch01-quiz.txt)");
+    }
     // _solutions.md is read once a volume; each box's first worked solution then rides in that box alone (appendBox).
     Map<String, Vocabulary.Section> solutions = v.solutions() == null ? Map.of() : Vocabulary.solutions(v.solutions());
     List<Rendered> rendered = new ArrayList<>();
     for (Page p : pages) rendered.add(render(v, p.file(), boxes.get(p), solutions));
 
+    Map<Page, String> titles = new LinkedHashMap<>();
     for (int i = 0; i < pages.size(); i++) {
       Page p = pages.get(i);
       Rendered r = rendered.get(i);
+      titles.put(p, r.pageTitle());
       String title = escape(r.pageTitle()) + " - " + escape(v.title());
       String volume = escape(v.title());
       String part = r.part().isEmpty() ? "" : "<p class=\"part\">" + escape(r.part()) + "</p>";
@@ -137,9 +149,35 @@ final class Pages {
           .replace("{{part}}", part)
           .replace("{{prev}}", prev)
           .replace("{{next}}", next)
+          .replace("{{links}}", links(v, p, boxes.get(p)))
           .replace("{{body}}", r.body());
       writeFile(volDir.resolve(p.slug() + ".html"), html);
     }
+    return titles;
+  }
+
+  /** The end of a chapter's own page, before the pager (where the Python course puts its quiz link): its quiz, when
+   *  the volume has one named for it, and its programs in bundle.html, when the bundle has a section for it
+   *  (Bundle.downloads). Any other page has none. */
+  private static String links(Volume v, Page p, List<Box> boxes) {
+    String quiz = quizName(p);
+    if (quiz == null) return "";
+    StringBuilder items = new StringBuilder();
+    for (Path q : v.quizzes())
+      if (q.getFileName().toString().equals(quiz))
+        items.append("<li><a href=\"quizzes/").append(quiz).append("\">Chapter ").append(p.chapter())
+            .append(" quiz</a> (plain text: fill it in, then print it or show it)</li>");
+    if (!Bundle.downloads(v, p, boxes).isEmpty())
+      items.append("<li><a href=\"bundle.html#").append(Bundle.chapterId(p)).append("\">Chapter ").append(p.chapter())
+          .append("'s programs as .java files</a>, to run with <code>java</code> on a computer</li>");
+    return items.isEmpty() ? "" : "<ul class=\"chapter-links\">" + items + "</ul>";
+  }
+
+  /** The quiz a chapter's own page links: chNN-quiz.txt, with the chapter file's own digits (as a practice page's
+   *  prefix is matched); null for any page that is not a chapter's own (the pages Bundle.downloads skips too). */
+  private static String quizName(Page p) {
+    if (p.chapter() < 0 || p.practice()) return null;
+    return p.slug().substring(0, p.slug().indexOf('-')) + "-quiz.txt";
   }
 
   /** Strips web/page.html's own Apache-2.0 header comment before it is copied verbatim into every
@@ -159,8 +197,8 @@ final class Pages {
     return "<a href=\"" + slug + ".html\">" + escape(title) + "</a>";
   }
 
-  /** One page's rendered pieces: its own first-heading text (for {{title}} and adjacent-page links), its
-   *  stripped-out part label, and its body HTML. */
+  /** One page's rendered pieces: its title, its first "# " heading's text (for {{title}}, adjacent-page
+   *  links and the index), its stripped-out part label, and its body HTML. */
   private record Rendered(String pageTitle, String part, String body) {}
 
   private static Rendered render(Volume v, Path file, List<Box> boxes, Map<String, Vocabulary.Section> solutions) throws BuildError {
@@ -183,10 +221,14 @@ final class Pages {
     }
 
     List<Markdown.Block> blocks = Markdown.checkedBlocks(md);
-    String pageTitle = "";
+    // A page's title is its first "# " heading: its tab, the pager and the index name the page by it, so a page with
+    // none would be an empty link.
+    String pageTitle = null;
     for (Markdown.Block b : blocks) {
-      if (b instanceof Markdown.Heading h) { pageTitle = h.text(); break; }
+      if (b instanceof Markdown.Heading h && h.level() == 1) { pageTitle = h.text(); break; }
     }
+    if (pageTitle == null)
+      throw new BuildError(file + ": no \"# \" heading; a page's first one is its title, which its tab, the pager and the index show");
 
     StringBuilder body = new StringBuilder();
     int boxIdx = 0;
@@ -226,6 +268,9 @@ final class Pages {
     if (kind.equals("reference")) out.append("<pre class=\"reference\">").append(escape(source)).append("</pre>");
     else if (kind.equals("predict")) out.append("<pre class=\"predict-code\">").append(escape(source)).append("</pre>");
     else out.append("<textarea class=\"code\" wrap=\"off\" spellcheck=\"false\">").append(escape(source)).append("</textarea>");
+    // DESIGN section 3: where a verdict cannot be trusted there is no Check, and the page says so where Check would be.
+    // web/page/box.js keeps it right under the controls it adds after the code.
+    if (d.noCheck() != null) out.append("<p class=\"nocheck\">").append(escape(d.noCheck())).append("</p>");
     if (c != null && c.kind().equals("method")) {
       out.append("<div class=\"cases\"><p>What it should do:</p><ul>");
       for (List<String> cs : c.cases())
@@ -265,7 +310,7 @@ final class Pages {
    *  that a box whose check has a starter declares nothing (Ruling 18): raises, compileError, varies, stdin and
    *  the why that explains them all describe the author's fence, which the box does not publish. */
   private static Decl declared(Checks.Check c, Box b) {
-    return hasStarter(c) ? new Decl(false, null, null, false, List.of(), null) : b.decl();
+    return hasStarter(c) ? Decl.EMPTY : b.decl();
   }
 
   private static boolean hasStarter(Checks.Check c) {
@@ -311,7 +356,7 @@ final class Pages {
     return m;
   }
 
-  private static void writeIndex(Path site, List<Volume> volumes) throws BuildError {
+  private static void writeIndex(Path site, List<Volume> volumes, Map<Page, String> titles) throws BuildError {
     StringBuilder body = new StringBuilder();
     body.append("<h1>Groundwork</h1>");
     // D103: the public index must say why it is empty, never show a bare title.
@@ -320,10 +365,20 @@ final class Pages {
       body.append("<section class=\"volume\"><h2>").append(escape(v.title())).append("</h2>");
       if (!v.subtitle().isEmpty()) body.append("<p class=\"subtitle\">").append(escape(v.subtitle())).append("</p>");
       if (!v.blurb().isEmpty()) body.append("<p>").append(escape(v.blurb())).append("</p>");
-      body.append("<ul>");
-      for (Page p : v.pages())
-        body.append("<li><a href=\"").append(v.slug()).append('/').append(p.slug()).append(".html\">")
-            .append(escape(p.slug())).append("</a></li>");
+      // Every page by its title, in publish order; a chapter's practice pages, which Volume.loadPages puts right after
+      // it, are listed under it.
+      body.append("<ul class=\"contents\">");
+      List<Page> pages = v.pages();
+      for (int i = 0; i < pages.size(); i++) {
+        body.append("<li>").append(indexLink(v, pages.get(i), titles));
+        if (i + 1 < pages.size() && pages.get(i + 1).practice()) {
+          body.append("<ul>");
+          while (i + 1 < pages.size() && pages.get(i + 1).practice())
+            body.append("<li>").append(indexLink(v, pages.get(++i), titles)).append("</li>");
+          body.append("</ul>");
+        }
+        body.append("</li>");
+      }
       body.append("</ul></section>");
     }
     String html = "<!doctype html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n"
@@ -331,6 +386,10 @@ final class Pages {
         + "<title>Groundwork</title>\n<link rel=\"stylesheet\" href=\"app.css\">\n</head>\n<body>\n<main>\n"
         + body + "\n</main>\n</body>\n</html>\n";
     writeFile(site.resolve("index.html"), html);
+  }
+
+  private static String indexLink(Volume v, Page p, Map<Page, String> titles) {
+    return "<a href=\"" + v.slug() + "/" + p.slug() + ".html\">" + escape(titles.get(p)) + "</a>";
   }
 
   private static String readFile(Path file) throws BuildError {

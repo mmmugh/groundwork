@@ -20,7 +20,7 @@ volumes/<slug>/
   practice/
     ch01-<slug>-practice.md   practice pages, one per chapter that has one
   quizzes/
-    ch01-quiz.txt              published as-is, one per chapter that has one
+    ch01-quiz.txt              published as-is and linked from its chapter's page, one per chapter that has one
   answer-keys/
     ...                        anything here, at any depth, is never published
 ```
@@ -30,6 +30,8 @@ none of them still builds and still runs every gate, including the private-conte
 page's file name must start with its chapter's own `chNN-` prefix (the same digits as the chapter
 file, e.g. `ch02-...`) so the build can place it on that chapter's shelf; anything else in `content/`
 that isn't `00-`, `chNN-`, `99-` or an underscore-prefixed data file is a build error.
+
+Every page's first `# ` heading is its title: the browser's tab, the pager and the index (which lists every page by it, each chapter's practice pages under that chapter) show it, and a page without one is a build error. A quiz is named after its chapter's own digits, `chNN-quiz.txt` (a chapter file `ch01-<anything>.md` takes `ch01-quiz.txt`); any other `*-quiz.txt` is a build error, since no page would link it.
 
 ## Boxes
 
@@ -51,6 +53,7 @@ Keyed by box id. Every key is optional; an entry may combine `stdin` with `raise
 | `"varies": true` | The stated output is not exactly reproducible (e.g. `Set.of` iteration order); the box compiles and runs once to ok, and its stated output is not checked against anything. Needs `why`. |
 | `"stdin": ["21"]` | The typed answers an input box receives, in order, one per prompt. |
 | `"why"` | Required alongside `raises`, `compileError` or `varies`; explains the exemption. It is not private: it is shown to readers as a note above the box, and in the downloaded bundle, except on a box whose check has a `starter`, where it explains the author's fence and so is published nowhere (see the starter rule). |
+| `"noCheck": "Any poem is right: run it and read it."` | An exercise whose answers cannot be judged fairly (DESIGN.md section 3): the box has no Check, and the page shows these words under its controls, where Check would be. Not on a reference box, and not on a box with a check in `_checks.json`. It is not private: write it for readers. |
 
 ### The transcript rule for input boxes
 
@@ -135,7 +138,7 @@ On a built page, a `reference` box is shown as it is. Every other box is one of 
   no Ctrl key, it is the only way.
 - **Check**, for a box whose entry `_checks.json` declares one. The verdict appears under the box: for a
   `method` check, one line per case; for `input` and `output`, whether the program did what the check
-  asks.
+  asks. A box whose `_boxes.json` entry has `noCheck` has no Check: its words stand under its controls instead.
 - **Reset**, shown only while the box's code differs from the code the page was built with (after an edit,
   or when a reload brings a kept edit back). It restores the box as the page was built: its code, no output
   and no verdict, and it stops a run or a Check in progress. Until then, the reader's edited code stays in
@@ -152,6 +155,8 @@ other box.
 
 **The scratchpad**: a tab on every chapter page, beside the boxes, that opens a jshell in the page. Nothing is downloaded
 until the reader opens it (DESIGN.md section 2).
+
+**At the end of a chapter's page**, before the links to the previous and next pages: its quiz, when the volume has one for it, and its programs as `.java` files (its section of `bundle.html`), when it has any to download.
 
 In a browser that cannot run Java, a note takes the place of the buttons in every box but a `reference`:
 it says so and names the minimum versions, Chrome 119, Firefox 120 and Safari 18.2 (on iPhone and iPad,

@@ -217,6 +217,16 @@ th { font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.06em; colo
   border-color: var(--accent);
 }
 
+/* An exercise whose answers cannot be judged fairly has no Check, and says so right under its controls, where Check
+   would be (DESIGN section 3; build/Pages.java writes it, web/page/box.js keeps it there). */
+.box p.nocheck {
+  margin: 0;
+  padding: 0.5rem 0.9rem 0.7rem;
+  font-size: 0.86rem;
+  color: var(--soft);
+  border-top: 1px solid var(--rule);
+}
+
 /* What a Run printed. Output may wrap (Ruling 22); only code never does. */
 .box .run {
   margin: 0;
@@ -431,6 +441,21 @@ pre:not(.output):not(.reference) {
 
 .volume h2 { margin-top: 2.5rem; }
 .volume .subtitle { color: var(--soft); margin-top: -0.75rem; }
+
+.volume .contents ul { margin: 0.4rem 0 0; }
+
+/* The end of a chapter's page (build/Pages.java): its quiz and its programs as files. Links that wrap at any width. */
+.chapter-links {
+  margin: 2.5rem 0 0;
+  padding: 0.7rem 0.9rem 0.7rem 2.1rem;
+  font-size: 0.9rem;
+  color: var(--soft);
+  background: var(--panel);
+  border: 1px solid var(--rule);
+  border-radius: 0.5rem;
+}
+.chapter-links li { margin: 0.2rem 0; }
+.chapter-links a { color: var(--accent); font-weight: 600; text-decoration: none; }
 
 /* Java cannot run in this browser (web/app.js, or the noscript copy): a quiet notice, not an error. */
 p.nojava {

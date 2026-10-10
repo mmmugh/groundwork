@@ -558,6 +558,47 @@ for (const engine of only ? [only] : Object.keys(ENGINES)) {
     t.offsite.length === 0 && t.errors.length === 0, { offsite: t.offsite, errors: t.errors });
   await t.close();
 
+  // An exercise whose answers cannot be judged fairly (DESIGN section 3): no Check button, and the author's words right
+  // under its controls, where Check would be, before a Run and after one.
+  t = await open(engine, site, PAGES[1]);
+  await ready(t);
+  const nc = t.page.locator('.box[data-box="ch02-check#5"]');
+  const NO_CHECK = "Any short poem is right, so there is nothing to check: run it and read it.";
+  const underControls = () => nc.evaluate((b) => {
+    const next = b.querySelector(":scope > .controls")?.nextElementSibling;
+    return next && next.matches("p.nocheck") ? next.textContent : null;
+  });
+  const before = await underControls();
+  await nc.getByRole("button", { name: "Run", exact: true }).click();
+  await t.page.waitForFunction(() => document.querySelector('.box[data-box="ch02-check#5"]').dataset.state === "done", null, { timeout: 20000 });
+  const after = await underControls();
+  check(`${engine}: a box with noCheck offers no Check and says why right under its controls, before a Run and after`,
+    before === NO_CHECK && after === NO_CHECK && await nc.getByRole("button", { name: "Check", exact: true }).count() === 0
+      && (await nc.locator(".run").innerText()).includes("Roses are red"), { before, after });
+  await t.close();
+
+  // A chapter's page ends with its quiz, when the volume has one for it, and its programs in bundle.html; each link leads
+  // somewhere real: the quiz's text, and the bundle's section for that chapter.
+  for (const [p, want] of [[PAGES[0], ["quizzes/ch01-quiz.txt", "bundle.html#ch01"]], [PAGES[1], ["bundle.html#ch02"]]]) {
+    t = await open(engine, site, p);
+    await ready(t);
+    const links = await t.page.evaluate(async () => {
+      const out = [];
+      for (const a of document.querySelectorAll(".chapter-links a")) {
+        const res = await fetch(a.href);
+        const text = await res.text();
+        const id = new URL(a.href).hash.slice(1);
+        out.push({ href: a.getAttribute("href"), status: res.status,
+          real: id ? new DOMParser().parseFromString(text, "text/html").getElementById(id) !== null : text.length > 0 });
+      }
+      return out;
+    });
+    check(`${engine}: ${p} links ${want.join(" and ")}, and each leads somewhere real`,
+      JSON.stringify(links.map((l) => l.href)) === JSON.stringify(want) && links.every((l) => l.status === 200 && l.real), links);
+    check(`${engine}: ${p}: following them, nothing left the origin`, t.offsite.length === 0, t.offsite);
+    await t.close();
+  }
+
   // ch02-check at 390 px with a verdict in every box (a list of cases, an output difference, a failed run's output,
   // a prediction and the program's output) and the case list: nothing scrolls sideways. .box hides its overflow, so
   // the page's width alone cannot see a box, a verdict or the case list running wide: each is measured too. An
