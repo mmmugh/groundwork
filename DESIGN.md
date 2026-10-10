@@ -189,6 +189,8 @@ It fails, rather than shipping, when:
 - **the browser runtime and the real JDK disagree** on any example, including examples that read
   input. Examples whose output legitimately varies, such as `Set.of` ordering, carry a "varies" mark
   and run twice;
+- a check fails one of its right answers or passes one of its mistakes, on the browser runtime or the real JDK
+  (the three-way proof of section 3, from each box's worked solutions and mistakes in `_solutions.md`);
 - a worked solution, practice step, check starter or quiz uses something the chapters have not
   shown yet. Vocabulary is derived from the chapters themselves using `javac`'s own syntax tree:
   syntax kinds, library members by their owning type, library types, and keywords. A fence exempted
@@ -208,9 +210,9 @@ reference cannot drift under the gate.
 is; the private-content scan is the second line of defense, not the first. The `.docx` export runs the
 same scan inside the file it writes, because it can run on its own, after the build.
 
-**The tests** run the parts that need the browser runtime or a real browser: every check's three-way
-proof, the replay test (every input example answered all at once and one question at a time must give
-the same transcript), the `HashMap` order test, the jshell transcript check, and the browser test.
+**The tests** run the parts that need the browser runtime or a real browser: the replay test (every
+input example answered all at once and one question at a time must give the same transcript), the
+`HashMap` order test, the jshell transcript check, and the browser test.
 
 Support tooling need not be Java: the leak-hook tests and the `.docx` export are Python.
 

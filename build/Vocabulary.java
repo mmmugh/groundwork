@@ -139,8 +139,11 @@ final class Vocabulary {
    *  "### mistake", in order; each is a right answer, and the first is the one a reader may reveal (Pages.appendBox).
    *  note: the blocks right after that first fence, up to the next fence or heading, which the reveal shows under the
    *  code. mistakes: the body of every java fence after "### mistake": realistic wrong answers, published nowhere, never
-   *  held to the starter rule, and free not to compile. A fence in any other language is in none of them. */
-  record Section(List<String> worked, List<Markdown.Block> note, List<String> mistakes) {}
+   *  held to the starter rule, and free not to compile. rightText and mistakeText: the body of every text fence before
+   *  and after "### mistake": a predict check's right and wrong predictions, for the three-way proof (Proofs). A fence
+   *  in any other language is in none of them. */
+  record Section(List<String> worked, List<Markdown.Block> note, List<String> mistakes, List<String> rightText,
+                 List<String> mistakeText) {}
 
   /** _solutions.md's "## &lt;box id&gt;" sections, by id, in file order; each made at its heading, so a heading for no
    *  such box is reported even without a fence. "### mistake" is the one level-3 heading a section takes: any other is
@@ -166,7 +169,7 @@ final class Vocabulary {
         note = false;
         if (h.level() == 2) {
           id = h.text().trim();
-          sections.computeIfAbsent(id, k -> new Section(new ArrayList<>(), new ArrayList<>(), new ArrayList<>()));
+          sections.computeIfAbsent(id, k -> new Section(new ArrayList<>(), new ArrayList<>(), new ArrayList<>(), new ArrayList<>(), new ArrayList<>()));
           mistakes = false;
         } else if (h.level() == 3 && id != null) {
           if (!h.text().trim().equals("mistake"))
@@ -179,6 +182,7 @@ final class Vocabulary {
       Section s = sections.get(id);
       if (block instanceof Markdown.Fence f) {
         note = false;
+        if (f.lang().equals("text")) (mistakes ? s.mistakeText() : s.rightText()).add(f.body());
         if (!f.lang().equals("java")) continue;
         if (mistakes) {
           s.mistakes().add(f.body());

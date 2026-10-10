@@ -1,1 +1,4 @@
-{"ch01-first-programs#4": {"kind": "output", "expected": "Ada\n", "starter": "void main() {\n    IO.println(\"\");\n}\n"}}
+{
+ "ch01-first-programs#4": {"kind": "output", "expected": "Ada\n", "starter": "void main() {\n    IO.println(\"\");\n}\n"},
+ "ch02-types-and-input#4": {"kind": "method", "name": "average", "returns": "double", "params": ["double", "double"], "cases": [["1, 4", "2.5"], ["0.1, 0.2", "0.15"]], "starter": "double average(double a, double b) {\n    return 0;\n}\n\nvoid main() {\n    IO.println(average(1, 4));\n}\n"}
+}

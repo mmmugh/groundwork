@@ -75,14 +75,22 @@ written as a JSON string, because the page writes it into generated Java and com
 
 | Kind | Keys | Meaning |
 | --- | --- | --- |
-| `method` | `name`, `returns`, `params`, `cases`, optional `starter` | Check calls the method `name` with each case and compares what it returns. `returns` is the return type (never `void`); `params` is the list of parameter types, such as `["int"]`; `cases` is a non-empty list of `["<arguments>", "<expected>"]`, such as `["4", "true"]`. The page lists the cases under the box as "What it should do", such as `isEven(4) -> true`. |
+| `method` | `name`, `returns`, `params`, `cases`, optional `starter` | Check calls the method `name` with each case and compares what it returns: a `double` or `float` within 1e-9 times the larger of 1 and the expected value's size, so a right answer that differs in the last bit passes, and anything else with `Objects.deepEquals`. `returns` is the return type (never `void`); `params` is the list of parameter types, such as `["int"]`; `cases` is a non-empty list of `["<arguments>", "<expected>"]`, such as `["4", "true"]`. The page lists the cases under the box as "What it should do", such as `isEven(4) -> true`. |
 | `input` | `runs`, optional `starter` | Each run types its `typed` answers (a list of strings, one per prompt) and looks for at least one of: `numbers` (decimals written as text, such as `"42"`, `"-8"` or `"2.5"`, found in order within 0.005; digits only, with an optional leading `-` and decimal part, because that is the only form the page can find in a program's output, so `"1e3"`, `"+2"` and `".5"` are build errors), `words` (found in order, any case; each one word of letters or digits, such as `"many"` or `"café"`, because the page splits the output at every other character, so `"New York"` and `"can't"` are build errors) or `contains` (text the output must hold as written), however the program words the rest. |
 | `output` | `expected`, optional `starter` | The program's output must be `expected`, compared after both are tidied as a stated output is (above: line endings become LF, and spaces and tabs at the end of a line and blank lines at the start and end are ignored); any other difference fails. |
 | `predict` | none | The reader reads the code and says what it prints; the answer is the box's own stated output, which the audit has already verified, and the two are compared after the same tidying as an `output` check. A predict box needs a stated output, and cannot be `varies`, `raises`, `compileError` or `stdin`. |
 
 A check on a reference box, on no such box, of an unknown kind, or with a key its kind does not take is
-a build error. The three-way proof that each check's verdicts are right (DESIGN.md section 3) is not
-built yet.
+a build error.
+
+**The three-way proof.** `--check` proves every check before it ships (DESIGN.md section 3) with the answers
+its box's section of `_solutions.md` gives (below): every worked solution must pass, and every mistake must
+fail. A checked box needs two worked solutions, the second in another style, and one mistake, or the build
+says which is missing. A `predict` check's answers are text: its stated output is right, and it needs one
+more right prediction (a ` ```text ` fence under `## <box id>`) and one wrong one (a ` ```text ` fence under
+`### mistake`). Each answer is judged by the page's own Check code (`web/page/check.js`) on the browser
+runtime and on the pinned JDK, a prediction once, as text; a wrong verdict fails the build and names the
+box, the answer (`worked solution 2`, `mistake 1`), the runtime and what Check said.
 
 **The starter rule.** A `starter` is the code the reader starts from, held to the same vocabulary rule as
 everything else below. When a check declares one, the box shows the starter, and its own fence, the
@@ -114,7 +122,9 @@ Markdown, keyed by box id: `## <box id>` starts a box's section. The ` ```java `
 level-3 heading, are its **worked solutions**, each a right answer; the first is the one a reader may reveal, and
 the paragraphs right after it, up to the next fence or heading, are its note. `### mistake`, the only level-3
 heading a section takes (any other is a build error), starts its **mistakes**: the ` ```java ` fences after it
-are realistic wrong answers, and need not compile. The build reads no other fence here. Worked solutions are
+are realistic wrong answers, and need not compile. A `predict` box's ` ```text ` fences are its predictions, right
+ones under the heading and wrong ones under `### mistake` (the three-way proof, above); the build reads no other
+fence here. Worked solutions are
 held to the starter rule (above) and to the vocabulary gate (below). A mistake is never held to the starter
 rule; it is held to the vocabulary gate when it compiles (a mistake a reader at that chapter could not write
 proves nothing about the check), and let be when it does not.

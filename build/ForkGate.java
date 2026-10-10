@@ -29,7 +29,8 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /** D-P2-1: holds the browser runtime to what the pinned JDK does on every course example, by running
- *  runtime/test/examples.mjs under Node. --check fails (never skips) without Node 25 or later. */
+ *  runtime/test/examples.mjs under Node; and proves every check three ways on both (runtime/test/proofs.mjs), the
+ *  same way. --check fails (never skips) without Node 25 or later. */
 final class ForkGate {
   private ForkGate() {}
 
@@ -52,6 +53,17 @@ final class ForkGate {
    *  exited non-zero with none (Node itself failed to start, or the script's own usage/empty-list message),
    *  the tail of what it printed, so a fork-gate failure is never silently swallowed. */
   static List<String> run(Path tools, Path examplesJson, Path dist) throws BuildError {
+    return runScript(tools, "runtime/test/examples.mjs", examplesJson, dist, "the fork gate");
+  }
+
+  /** Runs runtime/test/proofs.mjs, the three-way proof of every check (DESIGN section 3), on proofsJson (Proofs.of's
+   *  entries), the same way: every answer is judged by the page's own check.js on dist and on the pinned JDK this JVM
+   *  is running. Returns each wrong verdict as a problem, as run does a disagreement. */
+  static List<String> runProofs(Path tools, Path proofsJson, Path dist) throws BuildError {
+    return runScript(tools, "runtime/test/proofs.mjs", proofsJson, dist, "the proof gate");
+  }
+
+  private static List<String> runScript(Path tools, String script, Path json, Path dist, String gate) throws BuildError {
     String versionOutput;
     try {
       versionOutput = exec(new ProcessBuilder("node", "--version"), tools, Duration.ofSeconds(10)).output();
@@ -61,16 +73,16 @@ final class ForkGate {
     String badVersion = checkNodeVersion(versionOutput);
     if (badVersion != null) return List.of(badVersion);
 
-    ProcessBuilder pb = new ProcessBuilder("node", "runtime/test/examples.mjs", examplesJson.toString());
+    ProcessBuilder pb = new ProcessBuilder("node", script, json.toString());
     pb.environment().put("JF_DIST", dist.toString());
     pb.environment().put("JF_JAVA_HOME", System.getProperty("java.home"));
     Result r;
     try {
       r = exec(pb, tools, DEADLINE);
     } catch (IOException e) {
-      throw new BuildError("running the fork gate: " + e.getMessage());
+      throw new BuildError("running " + gate + ": " + e.getMessage());
     }
-    if (r.timedOut()) return List.of("the fork gate did not finish within 30 minutes");
+    if (r.timedOut()) return List.of(gate + " did not finish within 30 minutes");
     return problemsFrom(r.output(), r.exitCode());
   }
 

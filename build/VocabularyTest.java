@@ -60,8 +60,12 @@ final class VocabularyTest {
     // D4, though the plan says every fence in _solutions.md is checked.
     Path p = Fixtures.project("vocab-solution-second-fence");
     Path f = p.resolve("volumes/vol-fixture/content/_solutions.md");
-    Files.writeString(f, Files.readString(f)
-        + "\n```java\nvoid main() {\n    var l = new java.util.ArrayList<String>();\n    l.add(\"Ada\");\n    IO.println(l.get(0));\n}\n```\n");
+    // Inserted between chapter 1's two worked solutions: the file goes on past them, to chapter 1's "### mistake" and
+    // chapter 2's section, so a fence appended at the end would be one of chapter 2's mistakes.
+    String s = Files.readString(f), second = "```java\nvoid main() {\n    IO.println(\"Ada   \");\n}\n```\n";
+    T.check(s.contains(second), "the fixture's chapter 1 section has its second worked solution");
+    Files.writeString(f, s.replace(second,
+        "```java\nvoid main() {\n    var l = new java.util.ArrayList<String>();\n    l.add(\"Ada\");\n    IO.println(l.get(0));\n}\n```\n\n" + second));
     var r = Fixtures.build(p, "--check", "--no-fork-gate-for-tests");
     T.eq(1, r.exit(), "exit");
     T.check(r.out().contains("ch01-first-programs#4 (solution): uses what the course has not shown by chapter 1"),
@@ -152,9 +156,14 @@ final class VocabularyTest {
     // resolved tree to read, so it is not reported at all.
     Path p = Fixtures.project("vocab-mistakes");
     Path f = p.resolve("volumes/vol-fixture/content/_solutions.md");
-    Files.writeString(f, Files.readString(f)
-        + "\n### mistake\n\n```java\nvoid main() {\n    IO.println(\"Ada\")\n}\n```\n"
-        + "\n```java\nvoid main() {\n    IO.println(Integer.parseInt(\"1\"));\n}\n```\n");
+    // Chapter 1's section ends with its own "### mistake" fences now, and chapter 2's section follows: the two mistakes
+    // go at the end of chapter 1's, where Integer.parseInt is not yet shown.
+    String s = Files.readString(f);
+    T.check(s.contains("\n## ch02-types-and-input#4\n"), "chapter 2's section follows chapter 1's");
+    Files.writeString(f, s.replace("\n## ch02-types-and-input#4\n",
+        "\n```java\nvoid main() {\n    IO.println(\"Ada\")\n}\n```\n"
+        + "\n```java\nvoid main() {\n    IO.println(Integer.parseInt(\"1\"));\n}\n```\n"
+        + "\n## ch02-types-and-input#4\n"));
     Volume v = Volume.loadAll(p.resolve("volumes")).get(0);
     Map<Page, List<Box>> boxes = new LinkedHashMap<>();
     for (Page page : v.pages()) boxes.put(page, Boxes.of(v, page));
@@ -171,5 +180,18 @@ final class VocabularyTest {
     Files.writeString(f, "## ch01-first-programs#4\n\n### Mistakes\n\n```java\nvoid main() {}\n```\n");
     T.fails("content/_solutions.md: ch01-first-programs#4: \"### Mistakes\": the only level-3 heading a section takes is \"### mistake\"",
         () -> Vocabulary.solutions(f), "a level-3 heading other than \"### mistake\" is a BuildError naming the file, the box and the heading");
+  }
+  static void testAPredictBoxsPredictionsAreItsTextFences() throws Exception {
+    // A predict check's answers are text: the text fences under "## <id>" are right predictions, those under
+    // "### mistake" wrong ones (the three-way proof, Proofs). They are never worked solutions or mistakes, which are java.
+    Path f = Fixtures.project("vocab-text-fences").resolve("volumes/vol-fixture/content/_solutions.md");
+    Files.writeString(f, "## a#1\n\n```java\nA\n```\n\n```text\nB\n```\n\n### mistake\n\n```java\nC\n```\n\n```text\nD\n```\n\n## b#1\n\n```text\nE\n```\n");
+    var s = Vocabulary.solutions(f);
+    T.eq(List.of("A\n"), s.get("a#1").worked(), "a text fence is not a worked solution");
+    T.eq(List.of("B\n"), s.get("a#1").rightText(), "a text fence under ## <id> is a right prediction");
+    T.eq(List.of("C\n"), s.get("a#1").mistakes(), "nor a mistake");
+    T.eq(List.of("D\n"), s.get("a#1").mistakeText(), "a text fence under ### mistake is a wrong prediction");
+    T.eq(List.of("E\n"), s.get("b#1").rightText(), "a section may hold predictions alone");
+    T.eq(List.of(), s.get("b#1").worked(), "and then it has no worked solution");
   }
 }

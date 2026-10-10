@@ -219,5 +219,28 @@ check("input: a program that prints 150,000 lines is stopped at the page's cap",
 v = await runCheck(r, "boolean isEven(int n) { System.exit(0); return true; }\n", IS_EVEN);
 check("method: a case that calls System.exit(0) is reported as calling System.exit",
   !v.passed && v.stopped === "Check stopped while running isEven(4): your method called System.exit.", v);
+// A method that returns double or float is compared within 1e-9 × max(1, |expected|): a reader who is right must not
+// fail on the last bit. (0.1 + 0.2) / 2 is 0.15000000000000002, one unit in the last place above 0.15. Everything
+// else keeps Objects.deepEquals, a double[] included.
+const AVERAGE = { kind: "method", name: "average", returns: "double", params: ["double", "double"], cases: [["0.1, 0.2", "0.15"]] };
+v = await runCheck(r, "double average(double a, double b) { return (a + b) / 2; }\n", AVERAGE);
+check("double: a right answer that differs from the expected value in the last bit passes",
+  v.passed && v.lines[0].text === "average(0.1, 0.2) -> 0.15", v);
+v = await runCheck(r, "double average(double a, double b) { return a + b / 2; }\n", AVERAGE);
+check("double: a wrong answer still fails, its value shown as Java prints it",
+  !v.passed && v.lines[0].text === "average(0.1, 0.2) returned 0.2, expected 0.15", v.lines);
+const near = (body, arg, expected) => runCheck(r, `double near(double x) { return ${body}; }\n`,
+  { kind: "method", name: "near", returns: "double", params: ["double"], cases: [[arg, expected]] });
+v = await near("x + 100", "1e12", "1e12");
+check("double: the tolerance grows with the expected value: 100 from 1e12 is within 1e-9 × 1e12", v.passed, v);
+v = await near("x + 2000", "1e12", "1e12");
+check("double: ...and 2,000 from 1e12 is not", !v.passed, v);
+v = await near("x + 5e-10", "0", "0");
+check("double: near zero the tolerance is 1e-9: 5e-10 from 0 passes", v.passed, v);
+v = await near("x + 2e-9", "0", "0");
+check("double: ...and 2e-9 from 0 does not", !v.passed, v);
+v = await runCheck(r, "double[] sums(double a, double b) { return new double[] { a + b }; }\n",
+  { kind: "method", name: "sums", returns: "double[]", params: ["double", "double"], cases: [["0.1, 0.2", "new double[] {0.3}"]] });
+check("double[]: an array keeps Objects.deepEquals, so an element off in the last bit fails", !v.passed, v);
 await r.close();
 done();

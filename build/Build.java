@@ -71,7 +71,8 @@ public class Build {
       } else if (a.equals("--fetch-variant")) {
         fetchVariant = true;
       } else if (a.equals("--no-fork-gate-for-tests")) {
-        // Accepted only from the build's own tests (BuildTest.main sets jf.test); a real user gets exit 2.
+        // Skips the two gates that run under Node, the fork gate and the proof gate. Accepted only from the build's own
+        // tests (BuildTest.main sets jf.test); a real user gets exit 2.
         if (System.getProperty("jf.test") == null) { out.println(usage()); return 2; }
         noForkGate = true;
       } else {
@@ -133,6 +134,10 @@ public class Build {
         Jdk.checkPinned();
         List<String> problems = Audit.check(volumes, allBoxes);
         for (Volume v : volumes) problems.addAll(Vocabulary.check(v, boxesByVolume.get(v)));
+        // DESIGN section 3: what each check's three-way proof needs, and whether _solutions.md gives it, needs no
+        // runtime; the proof itself runs below, after the fork gate.
+        List<Object> proofs = new ArrayList<>();
+        for (Volume v : volumes) proofs.addAll(Proofs.of(v, boxesByVolume.get(v), problems));
         long checked = 0, stated = 0;
         for (Volume v : volumes) {
           for (Page p : v.pages()) {
@@ -142,7 +147,7 @@ public class Build {
             stated += allBoxes.get(p).stream().filter(Audit::statesComparedOutput).count();
           }
         }
-        int exampleCount = 0, differing = 0;
+        int exampleCount = 0, differing = 0, wrongVerdicts = 0;
         if (!noForkGate) {
           List<Object> examples = examplesOf(allBoxes);
           exampleCount = examples.size();
@@ -151,10 +156,22 @@ public class Build {
           List<String> forkProblems = ForkGate.run(tools, examplesJson, site.resolve("runtime"));
           differing = forkProblems.size();
           problems.addAll(forkProblems);
+          // Every answer judged by the page's own check.js on both runtimes. A volume with no check has nothing to
+          // prove, and runtime/test/proofs.mjs refuses an empty list.
+          if (!proofs.isEmpty()) {
+            Path proofsJson = project.resolve("build/.work/proofs.json");
+            writeJson(proofsJson, proofs);
+            List<String> proofProblems = ForkGate.runProofs(tools, proofsJson, site.resolve("runtime"));
+            wrongVerdicts = proofProblems.size();
+            problems.addAll(proofProblems);
+          }
         }
         for (String problem : problems) out.println("  !! " + problem);
         out.println(checked + " boxes checked, " + stated + " stated outputs compared, " + problems.size() + " problem(s)");
-        if (!noForkGate) out.println(exampleCount + " examples, " + differing + " differing");
+        if (!noForkGate) {
+          out.println(exampleCount + " examples, " + differing + " differing");
+          out.println(proofs.size() + " checks, " + Proofs.answers(proofs) + " answers judged, " + wrongVerdicts + " wrong verdict(s)");
+        }
         if (!problems.isEmpty()) return 1;
       }
       return 0;

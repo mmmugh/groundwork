@@ -32,3 +32,15 @@ void main() {
 ```output
 [a, b, c, d, e, f]
 ```
+
+Write `average`, which returns the average of two numbers:
+
+```java
+double average(double a, double b) {
+    return (a + b) / 2;
+}
+
+void main() {
+    IO.println(average(1, 4));
+}
+```

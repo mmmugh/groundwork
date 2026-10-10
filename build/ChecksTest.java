@@ -306,7 +306,10 @@ final class ChecksTest {
     // would push the author to drop the very mistake the three-way proof most needs.
     Path p = Fixtures.project("checks-mistake-is-starter");
     Path solutions = p.resolve("volumes/vol-fixture/content/_solutions.md");
-    Files.writeString(solutions, Files.readString(solutions) + "\n### mistake\n\n```java\nvoid main() {\n    IO.println(\"\");\n}\n```\n");
+    // Chapter 1's section ends with its own mistakes now, the starter among them, and chapter 2's section follows: the
+    // starter goes once more into chapter 1's mistakes, where it equals what box #4 publishes.
+    Files.writeString(solutions, Files.readString(solutions).replace("\n## ch02-types-and-input#4\n",
+        "\n```java\nvoid main() {\n    IO.println(\"\");\n}\n```\n\n## ch02-types-and-input#4\n"));
     var r = Fixtures.build(p);
     T.eq(0, r.exit(), "a mistake equal to the starter is not a worked solution: " + r.out());
   }

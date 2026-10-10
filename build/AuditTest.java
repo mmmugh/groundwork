@@ -29,7 +29,7 @@ final class AuditTest {
     // for it (decl.varies()), so it must not be counted as "compared" either—3 of the fixture's 4 stated
     // outputs are actually compared, not 4. The practice page's reference box does not count either (never
     // checked at all), but its compileError box does (checked, just not for output).
-    T.check(r.out().contains("8 boxes checked, 3 stated outputs compared, 0 problem(s)"),
+    T.check(r.out().contains("9 boxes checked, 3 stated outputs compared, 0 problem(s)"),
         "a varies box with a stated output is not counted as compared: " + r.out());
   }
   static void testEachRuleFailsWhenBroken() throws Exception {

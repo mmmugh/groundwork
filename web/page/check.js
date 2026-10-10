@@ -40,7 +40,17 @@ const helpers = (mark) => [
   `  System.out.println("\\n${mark.replace("\u001f", "\\u001f")}" + s);`,
   "}",
   "void jf$report(int i, Object got, Object want) {",
-  '  jf$say(i + (java.util.Objects.deepEquals(got, want) ? " ok" : " fail " + jf$show(got)));',
+  '  jf$say(i + (jf$same(got, want) ? " ok" : " fail " + jf$show(got)));',
+  "}",
+  // A double or float is right within 1e-9 × max(1, |expected|), so a reader who is right never fails on the last bit:
+  // (0.1 + 0.2) / 2 is 0.15000000000000002, one unit in the last place above 0.15. Anything else, a double[] included,
+  // is compared as before.
+  "boolean jf$same(Object got, Object want) {",
+  "  if ((got instanceof Double || got instanceof Float) && (want instanceof Double || want instanceof Float)) {",
+  "    double g = ((Number) got).doubleValue(), w = ((Number) want).doubleValue();",
+  "    return Double.compare(g, w) == 0 || Math.abs(g - w) <= 1e-9 * Math.max(1, Math.abs(w));",
+  "  }",
+  "  return java.util.Objects.deepEquals(got, want);",
   "}",
   "void jf$threw(int i, Throwable t) {",
   '  jf$say(i + " threw " + t.getClass().getName() + (t.getMessage() == null ? "" : ": " + t.getMessage()));',
