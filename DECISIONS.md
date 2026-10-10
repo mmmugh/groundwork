@@ -9,7 +9,7 @@ the author's words are paraphrased here. The working notes these entries were fi
 plans the course was built from are in docs/superpowers/plans/. A commit hash in an entry names a commit of the history
 before the public repository's first commit, which stays private too (D96; D17's 2e05eb9 is the Python course's).
 
-## D1-D113
+## D1-D114
 
 - D1 (2026-09-27) RUNTIME: keep both promises (nothing installed; page talks to nobody) by OWNING
   the runtime: fork teavm-javac, fix it, pin and self-host it. The build will also diff every
@@ -589,6 +589,13 @@ before the public repository's first commit, which stays private too (D96; D17's
   out-of-memory kill made systemd stop the runner's own unit, so GitHub cancelled the job; weekly.yml now runs each
   browser job in a scope capped at 6 GiB that carries on after a kill inside it. The tests' lists are per platform
   (Plan 4b's V-17), and DESIGN section 2 names Linux. Shown to the author before the push.
+- D114 (2026-10-09) THE PUBLIC REPOSITORY'S SETTINGS: made public with private vulnerability reporting on (D102's
+  private channel); the Actions token read-only and unable to approve pull requests; every outside contributor's pull
+  request waits for the author's approval before CI runs it, stricter than GitHub's first-time-only default, because the
+  workflows run whatever a pull request changes; Projects off; the boxes' runtime release marked Latest, which GitHub
+  had given the CI-only variant; and a ruleset on the default branch (no deletion, no force push, a pull request with
+  the node, chromium and leaks checks green) that the repository admin role bypasses. Each set through `gh` on the
+  author's go and read back. Recommended options.
 
 ## R1-R4: the design review's defaults (2026-09-27)
 

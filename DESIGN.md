@@ -127,8 +127,9 @@ the JDK. It does run the JDK's own jshell engine, which is where the course uses
   real tool's local engine would too; JDK stack frames print `(Unknown Source)`; the virtual machine words a few
   exception messages itself; and `/help`, and the commands it does not offer, answer in the course's own words. There is
   no keyboard input (`System.in` is empty, and the scratchpad says so), and `System.exit` ends the session. Opening it
-  downloads about 30 MB; a page served over https or from localhost keeps it for the next visit unless the browser is
-  set not to keep site data, and one served over plain http may download it again on each visit. The download is checked
+  downloads about 30 MB (about 24 MB from GitHub Pages, which compresses its WebAssembly); a page served over https
+  or from localhost keeps it for the next visit unless the browser is set not to keep site data, and one served over
+  plain http may download it again on each visit. The download is checked
   with SHA-256: the browser's own where it has one, the course's own JavaScript where it does not. Over plain http the
   check catches a damaged or cut-short download, not a tampered one, since the list of hashes arrives the same way. Over
   plain http Safari, and every browser on iPhone or iPad (all of them WebKit), cannot start it (D90): on a MacBook Air
@@ -309,8 +310,11 @@ Also carried over:
   checkout's build, uploaded as a Pages artifact; no Jekyll runs, so nothing needs `.nojekyll` (D98).
   https://mmmugh.github.io is one origin, shared by every GitHub Pages site on the account (D82), so no other Pages site
   on the account may serve untrusted or proof-of-concept content: a page there could read the course's storage in a
-  reader's browser. Until the first chapter the index says it is being written (D103). What Pages actually sends (its
-  gzip of the `.wasm` and `.js` files) is unmeasured until the site is live.
+  reader's browser. Until the first chapter the index says it is being written (D103). What Pages sends, measured on
+  the live site: gzip (never Brotli) for every file a browser asks for compressed, `.wasm` as `application/wasm` and
+  `.mjs` as `text/javascript`. The boxes' runtime comes to 4,210,751 bytes on the wire, section 1's "about 4.2 MB"; the
+  scratchpad's five assets to 24,203,202, against their 29,898,282 bytes uncompressed (`runner.core.wasm`'s 7.6 MB
+  arrive as 1.9 MB, while `jdk.zip` and the jar are already compressed and travel as they are).
 - **Hosting is a supported path, not only the public site (D80, D85).** Each course release, from the first chapter
   on (D103), carries the built site as one zip, `groundwork-<version>.zip`, which anyone unzips and serves with any static web server and no configuration:
   at the root of a site or under a subpath, and from a server that knows only `.html`, `.css`, `.js`, `.json` and `.txt`
