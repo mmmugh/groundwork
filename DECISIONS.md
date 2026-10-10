@@ -9,7 +9,7 @@ the author's words are paraphrased here. The working notes these entries were fi
 plans the course was built from are in docs/superpowers/plans/. A commit hash in an entry names a commit of the history
 before the public repository's first commit, which stays private too (D96; D17's 2e05eb9 is the Python course's).
 
-## D1-D115
+## D1-D124
 
 - D1 (2026-09-27) RUNTIME: keep both promises (nothing installed; page talks to nobody) by OWNING
   the runtime: fork teavm-javac, fix it, pin and self-host it. The build will also diff every
@@ -30,7 +30,9 @@ before the public repository's first commit, which stays private too (D96; D17's
   chapter's own teaching fence (practice solutions, Try It solutions, check stubs, quiz code).
 - D5 TYPES: ch02 teaches int/double/String/boolean with explicit declarations; char in the Strings
   chapter; long/overflow noted in ch03 with integer division; `var` only in an appendix. ch02 has
-  the first deliberate compile error (`int count = "three";`).
+  the first deliberate compile error (`int count = "three";`). REFINED (D116, D123): `char` arrives in chapter 5;
+  chapter 1's unclosed string is the first deliberate compile error, and `int count = "three";` chapter 2's first
+  type error.
 - D6 INPUT API: IO.readln() + Integer.parseInt in the chapters (mirrors input() + int()); Scanner
   only in an appendix with the nextInt/nextLine trap. The fork needs course-grade IO.readln only.
 - D7 HOSTING: plain static hosting, GitHub Pages-compatible; nothing may require COOP/COEP headers.
@@ -158,7 +160,9 @@ before the public repository's first commit, which stays private too (D96; D17's
   stories where they fit; redesign per D-decisions; Python course voice + D8 formatting). Machinery
   first with ch01 as the pilot. Before the author sees a chapter: all gates + differential + three-way
   checks + a fresh-agent review panel. The author reviews each built chapter as a PRIVATE Artifact
-  (working Run/Check, comments) on a phone; commit after approval; then the next chapter.
+  (working Run/Check, comments) on a phone; commit after approval; then the next chapter. REFINED (D119, D120): the
+  author reviews chapter 1 and the chapters whose acceptance is less certain; the rest are accepted on automatic
+  evidence, one chapter at a time.
 - D20 BROWSERS: current Chrome, Firefox, Safari incl. iOS; browser test runs Chromium + WebKit +
   Firefox via Playwright. Older browsers: pages read fine; boxes explain that the browser can't run
   Java and name the minimum versions (feature detection, not user-agent sniffing). Everything must
@@ -606,6 +610,42 @@ before the public repository's first commit, which stays private too (D96; D17's
   gives these times. The line-cap check runs on its own page with a 300 s entry deadline (the page's test hook), so it
   tests the cap and not the machine. The per-line cost is a Ristretto finding for the give-back list. The author chose
   the recommended option.
+- D116 (2026-10-10) CHAR IN CHAPTER 5: `char` arrives in chapter 5, where the Python course's loops first walk the letters
+  of a word (its vowel counting, then chapter 6's `count_vowels`), rather than waiting for the Strings chapter as D5 had
+  it: `text.charAt(i)` in a counting loop keeps the Python course's examples. The author chose the recommended option.
+- D117 (2026-10-10) FORMATTING: `+` joins text and values throughout; `String.format` formats decimals and columns, from
+  chapter 3's "Rounding and formatting" (`%.2f`, `%d`, `%s`), with widths and alignment where the Python course first
+  aligns a table. It is what readers meet in other people's Java, and the boxes' runtime matches the JDK's `String.format`.
+  The author chose the recommended option.
+- D118 (2026-10-10) LOOPS, AND LAMBDAS ONLY TO SORT: the Python course's list comprehensions, generator expressions and
+  `sum`/`max`/`min` become loops, a first course's bread and butter; sorting by a key uses a lambda
+  (`list.sort(Comparator.comparing(s -> s.score()))`, `.reversed()`); streams are only named in Appendix C's "What you will
+  see elsewhere". The author chose the recommended option.
+- D119 (2026-10-10) CHAPTERS ARE ACCEPTED AUTOMATICALLY; THE AUTHOR SEES THE FIRST AND THE UNCERTAIN ONES: every chapter
+  passes every gate, the three-way proof of its checks, an acceptance run of every page in Chromium, WebKit and Firefox
+  at 390 px (each box run and each check tried through the page's own controls), and a panel of fresh reviewers. The
+  author reviews chapter 1, and any chapter whose acceptance is less certain by Plan 5's named triggers, as a private
+  Artifact that takes comments; the others are committed on that evidence. This replaces D19's review of every chapter
+  by the author: the author asked for acceptance automated as far as headless browsers allow, and to be shown only the
+  first chapter and those whose acceptance is less certain, not every chapter without a good reason.
+- D120 (2026-10-10) ONE CHAPTER AT A TIME, AUTOMATED: chapters are written and reviewed one at a time, each run as an
+  automated workflow with headless browsers, so the course is built quickly, as the author asked.
+- D121 (2026-10-10) EVERY PUSH TO MAIN DEPLOYS THE SITE: `pages.yml` runs on every push to main as well as by hand; each
+  push is still made only on the author's go, so an approved chapter is live minutes after it. Settles the question
+  Plan 4b left to Plan 5. The author chose the recommended option.
+- D122 (2026-10-10) THE VOLUME IS vol1: the course's pages live under `volumes/vol1/`, published at
+  https://mmmugh.github.io/groundwork/vol1/ (chapter 1 at `vol1/ch01-your-first-programs.html`), short and with room for
+  a second volume. The author chose the recommended option.
+- D123 (2026-10-10) PLAN 5 IS ALL TWELVE CHAPTERS: Plan 5 writes the front matter, the twelve chapters, their practice
+  pages and quizzes, and the appendices, with the machinery earlier plans deferred to chapter 1; the roadmap's split
+  (Plan 5 the pilot, Plan 6 the rest) is superseded, as D78 and D103 already said. Its porting rulings (P-1 to P-62) settle
+  the Python constructs no decision had covered, and are approved with the plan. Chapter 6 is titled Methods, 7 Arrays
+  and Lists, 9 Maps and Sets, 10 Records. Chapter 1 keeps the Python course's first error box as the first deliberate
+  compile error (an unclosed string), so chapter 2's `int count = "three";` is the first type error (D5 REFINED).
+- D124 (2026-10-10) THE COURSE CARRIES ITS BYLINE: the front matter opens with DESIGN's byline (the author's name, then
+  "—built with Claude Opus 5.5"), as the Python course's front matter does. NameTest allows the name on exactly that one
+  line of `volumes/vol1/content/00-front-matter.md`, by the same "—built with Claude" mark as the two bylines it already
+  allows; everywhere else the course says "the author". The author chose the recommended option.
 
 ## R1-R4: the design review's defaults (2026-09-27)
 

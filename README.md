@@ -90,8 +90,9 @@ their notices, so serving the folder offers the source from the same place, as G
 
 Two workflows under `.github/workflows/` are thin: every step calls a script under `ci/`, which runs the same command
 list on a Mac and on a Linux runner, but for the few steps that run on one of them only (below). They run on GitHub
-Actions. A third workflow, `pages.yml`, builds the site from a fresh checkout and deploys it to GitHub Pages when the
-author runs it; its build runs the publishing guard, and every gate once a volume exists.
+Actions. A third workflow, `pages.yml`, builds the site from a fresh checkout and deploys it to GitHub Pages on every
+push to main and when the author runs it (D121); its build runs the publishing guard, and every gate once a volume
+exists.
 
 ```
 bash ci/quick.sh node|chromium|leaks             # what runs on every push

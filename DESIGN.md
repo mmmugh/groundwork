@@ -71,12 +71,13 @@ the JDK. It does run the JDK's own jshell engine, which is where the course uses
 - **Every box is a complete Java file.** JDK 25 compact source files:
   `void main() { IO.println("Hello, world!"); }` runs unchanged with `java Hello.java`. Chapter 1
   explains `main` in one honest sentence; `void` and methods get their real explanation in the
-  Functions chapter.
+  Methods chapter (6).
 - **`IO.println` and `IO.readln` throughout.** `System.out.println` and `Scanner` appear once, in an
   appendix, as "what you will see elsewhere", with `Scanner`'s `nextInt`/`nextLine` trap explained.
-- **Types arrive in chapter 2** as declarations: `int`, `double`, `String`, `boolean`. `char` waits for
-  the Strings chapter; `long`, integer overflow and integer division appear in chapter 3; `var` stays
-  in an appendix. Chapter 2 shows the first deliberate compile error: `int count = "three";`.
+- **Types arrive in chapter 2** as declarations: `int`, `double`, `String`, `boolean`. `char`
+  arrives in chapter 5, where loops first walk the letters of a word (D116); `long`, integer overflow and integer
+  division appear in chapter 3; `var` stays in an appendix. Chapter 1 shows the first deliberate compile error, an
+  unclosed string, and chapter 2 the first type error, `int count = "three";` (D123).
 - **`==` versus `.equals`** is taught in chapter 3 with the comparison operators, with the trap shown
   on the spot. The full "same object" explanation comes when objects arrive: arrays in chapter 7 and
   records in chapter 10.
@@ -87,6 +88,9 @@ the JDK. It does run the JDK's own jshell engine, which is where the course uses
 - **Tuples:** chapter 6 methods return one value each; chapter 10 becomes Records. Tuple unpacking and
   the one-line swap have no Java equivalent and are dropped; the three-line swap with a temporary
   variable is taught where assignment is.
+- **Text is joined with `+`, and `String.format` formats decimals and columns,** from chapter 3 (D117). The Python
+  course's comprehensions and `sum`, `max` and `min` become loops; a lambda appears only to sort
+  (`Comparator.comparing`), and streams are only named in an appendix (D118).
 - **Maps and sets** (chapter 9): printing order matches the real JDK exactly, and the order is the
   lesson: `HashMap` promises none, `LinkedHashMap` keeps insertion order like a Python `dict`,
   `TreeMap` sorts. A dedicated test covers every insertion method, several resizes and colliding keys.
@@ -190,9 +194,10 @@ It fails, rather than shipping, when:
   syntax kinds, library members by their owning type, library types, and keywords. A fence exempted
   because it fails to compile on purpose must really fail to compile. The gate is syntactic, so ideas
   with no syntax of their own, such as recursion, rely on the review in section 6;
-- anything private is reachable under the published site: answer keys, worked solutions, or the check declarations
-  as a whole. Each check travels only inside its own box, with just what that check needs; a single file or page
-  carrying every check is never published;
+- anything private is reachable under the published site: answer keys, the worked solutions together, or the check
+  declarations as a whole (a box's own worked solution travels inside that box, revealed by the reader one exercise at
+  a time, D24 and D37). Each check travels only inside its own box, with just what that check needs; a single file or
+  page carrying every check is never published;
 - the runtime files do not match their pinned checksums.
 
 **The trusted JDK is pinned too.** The real JDK the differential gate compares against is a specific
@@ -222,10 +227,12 @@ by guessing from the browser's name. Everything works at 390 pixels wide.
 
 Chapters are adapted one by one from Python Foundations: same structure, same projects and practice
 stories where they fit Java, redesigned where the decisions above say so, in the Python course's voice.
-The machinery comes first, with chapter 1 as its pilot. Before the author sees a chapter, it passes
-every gate and a review by fresh reviewers. The author then reviews the built chapter privately, as a
-page with working Run and Check buttons that takes comments and reads well on a phone; only after
-approval is it committed.
+The machinery comes first, with chapter 1 as its pilot. Before a chapter is committed it passes every
+gate, the three-way proof of its checks, an acceptance run of every page in Chromium, WebKit and Firefox at 390
+pixels (each box run and each check tried through the page's own controls, as a reader would), and a review by
+fresh reviewers. The author reviews chapter 1, and any chapter whose acceptance is less certain, as a private page
+with working Run and Check buttons that takes comments and reads well on a phone, and the others are committed on
+that evidence (D119). Chapters are written one at a time, each as an automated workflow (D120).
 
 Also carried over:
 - a practice page per chapter, one project built in checked steps;
@@ -297,8 +304,8 @@ Also carried over:
   scanner over the whole history with the personal pattern list supplied as an encrypted CI secret
   (`LEAK_PATTERNS_LOCAL`), so it never appears in the repository; with no secret the job fails and says so. On a pull
   request from a fork GitHub withholds the secret, so the job runs gitleaks and the generic patterns and says so, and the
-  maintainer runs the full scan before merging. `pages.yml` is a third workflow, run by hand: its build runs the
-  publishing guard, and every gate once a volume exists. Every Monday
+  maintainer runs the full scan before merging. `pages.yml` is a third workflow, run on every push to main and by hand
+  (D121): its build runs the publishing guard, and every gate once a volume exists. Every Monday
   `weekly.yml` runs the whole suite: the Node job with the front end's breaks, and every browser test in Chromium,
   WebKit and Firefox, one engine per job. Two checks run only on the Mac, through `ci/everything.sh`:
   `check-observations`, which reads the git-ignored corpus that only the real jshell regenerates, and the hash of the
@@ -308,8 +315,8 @@ Also carried over:
   `~/.java/.userPrefs` (a fresh runner has none), and `ci/setup.sh`'s installs, whose JDK download must pass its SHA-256
   check before anything unpacks or runs it. CI never rebuilds the runtime: it fetches the published releases, and the
   CI-only variant built without patch 0009 for the fork gate, and verifies their checksums.
-- `pages.yml` deploys the site to https://mmmugh.github.io/groundwork/, run by hand on the author's go: a fresh
-  checkout's build, uploaded as a Pages artifact; no Jekyll runs, so nothing needs `.nojekyll` (D98).
+- `pages.yml` deploys the site to https://mmmugh.github.io/groundwork/ (the course under `vol1/`, D122)
+  on every push to main, each push on the author's go (D121): a fresh checkout's build, uploaded as a Pages artifact; no Jekyll runs, so nothing needs `.nojekyll` (D98).
   https://mmmugh.github.io is one origin, shared by every GitHub Pages site on the account (D82), so no other Pages site
   on the account may serve untrusted or proof-of-concept content: a page there could read the course's storage in a
   reader's browser. Until the first chapter the index says it is being written (D103). What Pages sends, measured on
