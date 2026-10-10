@@ -9,7 +9,7 @@ the author's words are paraphrased here. The working notes these entries were fi
 plans the course was built from are in docs/superpowers/plans/. A commit hash in an entry names a commit of the history
 before the public repository's first commit, which stays private too (D96; D17's 2e05eb9 is the Python course's).
 
-## D1-D114
+## D1-D115
 
 - D1 (2026-09-27) RUNTIME: keep both promises (nothing installed; page talks to nobody) by OWNING
   the runtime: fork teavm-javac, fix it, pin and self-host it. The build will also diff every
@@ -596,6 +596,16 @@ before the public repository's first commit, which stays private too (D96; D17's
   had given the CI-only variant; and a ruleset on the default branch (no deletion, no force push, a pull request with
   the node, chromium and leaks checks green) that the repository admin role bypasses. Each set through `gh` on the
   author's go and read back. Recommended options.
+- D115 (2026-10-10) FIREFOX CAN REACH THE 60 SECONDS BEFORE THE LINE CAP: on GitHub's Linux runner, the second and third
+  weekly runs found Firefox at 63,222 and 64,419 lines of `while (true) System.out.println(1)` when the scratchpad's
+  60 s entry deadline ended it, short of its 100,000-line cap (D49). On a Mac Studio (M3 Ultra) Firefox reaches the cap
+  in about 39 s, Chromium and WebKit in about 8. Measured there, Java's println in Ristretto's engine costs Firefox
+  about twice what it costs Chromium, and each line's own message out of Ristretto's worker costs Firefox about as much
+  again and Chromium almost nothing; Firefox's page kept 60 frames a second, so the client is not the cost. D49
+  stands: DESIGN promises that a runaway stops at the reader's Stop or at 60 s, never that the cap comes first, and now
+  gives these times. The line-cap check runs on its own page with a 300 s entry deadline (the page's test hook), so it
+  tests the cap and not the machine. The per-line cost is a Ristretto finding for the give-back list. The author chose
+  the recommended option.
 
 ## R1-R4: the design review's defaults (2026-09-27)
 

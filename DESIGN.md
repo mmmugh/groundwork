@@ -145,11 +145,13 @@ the JDK. It does run the JDK's own jshell engine, which is where the course uses
   up to a minute in Firefox or on a phone (on an iPhone, 12 seconds in Edge and up to a minute in Safari); an entry then
   takes a couple of seconds (about five for the first one in Firefox); `/reset` starts a fresh virtual machine (under 10
   seconds, about 15 in Firefox), and `/reload` then runs the session's entries again. A runaway entry is stopped by the
-  reader or after 60 seconds, and the scratchpad starts a fresh session and says why. Unlike a box, an entry that uses
-  up memory is not reported as `java.lang.OutOfMemoryError`: the engine aborts, the session ends in plain words, and a
-  fresh one starts; a session can use several gigabytes first, so a small device may lose the tab. The memory a session
-  uses is never given back, so a long session ends and starts again: after roughly 70 to 150 entries, fewer when entries
-  declare many classes (about 50 in the worst case measured).
+  reader or after 60 seconds, and the scratchpad starts a fresh session and says why. Endless printing of short lines
+  usually ends sooner, at the scratchpad's cap of 100,000 lines: on a Mac Studio (M3 Ultra), in about 8 seconds in
+  Chromium and WebKit and about 40 in Firefox; on a slower computer, such as GitHub's Linux runner, Firefox reaches the
+  60 seconds first (D115). Unlike a box, an entry that uses up memory is not reported as `java.lang.OutOfMemoryError`:
+  the engine aborts, the session ends in plain words, and a fresh one starts; a session can use several gigabytes first,
+  so a small device may lose the tab. The memory a session uses is never given back, so a long session ends and starts
+  again: after roughly 70 to 150 entries, fewer when entries declare many classes (about 50 in the worst case measured).
 
 ## 3. Checking answers
 

@@ -43,6 +43,7 @@ const VERSION = MANIFEST.version;
 const FILE_URLS = ASSETS.map((n) => `${n}?sha256=${MANIFEST.files[n].sha256}`);
 const BOOT_MS = 250_000; // the client's own boot deadline is 240 s
 const ENTRY_MS = 120_000; // the slowest entry below, f(0), took 6.8 s under Node
+const LINE_CAP_DEADLINE_MS = 300_000; // the line-cap page's entry deadline (D115); readers get 60 s
 const PHASE_WORDS = ["Downloading jshell (about 30 MB) and checking it", "Starting Java",
   "Starting jshell, which takes about 10 seconds in Chrome and Safari on a computer, and up to a minute in Firefox or on a phone"];
 // The same on a page that is not secure (plain http from another device), where Safari and every iPhone or iPad browser
@@ -283,33 +284,13 @@ for (const engine of only ? [only] : Object.keys(ENGINES)) {
     capped && printed > 900 && printed < 1000 && (await text()).includes("This entry printed more than the scratchpad can show, so it was stopped."),
     { capped, printed, tail: (await text()).slice(-300) });
 
-  // Endless printing of short lines, the runaway a reader is likeliest to type, ends at the client's other cap: 100,000
-  // lines (200,000 characters, far under the character cap and Ristretto's stop), each its own output event, drawn once
-  // per animation frame. The transcript shows exactly 100,000 lines of 1, then the client's words, then a fresh session.
-  const freshBefore = await fresh(4);
-  const RUNAWAY = "while (true) System.out.println(1)";
-  const runawaySent = Date.now();
-  await type(RUNAWAY);
-  const runawayEnded = await until(t, () => document.getElementById("scratchpad").dataset.session === "5", null, ENTRY_MS);
-  const runawayMs = Date.now() - runawaySent;
-  const freshAfter = await fresh(5);
-  const afterRunaway = await text();
-  const from = afterRunaway.lastIndexOf(`\njshell> ${RUNAWAY}\n`) + `\njshell> ${RUNAWAY}\n`.length;
-  const CAP_WORDS = "This entry printed more than the scratchpad can show, so it was stopped. The session ended, and its variables and methods are gone.\n";
-  let ones = 0;
-  while (afterRunaway.startsWith("1\n", from + 2 * ones)) ones++;
-  check(`${engine}: endless printing of short lines stops at the client's 100,000-line cap (${runawayMs} ms): exactly 100,000 lines of 1, the client's words, then a fresh session`,
-    freshBefore && runawayEnded && freshAfter && await panel.getAttribute("data-ended") === "output-limit" && ones === 100_000
-      && afterRunaway.startsWith(CAP_WORDS + "|  Welcome to JShell", from + 2 * ones),
-    { freshBefore, runawayEnded, freshAfter, ones, next: afterRunaway.slice(from + 2 * ones, from + 2 * ones + 200) });
-
   // The engine's other two ways of giving out, in this browser: Ristretto's own 1 MiB stop, in the engine's words,
   // which a two-byte character meets before the client's caps (524 lines of these); and memory past 2 GiB, which is
   // how a long session ends: the worker's glue then fails with this browser's own RangeError (V8, WebKit and Firefox
   // word it differently, and the client knows all three). One entry holding 2 GB gets there at once.
-  const restarted3 = await fresh(5);
+  const restarted3 = await fresh(4);
   await type('while (true) System.out.println("é".repeat(1000))');
-  const restarted4 = await fresh(6);
+  const restarted4 = await fresh(5);
   const afterWide = await text();
   const twoByte = afterWide.split("é".repeat(1000) + "\n").length - 1;
   check(`${engine}: endless printing of a two-byte character meets Ristretto's own 1 MiB stop first (${twoByte} lines shown), in plain words, and a fresh session starts`,
@@ -326,6 +307,36 @@ for (const engine of only ? [only] : Object.keys(ENGINES)) {
       && !/Start offset|byteOffset|out-of-range|unreachable|RUST_BACKTRACE/.test(afterBig), { held, gone, tail: afterBig.slice(-400) });
   check(`${engine}: no request left the page's origin`, t.offsite.length === 0, t.offsite);
   check(`${engine}: no page error`, t.errors.length === 0, t.errors);
+  await t.close();
+
+  // Endless printing of short lines, the runaway a reader is likeliest to type, ends at the client's other cap: 100,000
+  // lines (200,000 characters, far under the character cap and Ristretto's stop), each its own output event, drawn once
+  // per animation frame. The transcript shows exactly 100,000 lines of 1, then the client's words, then a fresh session.
+  // On its own page, whose entry deadline the page's test hook lengthens (it is 60 s for readers), so the check measures
+  // the cap and not the machine (D115): on a Mac Studio (M3 Ultra) Chromium and WebKit reach the cap in about 8 s and
+  // Firefox in about 39 s, and on GitHub's Linux runner Firefox had printed 64,419 lines when the 60 s ended it.
+  t = await open(engine, site, PAGE, PHONE, `(${WATCH})();\nwindow.jfScratchpadLimits = { deadlineMs: ${LINE_CAP_DEADLINE_MS} };`);
+  await t.page.waitForFunction(() => document.documentElement.dataset.java && document.documentElement.dataset.scratchpad);
+  await t.page.locator(".scratch-tab").click();
+  const freshBefore = await fresh(1);
+  const RUNAWAY = "while (true) System.out.println(1)";
+  const runawaySent = Date.now();
+  await t.page.locator("#scratchpad .entry textarea").fill(RUNAWAY);
+  await t.page.locator("#scratchpad .entry textarea").press("Enter");
+  const runawayEnded = await until(t, () => document.getElementById("scratchpad").dataset.session === "2", null, LINE_CAP_DEADLINE_MS + 20_000);
+  const runawayMs = Date.now() - runawaySent;
+  const freshAfter = await fresh(2);
+  const afterRunaway = (await t.page.locator("#scratchpad .transcript").textContent()) ?? "";
+  const from = afterRunaway.lastIndexOf(`\njshell> ${RUNAWAY}\n`) + `\njshell> ${RUNAWAY}\n`.length;
+  const CAP_WORDS = "This entry printed more than the scratchpad can show, so it was stopped. The session ended, and its variables and methods are gone.\n";
+  let ones = 0;
+  while (afterRunaway.startsWith("1\n", from + 2 * ones)) ones++;
+  check(`${engine}: endless printing of short lines stops at the client's 100,000-line cap (${runawayMs} ms): exactly 100,000 lines of 1, the client's words, then a fresh session`,
+    freshBefore && runawayEnded && freshAfter && await t.page.locator("#scratchpad").getAttribute("data-ended") === "output-limit"
+      && ones === 100_000 && afterRunaway.startsWith(CAP_WORDS + "|  Welcome to JShell", from + 2 * ones),
+    { freshBefore, runawayEnded, freshAfter, ones, next: afterRunaway.slice(from + 2 * ones, from + 2 * ones + 200) });
+  check(`${engine}: no request left the page's origin (line cap)`, t.offsite.length === 0, t.offsite);
+  check(`${engine}: no page error (line cap)`, t.errors.length === 0, t.errors);
   await t.close();
 
   // The backstop, shortened to 5 s by the page's test hook (it is 60 s for readers): an endless loop ends there.
