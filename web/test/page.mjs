@@ -384,8 +384,9 @@ for (const engine of only ? [only] : Object.keys(ENGINES)) {
   check(`${engine}: and reaches the page's error reporting`, t.errors.some((e) => e.includes("jf: an error inside Check")), t.errors);
   await t.close();
 
-  // An edited box keeps its code across a reload, and in Chromium across the tab crash box 12 causes (D41).
-  const CRASHES_THE_PAGE = ["chromium"]; // D41, as web/test/runner.mjs records it
+  // An edited box keeps its code across a reload, and across the tab crash box 12 causes in Chromium (D41) and, on
+  // Linux, in WebKit and Firefox (D113), as web/test/runner.mjs records them.
+  const CRASHES_THE_PAGE = ["chromium", ...(process.platform === "linux" ? ["webkit", "firefox"] : [])];
   t = await open(engine, site, PAGES[0]);
   await ready(t);
   const KEPT = 'void main() {\n    IO.println("kept");\n}\n';
@@ -393,7 +394,7 @@ for (const engine of only ? [only] : Object.keys(ENGINES)) {
   await click(12, "Run");
   let crashed = false;
   try { await settled(12, 15000); } catch (e) { crashed = /crash/i.test(String(e)) || t.errors.includes("the page crashed"); }
-  check(`${engine}: a box that fills memory ${CRASHES_THE_PAGE.includes(engine) ? "takes the tab down (D41)" : "is stopped, and the page lives"}`,
+  check(`${engine}: a box that fills memory ${CRASHES_THE_PAGE.includes(engine) ? `takes the tab down (${engine === "chromium" ? "D41" : "D113"})` : "is stopped, and the page lives"}`,
     CRASHES_THE_PAGE.includes(engine) ? crashed : !crashed && (await text(12)).includes("Stopped:"), { crashed, errors: t.errors });
   const reopened = []; // page errors and crashes of the pages reopen() makes
   const reopen = async () => {

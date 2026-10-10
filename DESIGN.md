@@ -109,7 +109,9 @@ the JDK. It does run the JDK's own jshell engine, which is where the course uses
   `java.lang.StackOverflowError`), and the next Run works. One exception: in Chrome, Edge and other
   Chromium browsers, a program that keeps filling memory with arrays can take the whole tab down
   before its deadline, because the browser runs the program's worker in the page's own process, and
-  Safari can lose the page the same way after other runaway programs. Reloading brings the page back
+  Safari can lose the page the same way after other runaway programs. On Linux, Firefox and WebKit
+  browsers lose the page the same way when the program fills the machine's memory before its deadline
+  (D113). Reloading brings the page back
   with the reader's edited code, which each box keeps in the browser's storage. The engine cannot
   yet let a program *catch* those two errors, so no example tries to, and the differential gate
   enforces that.

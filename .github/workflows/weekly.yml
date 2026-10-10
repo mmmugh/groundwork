@@ -52,4 +52,11 @@ jobs:
           node-version: 25.9.0
       - run: npm ci
       - run: bash ci/setup.sh ${{ matrix.engine }}
-      - run: bash ci/weekly.sh ${{ matrix.engine }}
+      # The memory programs fill memory until something gives, and on Linux WebKit and Firefox give only when memory runs
+      # out (D113). The kernel then kills one process, and systemd stops the whole unit that held it (OOMPolicy=stop), which
+      # was the runner itself: GitHub cancelled the job. So the tests run in a scope of their own, capped at 6 GiB as the
+      # engines were measured, that carries on after a kill inside it; the scope's exit is the script's.
+      - run: >-
+          sudo systemd-run --scope --quiet -p MemoryMax=6G -p MemorySwapMax=0 -p OOMPolicy=continue
+          --uid="$(id -u)" --gid="$(id -g)" -- env PATH="$PATH" HOME="$HOME"
+          bash ci/weekly.sh ${{ matrix.engine }}

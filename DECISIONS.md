@@ -9,7 +9,7 @@ the author's words are paraphrased here. The working notes these entries were fi
 plans the course was built from are in docs/superpowers/plans/. A commit hash in an entry names a commit of the history
 before the public repository's first commit, which stays private too (D96; D17's 2e05eb9 is the Python course's).
 
-## D1-D112
+## D1-D113
 
 - D1 (2026-09-27) RUNTIME: keep both promises (nothing installed; page talks to nobody) by OWNING
   the runtime: fork teavm-javac, fix it, pin and self-host it. The build will also diff every
@@ -581,6 +581,14 @@ before the public repository's first commit, which stays private too (D96; D17's
   keeps fdlibm (D33): it cannot match both, and fdlibm is what `StrictMath` gives everywhere. The differential gate holds
   the difference on linux-x64 only, with the measured value and the reason, and requires the case identical elsewhere
   (Plan 4b's V-17); DESIGN says what a reader with an x86-64 JDK may see. Shown to the author before the push.
+- D113 (2026-10-10) ON LINUX, WEBKIT AND FIREFOX LOSE THE PAGE WHEN MEMORY RUNS OUT: the first weekly run found that the
+  memory programs (a run, or a box, that keeps adding 8 MB arrays) behave on Linux as Chromium's do everywhere (D41),
+  not as WebKit's and Firefox's do on the Mac, where they run to the 20-second deadline. In an Ubuntu 24.04 container
+  capped at 6 GB, WebKit 2359 lost the page about 12 s in and Firefox 1543 about 2.5 s in, the next Run in that page
+  failed, and the edited code came back with the page, as D41 promises. On the runner, uncapped, the kernel's
+  out-of-memory kill made systemd stop the runner's own unit, so GitHub cancelled the job; weekly.yml now runs each
+  browser job in a scope capped at 6 GiB that carries on after a kill inside it. The tests' lists are per platform
+  (Plan 4b's V-17), and DESIGN section 2 names Linux. Shown to the author before the push.
 
 ## R1-R4: the design review's defaults (2026-09-27)
 

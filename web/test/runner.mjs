@@ -136,17 +136,22 @@ for (const engine of only ? [only] : Object.keys(ENGINES)) {
   // Step 5 decides this expectation per engine: the JDK's OutOfMemoryError line, or, only for an engine Step 5
   // recorded running this program to the deadline, a timeout. Either way the page lives on and the next Run works.
   // An engine in CRASHES_THE_PAGE loses the whole page instead (D41), and WebKit loses it when the program follows
-  // other runaway runs (D43), so this program runs in a page of its own, after this session.
-  const GROWS_TO_THE_DEADLINE = [
+  // other runaway runs (D43), so this program runs in a page of its own, after this session. Both lists are per
+  // platform where the engine differs (D113); GROWS_TO_THE_DEADLINE was measured on the Mac.
+  const GROWS_TO_THE_DEADLINE = process.platform === "darwin" ? [
     "webkit", // WebKit 2359: no error by the 20 s deadline (about 24,500 arrays in, in a probe that counted them)
     "firefox", // Firefox 1543: the same (about 19,200 arrays in)
-  ];
+  ] : [];
   const CRASHES_THE_PAGE = [
     // D41. Chromium 153 (headless shell 1243): the page crashed about 925 ms in, three times out of three, and the
     // next Run in that page failed. Playwright's page.reload() of the crashed target failed too, a limit of the
     // automation object, not evidence of what a reader's reload does. Chromium runs a dedicated worker in its
     // page's process.
     "chromium",
+    // D113. On Linux, WebKit 2359 and Firefox 1543 let the program grow until memory runs out, and the page is lost:
+    // in an Ubuntu 24.04 container capped at 6 GB, WebKit about 12 s in and Firefox about 2.5 s in, and the next Run in
+    // that page failed. weekly.yml runs them in a scope capped the same way.
+    ...(process.platform === "linux" ? ["webkit", "firefox"] : []),
   ];
   const GROW = 'void main() { var keep = new java.util.ArrayList<long[]>(); while (true) keep.add(new long[1_000_000]); }';
   o = await run('void main() { String s = IO.readln("How many? "); IO.println(s); }', { stdin: "", final: false });
@@ -196,7 +201,7 @@ for (const engine of only ? [only] : Object.keys(ENGINES)) {
   if (CRASHES_THE_PAGE.includes(engine)) {
     // Pinned, so a browser that stops crashing is noticed: then the engine leaves CRASHES_THE_PAGE, and DESIGN.md
     // section 2 loses its note (D41).
-    check(`${engine}: memory used up still takes the whole page down (D41; if this fails, take ${engine} off CRASHES_THE_PAGE and update DESIGN.md section 2)`,
+    check(`${engine}: memory used up still takes the whole page down (${engine === "chromium" ? "D41" : "D113"}; if this fails, take ${engine} off CRASHES_THE_PAGE and update DESIGN.md section 2)`,
       g.status === "threw" && c.errors.includes("the page crashed"), { g, errors: c.errors });
   } else {
     check(`${engine}: memory used up bit by bit is reported as the JDK reports it`,
