@@ -90,7 +90,9 @@ says which is missing. A `predict` check's answers are text: its stated output i
 more right prediction (a ` ```text ` fence under `## <box id>`) and one wrong one (a ` ```text ` fence under
 `### mistake`). Each answer is judged by the page's own Check code (`web/page/check.js`) on the browser
 runtime and on the pinned JDK, a prediction once, as text; a wrong verdict fails the build and names the
-box, the answer (`worked solution 2`, `mistake 1`), the runtime and what Check said.
+box, the answer (`worked solution 2`, `mistake 1`), the runtime and what Check said. A `method`, `output` or
+`input` check also needs a mistake that compiles: one that fails to compile, or changes the method's signature,
+never reaches the check's cases, so a box whose every mistake stops at the compiler fails the build.
 
 **The starter rule.** A `starter` is the code the reader starts from, held to the same vocabulary rule as
 everything else below. When a check declares one, the box shows the starter, and its own fence, the

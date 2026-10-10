@@ -213,6 +213,47 @@ final class ProofGateTest {
     T.check(!Files.exists(p.resolve("build/.work/proofs.json")) && !r.out().contains("answers judged"),
         "the proof itself runs only with the gates that run under Node: " + r.out());
   }
+  static void testAnExpectedInfinityIsMetOnlyByItselfOnBothRuntimes() throws Exception {
+    // The method harness's tolerance, 1e-9 × max(1, |expected|), is infinite for an expected infinity, and would pass
+    // any answer but NaN: it applies to a finite expected value only. web/test/check.mjs shows it on the browser runtime;
+    // here the page's own check.js judges it on each.
+    Map<String, Object> big = Map.of("kind", "method", "name", "big", "returns", "double", "params", List.of("double"),
+        "cases", List.of(List.of("1", "Double.POSITIVE_INFINITY")));
+    String f = "double big(double x) {\n    return %s;\n}\n";
+    T.eq(List.of(), prove("proof-infinity", proof("m#1", big, List.of(
+            answer("worked solution 1", f.formatted("1.0 / 0"), true),
+            answer("worked solution 2", f.formatted("Double.POSITIVE_INFINITY"), true),
+            answer("mistake 1", f.formatted("5"), false),
+            answer("mistake 2", f.formatted("Double.NEGATIVE_INFINITY"), false)))),
+        "an expected infinity passes itself alone, on each runtime");
+  }
+  static void testABoxWhoseMistakesAllFailToCompileFails() throws Exception {
+    // A mistake that fails to compile, or that changes the method's signature, proves only that Check reports it: it
+    // never reaches the check's cases. With one case, 4 -> true, m#1's check passes `return true;`, and no such mistake
+    // could show it. So a checked box needs a mistake that compiles: m#1 and o#1 have none and are reported, once each
+    // whatever their number of mistakes and runtimes; m#2, with one that compiles beside one that does not, is not.
+    String noSemicolon = "boolean isEven(int n) {\n    return n % 2 == 0\n}\n";
+    Map<String, Object> weak = Map.of("kind", "method", "name", "isEven", "returns", "boolean", "params", List.of("int"),
+        "cases", List.of(List.of("4", "true")));
+    var problems = prove("proof-uncompiled",
+        proof("m#1", weak, List.of(
+            answer("worked solution 1", EVEN, true),
+            answer("worked solution 2", "boolean isEven(int n) {\n    return n % 2 != 1;\n}\n", true),
+            answer("mistake 1", noSemicolon, false),
+            answer("mistake 2", "boolean isEven(String n) {\n    return true;\n}\n", false))),
+        proof("o#1", Map.of("kind", "output", "expected", "Ada\n"), List.of(
+            answer("worked solution 1", "void main() {\n    IO.println(\"Ada\");\n}\n", true),
+            answer("worked solution 2", "void main() {\n    IO.print(\"Ada\\n\");\n}\n", true),
+            answer("mistake 1", "void main() {\n    IO.println(\"Ada\")\n}\n", false))),
+        proof("m#2", IS_EVEN, List.of(
+            answer("worked solution 1", EVEN, true),
+            answer("mistake 1", noSemicolon, false),
+            answer("mistake 2", ODD, false))));
+    T.eq(List.of(
+        "m#1: every mistake fails to compile, so none tries the check's cases: add a mistake that compiles and gives a wrong answer",
+        "o#1: every mistake fails to compile, so none tries the check's cases: add a mistake that compiles and gives a wrong answer"),
+        problems, "a box whose every mistake stops at the compiler is reported, once");
+  }
   static void testAnEmptyProofListIsAFailure() throws Exception {
     T.check(!prove("proof-empty").isEmpty(), "zero proofs is not a pass (Build.java never sends an empty list)");
   }

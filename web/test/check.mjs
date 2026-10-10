@@ -242,5 +242,17 @@ check("double: ...and 2e-9 from 0 does not", !v.passed, v);
 v = await runCheck(r, "double[] sums(double a, double b) { return new double[] { a + b }; }\n",
   { kind: "method", name: "sums", returns: "double[]", params: ["double", "double"], cases: [["0.1, 0.2", "new double[] {0.3}"]] });
 check("double[]: an array keeps Objects.deepEquals, so an element off in the last bit fails", !v.passed, v);
+// The tolerance applies to a finite expected value only: for an infinity it would be infinite too, and pass any answer
+// but NaN. An expected infinity is met by that infinity alone.
+const big = (body) => runCheck(r, `double big(double x) { return ${body}; }\n`,
+  { kind: "method", name: "big", returns: "double", params: ["double"], cases: [["1", "Double.POSITIVE_INFINITY"]] });
+v = await big("5");
+check("double: with an expected infinity, a returned 5 fails",
+  !v.passed && v.lines[0]?.text === "big(1) returned 5.0, expected Double.POSITIVE_INFINITY", v);
+v = await big("Double.NEGATIVE_INFINITY");
+check("double: ...and so does the opposite infinity",
+  !v.passed && v.lines[0]?.text === "big(1) returned -Infinity, expected Double.POSITIVE_INFINITY", v);
+v = await big("1.0 / 0");
+check("double: ...while 1.0 / 0, the infinity itself, passes", v.passed, v);
 await r.close();
 done();
