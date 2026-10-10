@@ -411,6 +411,27 @@ for (const engine of only ? [only] : Object.keys(ENGINES)) {
   await b1.getByRole("button", { name: "Reset", exact: true }).click();
   b1 = await reopen();
   check(`${engine}: Reset forgets the kept edit`, (await b1.locator("textarea.code").inputValue()).includes("Hello, <world>"), null);
+  // A kept edit belongs to the code it edited: an edit kept under this box's position but for other code (an earlier
+  // version of the page, or another box that stood here) never loads into it; and each box's key carries a fingerprint
+  // of its own code, so two boxes with different code never share one.
+  const plantedKeys = await b1.page().evaluate(() => {
+    const at = `jf:${location.pathname}:ch01-run#1`;
+    localStorage.setItem(at, "stale: the old key form");
+    localStorage.setItem(`${at}:00000000`, "stale: another box's code");
+    return [at, `${at}:00000000`].filter((k) => localStorage.getItem(k) !== null).length;
+  });
+  b1 = await reopen();
+  check(`${engine}: a kept edit for other code at this box's place does not load into it`,
+    plantedKeys === 2 && (await b1.locator("textarea.code").inputValue()).includes("Hello, <world>"), { plantedKeys });
+  const b2 = b1.page().locator('.box[data-box="ch01-run#2"]');
+  await b1.locator("textarea.code").fill(KEPT);
+  await b2.locator("textarea.code").fill(KEPT);
+  await b1.page().waitForTimeout(500); // the box keeps an edit on input; give both a moment
+  const kept = await b1.page().evaluate(() => Object.keys(localStorage)
+    .filter((k) => /:ch01-run#[12]:[0-9a-f]{8}$/.test(k) && localStorage.getItem(k).includes("kept")));
+  const hashes = kept.map((k) => k.slice(-8));
+  check(`${engine}: each box keeps its edit under a fingerprint of its own code (two boxes, two fingerprints)`,
+    kept.length === 2 && hashes[0] !== hashes[1] && !hashes.includes("00000000"), kept);
   check(`${engine}: no request left the page's origin across the reloads`, t.offsite.length === 0, t.offsite);
   // The crash box 12 causes is the one page error expected, and only where the tab went down.
   const reloadErrors = [...t.errors.filter((e) => !(crashed && e === "the page crashed")), ...reopened];

@@ -111,11 +111,20 @@ function showVerdict(v, check, result, source) {
   finish(v, result.stopped ?? count(result.lines, noun), ...(result.lines.length ? [list] : []));
 }
 
+// A kept edit belongs to the code it edited: its key carries a fingerprint of the box's code as the page was built
+// (FNV-1a, 32 bits), so when a later version of the course changes or moves a box, an edit never loads into another
+// box's code. crypto.subtle is not used: a page over plain http has none, and this needs no secrecy.
+function fingerprint(text) {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < text.length; i++) h = Math.imul(h ^ text.charCodeAt(i), 0x01000193);
+  return (h >>> 0).toString(16).padStart(8, "0");
+}
+
 // runner(): the page's one BrowserRunner, created on first use.
 export function wireBox(box, runner) {
   const code = box.querySelector("textarea.code");
   const original = code.defaultValue; // the code as the page was built
-  const key = `jf:${location.pathname}:${box.dataset.box}`; // the path carries the volume
+  const key = `jf:${location.pathname}:${box.dataset.box}:${fingerprint(original)}`; // the path carries the volume
   const controls = element("div", "controls");
   const runButton = button("Run", run);
   const endButton = button("End input", endInput);
