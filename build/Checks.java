@@ -27,7 +27,7 @@ import javax.lang.model.SourceVersion;
  *  reads one box's entry, and Checks.published is the part of it the box carries on the page (D37: each check
  *  travels only inside its own box; no file carrying every check is published). The starter rule (D40(b)):
  *  a box whose check declares a starter publishes the starter in place of its own fence, and no box may
- *  publish a fence from its own _solutions.md section. */
+ *  publish a worked solution from its own _solutions.md section. */
 final class Checks {
   private Checks() {}
 
@@ -196,7 +196,8 @@ final class Checks {
   }
 
   /** The second half of the starter rule: the source a box publishes (its starter, or its own fence when
-   *  it has none) must not be, after Audit.tidy, any fence in that box's own _solutions.md section. */
+   *  it has none) must not be, after Audit.tidy, any worked solution in that box's own _solutions.md section. A
+   *  mistake may be: it is a wrong answer, never revealed, and the unchanged starter is the commonest one. */
   private static void workedSolutions(List<String> problems, Volume v, Map<String, Box> boxes) throws BuildError {
     if (v.solutions() == null) return;
     for (var s : Vocabulary.solutions(v.solutions()).entrySet()) {
@@ -204,7 +205,7 @@ final class Checks {
       if (b == null) continue; // Vocabulary.check reports a section for no such box
       Object starter = v.checks().get(b.id()) instanceof Map<?, ?> m ? m.get("starter") : null;
       String shown = Audit.tidy(starter instanceof String t ? t : b.source());
-      for (String fence : s.getValue()) {
+      for (String fence : s.getValue().worked()) {
         if (Audit.tidy(fence).equals(shown)) {
           problems.add(b.id() + ": the page would publish the worked solution; give its check a \"starter\"");
           break;

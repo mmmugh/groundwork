@@ -238,4 +238,56 @@ final class PagesTest {
     T.check(!index.contains("being written"), "a published chapter is never called unwritten");
     T.check(index.contains("href=\"vol-fixture/"), "and the index links the volume's pages");
   }
+
+  // DESIGN section 6, D24: a box's first worked solution, and the note under it, ride in that box's own markup, last in
+  // the box, behind a "Show a solution" the reader opens for that box alone. A practice step reveals the same way (every
+  // page's boxes render through one method), and a section that follows a "### mistake" starts with worked solutions again.
+  static void testAWorkedSolutionRidesInItsOwnBoxBehindShowASolution() throws Exception {
+    Path p = Fixtures.project("pages-reveal");
+    Files.writeString(p.resolve("volumes/vol-fixture/content/_solutions.md"), """
+        ## ch01-first-programs#4
+
+        ```java
+        void main() {
+            IO.println("Ada");
+        }
+        ```
+
+        The name is *all* it prints.
+
+        ```java
+        void main() { IO.println("Ada"); }
+        ```
+
+        ### mistake
+
+        ```java
+        void main() {
+            IO.println("ada");
+        }
+        ```
+
+        ## ch02-types-and-input-practice#1
+
+        ```java
+        void main() {
+            String line = IO.readln("Number: ");
+            IO.println(Integer.parseInt(line) * 2);
+        }
+        ```
+        """);
+    var r = Fixtures.build(p);
+    T.eq(0, r.exit(), "build: " + r.out());
+    String ch1 = Files.readString(p.resolve("site/vol-fixture/ch01-first-programs.html"));
+    String reveal = "<details class=\"solution\"><summary>Show a solution</summary><pre>void main() {\n    IO.println(&quot;Ada&quot;);\n}\n</pre>"
+        + "<p>The name is <em>all</em> it prints.</p></details></div>";
+    int box = ch1.indexOf("id=\"ch01-first-programs#4\""), at = ch1.indexOf(reveal);
+    T.check(box >= 0 && at > box, "box #4 ends with its first worked solution and the note under it, behind Show a solution");
+    T.eq(1, ch1.split("<details class=\"solution\">", -1).length - 1, "and no other box on the page has one");
+    String practice = Files.readString(p.resolve("site/vol-fixture/ch02-types-and-input-practice.html"));
+    int step = practice.indexOf("id=\"ch02-types-and-input-practice#1\"");
+    int shown = practice.indexOf("<details class=\"solution\"><summary>Show a solution</summary><pre>void main() {\n    String line = IO.readln(&quot;Number: &quot;);");
+    T.check(step >= 0 && shown > step && shown < practice.indexOf("</div>", step),
+        "a practice step reveals its worked solution the same way, inside its own box");
+  }
 }

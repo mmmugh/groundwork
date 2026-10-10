@@ -145,4 +145,31 @@ final class VocabularyTest {
     T.check(!v.keywords().contains("final"), "the implicit class's final is not the author's: " + v.keywords());
     T.check(!v.members().contains("java.lang.Object#<init>"), "the implicit constructor's super() is not the author's: " + v.members());
   }
+  static void testAMistakeIsHeldToItsChapterWhenItCompilesAndLetBeWhenItDoesNot() throws Exception {
+    // A mistake exists to prove a check fails a realistic wrong answer, and a reader at chapter 1 cannot write one with
+    // chapter 2's Integer.parseInt: so a mistake that compiles is held to the vocabulary, and reported as a mistake, not
+    // a solution. One that does not compile (the missing semicolon) is a realistic mistake too, and javac gives no
+    // resolved tree to read, so it is not reported at all.
+    Path p = Fixtures.project("vocab-mistakes");
+    Path f = p.resolve("volumes/vol-fixture/content/_solutions.md");
+    Files.writeString(f, Files.readString(f)
+        + "\n### mistake\n\n```java\nvoid main() {\n    IO.println(\"Ada\")\n}\n```\n"
+        + "\n```java\nvoid main() {\n    IO.println(Integer.parseInt(\"1\"));\n}\n```\n");
+    Volume v = Volume.loadAll(p.resolve("volumes")).get(0);
+    Map<Page, List<Box>> boxes = new LinkedHashMap<>();
+    for (Page page : v.pages()) boxes.put(page, Boxes.of(v, page));
+    List<String> problems = Vocabulary.check(v, boxes);
+    T.check(problems.size() == 1
+        && problems.get(0).startsWith("ch01-first-programs#4 (mistake): uses what the course has not shown by chapter 1: ")
+        && problems.get(0).contains("member java.lang.Integer#parseInt"),
+        "only the mistake that compiles is reported, as a mistake, naming what chapter 1 has not shown: " + problems);
+  }
+  static void testASectionTakesNoLevelThreeHeadingButMistake() throws Exception {
+    // "### Mistakes" (or any other level-3 heading) would leave the fences under it worked solutions: revealed if first,
+    // held to the starter rule, and expected to pass their check. Refused by name instead.
+    Path f = Fixtures.project("vocab-solutions-heading").resolve("volumes/vol-fixture/content/_solutions.md");
+    Files.writeString(f, "## ch01-first-programs#4\n\n### Mistakes\n\n```java\nvoid main() {}\n```\n");
+    T.fails("content/_solutions.md: ch01-first-programs#4: \"### Mistakes\": the only level-3 heading a section takes is \"### mistake\"",
+        () -> Vocabulary.solutions(f), "a level-3 heading other than \"### mistake\" is a BuildError naming the file, the box and the heading");
+  }
 }

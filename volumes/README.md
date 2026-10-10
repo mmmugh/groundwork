@@ -16,7 +16,7 @@ volumes/<slug>/
     99-*.md                  appendices, published after the last chapter
     _boxes.json               box declarations (the file is never published; see below for what reaches boxes.json)
     _checks.json               check declarations (the file is never published; see below for what reaches boxes.json)
-    _solutions.md               worked solutions (never published)
+    _solutions.md               worked solutions and mistakes (the file is never published; see below for the reveal)
   practice/
     ch01-<slug>-practice.md   practice pages, one per chapter that has one
   quizzes/
@@ -83,8 +83,9 @@ built yet.
 
 **The starter rule.** A `starter` is the code the reader starts from, held to the same vocabulary rule as
 everything else below. When a check declares one, the box shows the starter, and its own fence, the
-author's answer, is published nowhere: the page's editor and `site/boxes.json`'s `source` both carry the
-starter, and the box has no file in the downloadable bundle. Nothing that describes the author's fence
+author's answer, is never what the box shows: the page's editor and `site/boxes.json`'s `source` both carry the
+starter, and the box has no file in the downloadable bundle (a reader who wants an answer opens the box's worked
+solution, below). Nothing that describes the author's fence
 is published with the starter either, since the starter does not print or do what the fence does: the
 page shows no stated output under the box, and its `site/boxes.json` entry has `expected` `null`,
 `stdin` `[]`, `raises` and `compileError` `null`, `varies` `false` and `why` `null` (no note above the box
@@ -92,8 +93,8 @@ shows it, since it explains the author's fence). The
 audit still runs the author's fence and compares it with the box's stated output fence, exactly as for
 any other box. The build fails with
 `the page would publish the worked solution; give its check a "starter"` when the code a box publishes
-(its starter, or its own fence when it has none) is, once tidied, a fence under that box's own `## <id>`
-in `_solutions.md`.
+(its starter, or its own fence when it has none) is, once tidied, a worked solution in that box's own
+section of `_solutions.md`; a mistake may be (the unchanged starter is the commonest mistake).
 
 **What reaches the page.** `_checks.json` itself is never published. Each check travels only inside its
 own box, in the box's `data-check` attribute, with just what that check needs: a method check's `name`,
@@ -103,6 +104,23 @@ only each check's `"kind"`, as `{"kind": "..."}`, and a predict box's `expected`
 single file holds every check's answers. The accepted cost (D37): view-source on a page shows a box's own
 expected values, a predict box's answer included. Never put anything in a check that the reader must not
 see.
+
+### `_solutions.md`
+
+Markdown, keyed by box id: `## <box id>` starts a box's section. The ` ```java ` fences under it, before any
+level-3 heading, are its **worked solutions**, each a right answer; the first is the one a reader may reveal, and
+the paragraphs right after it, up to the next fence or heading, are its note. `### mistake`, the only level-3
+heading a section takes (any other is a build error), starts its **mistakes**: the ` ```java ` fences after it
+are realistic wrong answers, and need not compile. The build reads no other fence here. Worked solutions are
+held to the starter rule (above) and to the vocabulary gate (below). A mistake is never held to the starter
+rule; it is held to the vocabulary gate when it compiles (a mistake a reader at that chapter could not write
+proves nothing about the check), and let be when it does not.
+
+**What reaches the page.** A box with a worked solution ends with **Show a solution**, shut. Opening it shows
+that box's first worked solution and its note, and nothing of any other box: they ride inside the box's own
+markup (DESIGN.md section 6, D24, D37), never in `site/boxes.json`, the bundle or any file of every solution. A
+second worked solution and every mistake are published nowhere. The accepted cost, as for a check:
+view-source on a page shows the first worked solution of each of its boxes.
 
 ## What a reader sees
 
@@ -128,6 +146,10 @@ prediction field ("What will it print?") and presses Check, which compares that 
 output (tidied, as for an `output` check) and then shows the output. A predict box has no Run and no Reset,
 and nothing of it is kept.
 
+**Show a solution**, at the end of a box with a worked solution in `_solutions.md` (an exercise or a practice
+step): shut until the reader opens it, it shows that box's first worked solution and its note, and nothing of any
+other box.
+
 **The scratchpad**: a tab on every chapter page, beside the boxes, that opens a jshell in the page. Nothing is downloaded
 until the reader opens it (DESIGN.md section 2).
 
@@ -138,8 +160,8 @@ in DESIGN.md section 2.
 
 ## The vocabulary gate
 
-A worked solution, a practice step, or a check's `starter` may not use anything the chapters have not
-taught by that point. "Taught by chapter N" is the union, over chapters 1 to N, of every teaching box's
+A worked solution, a practice step, a check's `starter`, or a mistake that compiles may not use
+anything the chapters have not taught by that point. "Taught by chapter N" is the union, over chapters 1 to N, of every teaching box's
 vocabulary on that chapter's own content page—a box marked `reference` or `compileError` teaches
 nothing. Vocabulary is derived from `javac`'s own syntax tree, not a word list: syntax kinds, library
 members by their owning type, library types, and keywords. A fence exempted with `compileError` still
@@ -162,5 +184,7 @@ publishes, per box, `_boxes.json`'s own declared fields (`why`, `raises`, `compi
 and, from `_checks.json`, only the check's `"kind"`. A box's `why` (on a box without a starter) is also
 shown to readers above the box, in `bundle.html`, and in the box's downloaded `.java` file, so write it for
 readers. A check's published fields ride in its own box's `data-check` (see `_checks.json` above), never
-in `boxes.json` and never all together in one file; nothing published ever carries `_solutions.md`'s
-content, a checked box's own fence when its check has a starter, or anything under `answer-keys/`.
+in `boxes.json` and never all together in one file. Of `_solutions.md`, only each box's first worked
+solution and its note are published, inside that box's own Show a solution; nothing published ever
+carries a second worked solution, a mistake, a checked box's own fence as its code when its check has a starter,
+or anything under `answer-keys/`.

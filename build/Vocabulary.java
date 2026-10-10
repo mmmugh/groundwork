@@ -28,13 +28,13 @@ import java.util.TreeMap;
 /** D4: refuses a worked solution, practice step or check starter that uses something the chapters have not
  *  shown yet. The known vocabulary at chapter N is the union, over chapters 1 to N, of every teaching box's
  *  Vocab (a chapter's own content page, its non-reference, non-compileError boxes); a practice page's boxes,
- *  every fence in _solutions.md and every starter in _checks.json are held to their own chapter's known
- *  vocabulary. */
+ *  every worked solution in _solutions.md, every mistake there that compiles, and every starter in _checks.json
+ *  are held to their own chapter's known vocabulary. */
 final class Vocabulary {
   private Vocabulary() {}
 
-  /** Every problem this volume's practice steps, worked solutions and check starters raise against the
-   *  vocabulary its chapters have actually taught by then. */
+  /** Every problem this volume's practice steps, worked solutions, mistakes that compile and check starters raise
+   *  against the vocabulary its chapters have actually taught by then. */
   static List<String> check(Volume v, Map<Page, List<Box>> boxes) throws BuildError {
     Map<String, Page> pageOf = new HashMap<>();
     for (var e : boxes.entrySet()) for (Box b : e.getValue()) pageOf.put(b.id(), e.getKey());
@@ -62,7 +62,15 @@ final class Vocabulary {
         Page p = pageOf.get(id);
         if (p == null) throw new BuildError(v.solutions() + ": " + id + ": no such box");
         Vocab known = knownFor(knownByChapter, p, v.solutions() + ": " + id, "a solution");
-        for (String fence : s.getValue()) check(problems, id, "solution", fence, p.chapter(), known);
+        for (String fence : s.getValue().worked()) check(problems, id, "solution", fence, p.chapter(), known);
+        // A mistake is held to its chapter too: one a reader at this point could not have written proves nothing about
+        // whether the check is fair to that reader. One that does not compile is let be (a realistic mistake may be a
+        // compile error), since javac gives no resolved tree to read its vocabulary from.
+        for (String fence : s.getValue().mistakes()) {
+          Vocab used;
+          try { used = Vocab.of(fence); } catch (BuildError e) { continue; }
+          beyond(problems, id, "mistake", used, p.chapter(), known);
+        }
       }
     }
     for (var e : v.checks().entrySet()) {
@@ -94,6 +102,10 @@ final class Vocabulary {
       problems.add(id + " (" + kind + "): does not compile");
       return;
     }
+    beyond(problems, id, kind, used, chapter, known);
+  }
+
+  private static void beyond(List<String> problems, String id, String kind, Vocab used, int chapter, Vocab known) {
     List<String> beyond = used.beyond(known);
     if (!beyond.isEmpty())
       problems.add(id + " (" + kind + "): uses what the course has not shown by chapter " + chapter + ": " + String.join(", ", beyond));
@@ -123,9 +135,17 @@ final class Vocabulary {
     return result;
   }
 
-  /** _solutions.md's "## &lt;box id&gt;" sections, each mapped to the body of every java fence under it (an
-   *  alternative or a second worked solution included, not only the first). */
-  static Map<String, List<String>> solutions(Path file) throws BuildError {
+  /** One "## &lt;box id&gt;" section of _solutions.md. worked: the body of every java fence under the heading before
+   *  "### mistake", in order; each is a right answer, and the first is the one a reader may reveal (Pages.appendBox).
+   *  note: the blocks right after that first fence, up to the next fence or heading, which the reveal shows under the
+   *  code. mistakes: the body of every java fence after "### mistake": realistic wrong answers, published nowhere, never
+   *  held to the starter rule, and free not to compile. A fence in any other language is in none of them. */
+  record Section(List<String> worked, List<Markdown.Block> note, List<String> mistakes) {}
+
+  /** _solutions.md's "## &lt;box id&gt;" sections, by id, in file order; each made at its heading, so a heading for no
+   *  such box is reported even without a fence. "### mistake" is the one level-3 heading a section takes: any other is
+   *  a BuildError, since a misspelled one would leave its mistakes worked solutions. */
+  static Map<String, Section> solutions(Path file) throws BuildError {
     String md;
     try {
       md = Files.readString(file, StandardCharsets.UTF_8);
@@ -138,12 +158,37 @@ final class Vocabulary {
     } catch (BuildError e) {
       throw new BuildError(file + ": " + e.getMessage());
     }
-    Map<String, List<String>> sections = new LinkedHashMap<>();
+    Map<String, Section> sections = new LinkedHashMap<>();
     String id = null;
+    boolean mistakes = false, note = false;
     for (Markdown.Block block : blocks) {
-      if (block instanceof Markdown.Heading h && h.level() == 2) id = h.text().trim();
-      else if (id != null && block instanceof Markdown.Fence f && f.lang().equals("java"))
-        sections.computeIfAbsent(id, k -> new ArrayList<>()).add(f.body());
+      if (block instanceof Markdown.Heading h) {
+        note = false;
+        if (h.level() == 2) {
+          id = h.text().trim();
+          sections.computeIfAbsent(id, k -> new Section(new ArrayList<>(), new ArrayList<>(), new ArrayList<>()));
+          mistakes = false;
+        } else if (h.level() == 3 && id != null) {
+          if (!h.text().trim().equals("mistake"))
+            throw new BuildError(file + ": " + id + ": \"### " + h.text().trim() + "\": the only level-3 heading a section takes is \"### mistake\"");
+          mistakes = true;
+        }
+        continue;
+      }
+      if (id == null) continue;
+      Section s = sections.get(id);
+      if (block instanceof Markdown.Fence f) {
+        note = false;
+        if (!f.lang().equals("java")) continue;
+        if (mistakes) {
+          s.mistakes().add(f.body());
+        } else {
+          note = s.worked().isEmpty();
+          s.worked().add(f.body());
+        }
+      } else if (note) {
+        s.note().add(block);
+      }
     }
     return sections;
   }

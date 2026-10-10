@@ -118,8 +118,10 @@ final class Pages {
     }
 
     List<Page> pages = v.pages();
+    // _solutions.md is read once a volume; each box's first worked solution then rides in that box alone (appendBox).
+    Map<String, Vocabulary.Section> solutions = v.solutions() == null ? Map.of() : Vocabulary.solutions(v.solutions());
     List<Rendered> rendered = new ArrayList<>();
-    for (Page p : pages) rendered.add(render(v, p.file(), boxes.get(p)));
+    for (Page p : pages) rendered.add(render(v, p.file(), boxes.get(p), solutions));
 
     for (int i = 0; i < pages.size(); i++) {
       Page p = pages.get(i);
@@ -161,7 +163,7 @@ final class Pages {
    *  stripped-out part label, and its body HTML. */
   private record Rendered(String pageTitle, String part, String body) {}
 
-  private static Rendered render(Volume v, Path file, List<Box> boxes) throws BuildError {
+  private static Rendered render(Volume v, Path file, List<Box> boxes, Map<String, Vocabulary.Section> solutions) throws BuildError {
     String raw;
     try {
       raw = Files.readString(file, StandardCharsets.UTF_8);
@@ -192,7 +194,8 @@ final class Pages {
       Markdown.Block blk = blocks.get(i);
       if (blk instanceof Markdown.Fence f) {
         if (f.lang().equals("java")) {
-          appendBox(body, v, boxes.get(boxIdx++));
+          Box b = boxes.get(boxIdx++);
+          appendBox(body, v, b, solutions.get(b.id()));
           if (Boxes.isOutput(blocks, i + 1)) i++; // its stated output fence: already consumed
           continue;
         }
@@ -208,8 +211,8 @@ final class Pages {
    *  (D37); its code is the check's starter when it has one, never the author's own fence (D40(b)), and then
    *  nothing that describes that fence either (see stated and declared). A method check lists its cases under
    *  the code; a predict box shows its code read-only and holds back its output, which is the answer the
-   *  reader predicts. */
-  private static void appendBox(StringBuilder out, Volume v, Box b) {
+   *  reader predicts. A box with a worked solution ends with it, shut, behind "Show a solution". */
+  private static void appendBox(StringBuilder out, Volume v, Box b, Vocabulary.Section solution) {
     Checks.Check c = Checks.of(v, b);
     Decl d = declared(c, b);
     if (d.why() != null && !d.why().isBlank())
@@ -231,6 +234,16 @@ final class Pages {
     }
     String stated = stated(c, b);
     if (stated != null) out.append("<pre class=\"output\">").append(escape(stated)).append("</pre>");
+    // DESIGN section 6, D24: worked solutions are revealed one exercise at a time, never published together. Only the
+    // first worked solution of this box's own _solutions.md section, and its note, ride in this box's own markup, shut
+    // until the reader opens them; a second worked solution and every mistake are published nowhere. A details
+    // element opens and shuts with no script.
+    if (solution != null && !solution.worked().isEmpty()) {
+      out.append("<details class=\"solution\"><summary>Show a solution</summary><pre>")
+          .append(escape(solution.worked().get(0))).append("</pre>");
+      for (Markdown.Block n : solution.note()) out.append(Markdown.html(n));
+      out.append("</details>");
+    }
     out.append("</div>");
   }
 

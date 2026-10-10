@@ -117,7 +117,15 @@ final class ChecksTest {
     String ch1 = page(p, "ch01-first-programs");
     T.check(ch1.contains("data-check=\"{&quot;kind&quot;:&quot;output&quot;,&quot;expected&quot;:&quot;Ada\\n&quot;}\""), "the output check rides in its box: " + ch1);
     T.check(ch1.contains("<textarea class=\"code\" wrap=\"off\" spellcheck=\"false\">void main() {\n    IO.println(&quot;&quot;);\n}\n</textarea>"), "the textarea holds the starter");
-    T.check(!ch1.contains("IO.println(&quot;Ada&quot;)"), "the author's answer is not on the page");
+    // The reveal (DESIGN section 6, D24): box #4's first worked solution in _solutions.md, the author's answer itself
+    // here, rides in that box's own <details class="solution">, shut behind Show a solution. That is the one place on
+    // the page it may be: never the box's editor, its data-check, or anywhere outside its own box.
+    String answer = "IO.println(&quot;Ada&quot;)";
+    int box = ch1.indexOf("id=\"ch01-first-programs#4\""), end = ch1.indexOf("</div>", box);
+    int reveal = ch1.indexOf("<details class=\"solution\">", box), shut = ch1.indexOf("</details>", reveal);
+    for (int at = ch1.indexOf(answer); at >= 0; at = ch1.indexOf(answer, at + 1))
+      T.check(box >= 0 && reveal > box && at > reveal && at < shut && shut < end,
+          "the author's answer is on the page only inside box #4's own Show a solution: " + ch1);
     String boxes = Files.readString(p.resolve("site/boxes.json"));
     T.check(!boxes.contains("IO.println(\\\"Ada\\\")"), "nor in boxes.json");
     T.check(!Files.exists(p.resolve("site/vol-fixture/bundle/ch01/ch01_04.java")), "nor in the bundle");
@@ -291,5 +299,15 @@ final class ChecksTest {
     T.eq(1, r.exit(), "exit: " + r.out());
     T.check(r.out().contains("ch01-first-programs#1: the page would publish the worked solution; give its check a \"starter\""), r.out());
     T.check(!r.out().contains("ch01-first-programs#4: the page would publish"), "the starter box beside it is not refused: " + r.out());
+  }
+  static void testAMistakeMayBeWhatTheBoxPublishes() throws Exception {
+    // Interface 2: the starter rule holds what a box publishes against its worked solutions only. A mistake is a wrong
+    // answer, never revealed, and the starter left as it is, the commonest mistake there is, may well be one: refusing it
+    // would push the author to drop the very mistake the three-way proof most needs.
+    Path p = Fixtures.project("checks-mistake-is-starter");
+    Path solutions = p.resolve("volumes/vol-fixture/content/_solutions.md");
+    Files.writeString(solutions, Files.readString(solutions) + "\n### mistake\n\n```java\nvoid main() {\n    IO.println(\"\");\n}\n```\n");
+    var r = Fixtures.build(p);
+    T.eq(0, r.exit(), "a mistake equal to the starter is not a worked solution: " + r.out());
   }
 }

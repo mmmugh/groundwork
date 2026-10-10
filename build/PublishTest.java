@@ -17,6 +17,8 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
@@ -252,5 +254,57 @@ final class PublishTest {
     var r = Fixtures.build(p);
     T.eq(1, r.exit(), "the guard still runs when quizzes/ and practice/ are absent");
     T.check(r.out().contains("_solutions.md"), "names it");
+  }
+
+  // DESIGN section 6 and Plan 5's interface 2: of _solutions.md, only each box's first worked solution (and its note) is
+  // published, inside its own box. A second worked solution and every mistake, java or text, exist for the three-way proof
+  // and reach no file of site/: no page, not boxes.json, not the bundle. Each fence carries a mark that occurs nowhere
+  // else, so a mark found anywhere is the leak, and the first one's single place proves the walk reads the pages.
+  static void testOnlyTheFirstWorkedSolutionReachesTheSite() throws Exception {
+    Path p = Fixtures.project("publish-solutions");
+    Files.writeString(p.resolve("volumes/vol-fixture/content/_solutions.md"), """
+        ## ch01-first-programs#4
+
+        ```java
+        void main() {
+            IO.println("Ada"); // FIRST_WORKED
+        }
+        ```
+
+        ```java
+        void main() { IO.println("Ada"); } // SECOND_WORKED
+        ```
+
+        ### mistake
+
+        ```java
+        void main() {
+            IO.println("ada"); // MISTAKE_RUNS
+        }
+        ```
+
+        ```java
+        void main() {
+            IO.println("Ada") // MISTAKE_DOES_NOT_COMPILE
+        }
+        ```
+
+        ```text
+        ada MISTAKE_PREDICTION
+        ```
+        """);
+    var r = Fixtures.build(p);
+    T.eq(0, r.exit(), "build: " + r.out());
+    Path site = p.resolve("site");
+    Map<String, List<String>> found = new TreeMap<>();
+    try (var walk = Files.walk(site)) {
+      for (Path f : walk.filter(Files::isRegularFile).toList()) {
+        String text = new String(Files.readAllBytes(f), StandardCharsets.ISO_8859_1); // every byte, whatever the file holds
+        for (String mark : List.of("FIRST_WORKED", "SECOND_WORKED", "MISTAKE_RUNS", "MISTAKE_DOES_NOT_COMPILE", "MISTAKE_PREDICTION"))
+          if (text.contains(mark)) found.computeIfAbsent(mark, k -> new ArrayList<>()).add(site.relativize(f).toString());
+      }
+    }
+    T.eq(Map.of("FIRST_WORKED", List.of("vol-fixture/ch01-first-programs.html")), found,
+        "the first worked solution is on its own box's page and nowhere else; nothing else of _solutions.md is anywhere in site/");
   }
 }

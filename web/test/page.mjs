@@ -529,6 +529,35 @@ for (const engine of only ? [only] : Object.keys(ENGINES)) {
     }
   }
 
+  // Worked solutions (DESIGN section 6, D24): a box with one ends with "Show a solution", shut; opening it shows that
+  // box's first worked solution and its note, and no other box's. Its code never wraps, as code does not: at 390 px the
+  // long line scrolls inside the solution and the page does not scroll sideways. A second worked solution and a mistake
+  // are on no page (build/PublishTest.java proves it file by file; this is the page a reader gets).
+  t = await open(engine, site, PAGES[1], { viewport: { width: 390, height: 844 } });
+  await ready(t);
+  const offered = await t.page.locator(".box > details.solution > summary", { hasText: "Show a solution" }).count();
+  check(`${engine}: each box with a worked solution offers Show a solution (two on ${PAGES[1]})`, offered === 2, offered);
+  if (offered === 2) {
+    const solution = (n) => t.page.locator(`.box[data-box="ch02-check#${n}"] > details.solution`);
+    const shut = [await solution(1).evaluate((d) => d.open), await solution(2).evaluate((d) => d.open)];
+    await solution(1).getByText("Show a solution", { exact: true }).click();
+    const opened = { one: await solution(1).evaluate((d) => d.open), two: await solution(2).evaluate((d) => d.open),
+      code: (await solution(1).locator("pre").innerText()).replace(/\r/g, ""), note: await solution(1).locator("p").innerText() };
+    check(`${engine}: a solution is shut until its own box's Show a solution is pressed, which opens that box's alone`,
+      shut[0] === false && shut[1] === false && opened.one && !opened.two && opened.code.includes("return n % 2 == 0;")
+        && opened.note.includes("negative ones included"), { shut, opened });
+    const html = await t.page.content();
+    check(`${engine}: neither a second worked solution nor a mistake is on the page`,
+      !html.includes("return true;") && !html.includes("n % 2 == 1"), null);
+    const shownCode = await solution(1).locator("pre").evaluate((el) => ({ whiteSpace: getComputedStyle(el).whiteSpace,
+      scrollW: el.scrollWidth, clientW: el.clientWidth, page: document.documentElement.scrollWidth }));
+    check(`${engine}: a solution's long line at 390 px does not wrap, scrolls inside the solution, and the page does not scroll sideways`,
+      shownCode.whiteSpace === "pre" && shownCode.scrollW > shownCode.clientW && shownCode.page <= 390, shownCode);
+  }
+  check(`${engine}: no request left the page's origin, and no page error, with a solution open`,
+    t.offsite.length === 0 && t.errors.length === 0, { offsite: t.offsite, errors: t.errors });
+  await t.close();
+
   // ch02-check at 390 px with a verdict in every box (a list of cases, an output difference, a failed run's output,
   // a prediction and the program's output) and the case list: nothing scrolls sideways. .box hides its overflow, so
   // the page's width alone cannot see a box, a verdict or the case list running wide: each is measured too. An
