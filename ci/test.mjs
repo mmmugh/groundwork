@@ -23,7 +23,7 @@
 // - setup.sh --dry-run prints the commands, runs none, and says so;
 // - a DRY_RUN in the environment does not turn a suite into a no-op that passes (T-3);
 // - everything.sh runs the two hook tests, as its header says (B4);
-// - weekly.sh <engine> runs the acceptance in that engine: on its fixture volume, then on the course;
+// - weekly.sh <engine> runs the acceptance in that engine: on its fixture volume, then its log check, then on the course;
 // - quick.sh leaks on a fork's pull request, which GitHub runs without the repository secret, scans the history with the
 //   generic patterns and says why; any other run without the secret fails, naming it (D102);
 // - the secret's temp file is gone however the history scan ends, and a signal stops the run; the hook tests and the
@@ -161,12 +161,14 @@ o = run(r, "everything.sh", [], { os: "Darwin", env: { HOME: r, JF_JAVA_HOME: pa
 check("everything.sh runs the two hook tests",
   o.ran.includes("python3 tests/leak_scan_test.py\n") && o.ran.includes("python3 tests/pre_push_test.py\n"), o.ran);
 
-// weekly.sh <engine> runs the acceptance in that engine (Plan 5): on its fixture volume, which proves it, then on the
-// course. node is a stand-in that records its calls; the exit code is not checked, as for everything.sh above.
+// weekly.sh <engine> runs the acceptance in that engine (Plan 5): on its fixture volume, which proves it, then
+// acceptance-logs.mjs (M5: nothing typed reaches the public log), then on the course. node is a stand-in that records
+// its calls; the exit code is not checked, as for everything.sh above.
 r = root("weekly", PIN);
 o = run(r, "weekly.sh", ["webkit"], { os: "Darwin", env: { HOME: r } });
-check("weekly.sh webkit runs the acceptance in WebKit: on its fixture volume, then on the course",
-  o.ran.includes("node web/test/acceptance.mjs --volume web/test/vol-accept all webkit\nnode web/test/acceptance.mjs all webkit\n"), o.ran);
+check("weekly.sh webkit runs the acceptance in WebKit: on its fixture volume, then its log check, then on the course",
+  o.ran.includes("node web/test/acceptance.mjs --volume web/test/vol-accept all webkit\nnode web/test/acceptance-logs.mjs webkit\n"
+    + "node web/test/acceptance.mjs all webkit\n"), o.ran);
 
 // The leaks cases, each in a root of its own: a git repository with two commits (else `git rev-list --all` walks this
 // repository's history; the second commit is the scan a signal must stop before), each adding file-<n>.txt, and a

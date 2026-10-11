@@ -201,7 +201,8 @@ shows its stated output; a page with no box is held to the rest. Screenshots and
 `build/.work/acceptance/<name>/<engine>/`. With `--volume web/test/vol-accept` it runs on its own fixture; with no
 volume yet it says `no volumes` and passes. A check that fails prints its label and the page's verdict, never what was
 typed (the weekly job's log is public); what was typed is in `results.json`. `acceptance-logs.mjs` proves that on a copy
-of the fixture with a wrong worked solution and a right mistake (Chromium unless an engine is named).
+of the fixture with a wrong worked solution and a right mistake (Chromium unless an engine is named); the weekly job
+runs it in each engine, beside the fixture's acceptance.
 
 ## Setting up a clone
 
