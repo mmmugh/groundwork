@@ -27,7 +27,8 @@ final class ForkGateTest {
   static void testTheFixtureAgreesOnBothRuntimes() throws Exception {
     var r = Fixtures.build(Fixtures.project("fork"), "--check", "--runtime", DIST.toString());
     T.eq(0, r.exit(), "full --check including the fork gate: " + r.out());
-    T.check(r.out().contains("examples, 0 differing"), r.out());
+    // Its ten non-reference boxes and the first worked solution of each of its two sections (I1).
+    T.check(r.out().contains("12 examples, 0 differing"), r.out());
   }
   static void testNoForkGateFlagSkipsTheForkGateEntirely() throws Exception {
     Path p = Fixtures.project("fork-skip");
@@ -181,16 +182,105 @@ final class ForkGateTest {
     T.check(caughtProblems.size() == 1 && caughtProblems.get(0).startsWith("s#1: the browser runtime and the JDK disagree"),
         "a program that catches the overflow still disagrees: " + caughtProblems);
   }
+  /** A box's revealed worked solution, as Build.java writes it to the fork gate: marked "solution". */
+  static Path solutionExample(String name, String src, String raises) throws Exception {
+    Map<String, Object> e = new LinkedHashMap<>();
+    e.put("id", "s#1 (worked solution)");
+    e.put("src", src);
+    e.put("stdin", "");
+    e.put("varies", false);
+    e.put("raises", raises);
+    e.put("solution", true);
+    return examples(name, Json.write(List.of(e)));
+  }
+  /** I1: the worked solution a stuck reader reveals and copies is run by no other gate (the audit runs a box's own fence,
+   *  the proof only a checked box's answers), so the fork gate holds it to running to its end on both runtimes, or to
+   *  ending in the exception its box declares; agreeing is not enough. */
+  static void testARevealedWorkedSolutionMustRunToItsEndOrRaiseWhatItsBoxDeclares() throws Exception {
+    String throwing = "void main() {\n    int[] a = new int[2];\n    IO.println(a[2]);\n}\n";
+    var thrown = ForkGate.run(Fixtures.TOOLS, solutionExample("fork-solution-throws", throwing, null), DIST);
+    T.check(thrown.size() == 1 && thrown.get(0).startsWith("s#1 (worked solution): does not run to its end:")
+        && thrown.get(0).contains("java.lang.ArrayIndexOutOfBoundsException"), "a solution that throws fails, on both runtimes alike: " + thrown);
+    T.eq(List.of(), ForkGate.run(Fixtures.TOOLS, solutionExample("fork-solution-declared", throwing, "java.lang.ArrayIndexOutOfBoundsException"), DIST),
+        "a solution that ends in its box's declared exception passes");
+    var other = ForkGate.run(Fixtures.TOOLS, solutionExample("fork-solution-other", throwing, "java.lang.IllegalStateException"), DIST);
+    T.check(other.size() == 1 && other.get(0).startsWith("s#1 (worked solution): does not run to its end or end in java.lang.IllegalStateException:"),
+        "a solution that throws another exception than its box declares fails: " + other);
+    T.eq(List.of(), ForkGate.run(Fixtures.TOOLS, solutionExample("fork-solution-overflow", DOWN, "java.lang.StackOverflowError"), DIST),
+        "a declared runaway recursion's solution ends in its overflow, compared without frames");
+    T.eq(List.of(), ForkGate.run(Fixtures.TOOLS, solutionExample("fork-solution-ok", "void main() {\n    IO.println(\"Ada\");\n}\n", null), DIST),
+        "a solution that runs to its end passes");
+  }
+
+  static void testAWorkedSolutionThatThrowsFailsCheckThoughNoCheckRunsIt() throws Exception {
+    // I1: chapter 1's first box has no check, so the proof never runs its worked solution, and the audit runs only the
+    // box's own fence; yet the page reveals the solution, which throws.
+    Path p = Fixtures.project("fork-solution");
+    Path solutions = p.resolve("volumes/vol-fixture/content/_solutions.md");
+    Files.writeString(solutions, Files.readString(solutions)
+        + "\n## ch01-first-programs#1\n\n```java\nvoid main() {\n    int[] a = new int[2];\n    IO.println(a[2]);\n}\n```\n");
+    var r = Fixtures.build(p, "--check", "--runtime", DIST.toString());
+    T.eq(1, r.exit(), "a revealed solution that throws fails --check: " + r.out());
+    T.check(r.out().contains("  !! ch01-first-programs#1 (worked solution): does not run to its end:"), r.out());
+    T.check(r.out().contains("13 examples, 1 differing"), "the one problem, among the fixture's twelve examples and this one: " + r.out());
+  }
+  static Map<?, ?> exampleNamed(List<Object> examples, String id) {
+    for (Object o : examples) if (((Map<?, ?>) o).get("id").equals(id)) return (Map<?, ?>) o;
+    throw new AssertionError("no example " + id + " in " + examples);
+  }
+  static void testAWorkedSolutionRunsWithItsBoxsStdinOrItsInputChecksFirstRun() throws Exception {
+    // A box's first worked solution runs after the box itself, as "<box id> (worked solution)", with what the reader's
+    // run of it would be typed: an input check's first run's answers, else the box's declared stdin; and with the box's
+    // raises and varies. Only the first is revealed (Pages.java), so only the first runs here.
+    Path p = Fixtures.project("fork-solution-stdin");
+    Path checks = p.resolve("volumes/vol-fixture/content/_checks.json");
+    Files.writeString(checks, Files.readString(checks).replace("\n}", ",\n \"ch02-types-and-input#1\": {\"kind\": \"input\", "
+        + "\"runs\": [{\"typed\": [\"7\"], \"numbers\": [\"14\"]}, {\"typed\": [\"8\"], \"numbers\": [\"16\"]}]}\n}"));
+    String java = "```java\nvoid main() {\n    IO.println(%s);\n}\n```\n\n";
+    Path solutions = p.resolve("volumes/vol-fixture/content/_solutions.md");
+    Files.writeString(solutions, Files.readString(solutions)
+        + "\n## ch02-types-and-input#1\n\n" + java.formatted("\"input check\"") + java.formatted("\"second\"")
+        + "## ch02-types-and-input-practice#1\n\n" + java.formatted("\"declared stdin\"")
+        + "## ch01-first-programs#2\n\n" + java.formatted("\"raises\"")
+        + "## ch02-types-and-input#3\n\n" + java.formatted("\"varies\""));
+    Volume v = Volume.loadAll(p.resolve("volumes")).get(0);
+    Map<Page, List<Box>> boxes = new LinkedHashMap<>();
+    for (Page page : v.pages()) boxes.put(page, Boxes.of(v, page));
+    List<Object> examples = Build.examplesOf(Map.of(v, boxes), page -> true);
+    T.eq(16, examples.size(), "the ten boxes and six worked solutions: " + examples);
+    List<Object> ids = new ArrayList<>();
+    for (Object o : examples) ids.add(((Map<?, ?>) o).get("id"));
+    T.eq(List.of("ch01-first-programs#1", "ch01-first-programs#2", "ch01-first-programs#2 (worked solution)", "ch01-first-programs#4",
+        "ch01-first-programs#4 (worked solution)", "ch02-types-and-input#1", "ch02-types-and-input#1 (worked solution)",
+        "ch02-types-and-input#2", "ch02-types-and-input#3", "ch02-types-and-input#3 (worked solution)", "ch02-types-and-input#4",
+        "ch02-types-and-input#4 (worked solution)", "ch02-types-and-input#5", "ch02-types-and-input-practice#1",
+        "ch02-types-and-input-practice#1 (worked solution)", "ch02-types-and-input-practice#3"), ids, "each right after its box, in page order");
+    Map<?, ?> input = exampleNamed(examples, "ch02-types-and-input#1 (worked solution)");
+    T.eq("void main() {\n    IO.println(\"input check\");\n}\n", input.get("src"), "the first worked solution alone");
+    T.eq("7\n", input.get("stdin"), "an input check's first run's answers, not the box's declared 21");
+    T.eq(true, input.get("solution"), "marked, so examples.mjs holds it to running to its end");
+    T.eq("5\n", exampleNamed(examples, "ch02-types-and-input-practice#1 (worked solution)").get("stdin"), "else the box's declared stdin");
+    T.eq("java.lang.ArrayIndexOutOfBoundsException", exampleNamed(examples, "ch01-first-programs#2 (worked solution)").get("raises"),
+        "the box's declared raises");
+    T.eq(true, exampleNamed(examples, "ch02-types-and-input#3 (worked solution)").get("varies"), "the box's varies");
+    T.eq("", exampleNamed(examples, "ch01-first-programs#4 (worked solution)").get("stdin"), "no stdin where the box declares none");
+    T.eq(false, exampleNamed(examples, "ch01-first-programs#4").get("solution"), "a box's own example is not a solution");
+    T.eq(3, Build.examplesOf(Map.of(v, boxes), page -> page.slug().startsWith("ch02-types-and-input-practice")).size(),
+        "--only narrows them too: the practice page's two boxes and its one solution, and no other: "
+        + Build.examplesOf(Map.of(v, boxes), page -> page.slug().startsWith("ch02-types-and-input-practice")));
+  }
+
   // --only hands the fork gate the named pages' examples alone, and the proof gate their checks alone. As Tasks 5 and 6
   // leave the fixture, chapter 2's page and its practice page hold seven of its ten non-reference boxes (5 + 2; chapter
-  // 1 has the other 3), each one example, and one of its two checks, ch02-types-and-input#4, with 5 answers (2 worked
+  // 1 has the other 3), each one example, and one of its two worked solutions' sections, ch02-types-and-input#4's, whose
+  // first worked solution is an example too (I1), and one of its two checks, ch02-types-and-input#4, with 5 answers (2 worked
   // solutions, its own fence, 1 mistake and its published code; chapter 1's check has 2, 1, 2 and 1). Pages with none to
   // run (the front matter) skip the gate and say so, where a plain --check with none fails
   // (testAnEmptyExampleListIsAFailure): a page with nothing to run is not a pass of the course.
   static void testTheOnlyFlagGivesTheForkGateTheNamedPagesExamplesAlone() throws Exception {
     var r = Fixtures.build(Fixtures.project("fork-only"), "--check", "--runtime", DIST.toString(), "--only", "ch02");
     T.eq(0, r.exit(), r.out());
-    T.check(r.out().contains("7 examples, 0 differing"), "chapter 2's seven examples, not the fixture's ten: " + r.out());
+    T.check(r.out().contains("8 examples, 0 differing"), "chapter 2's eight examples, not the fixture's twelve: " + r.out());
     T.check(r.out().contains("1 checks, 5 answers judged, 0 wrong verdict(s)"), "and its one check, not the fixture's two: " + r.out());
     T.check(java.util.regex.Pattern.compile("fork gate \\d+\\.\\d s, proofs \\d+\\.\\d s; all gates").matcher(r.out()).find(),
         "and the fork gate's and the proof's times: " + r.out());

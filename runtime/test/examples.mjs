@@ -16,7 +16,9 @@
 // The course's own examples on both runtimes: every box Build.java --check writes to its examples file runs on
 // the fork and on the pinned JDK, and any difference fails. Unlike differential.mjs there is no list of known
 // differences: a page may not show a program the reader's browser runs differently. The one exemption is declared by
-// the box itself: a runaway recursion's frames, which the browser cannot print (below).
+// the box itself: a runaway recursion's frames, which the browser cannot print (below). A box's revealed worked
+// solution, marked "solution" (Build.java's examplesOf), must also run to its end, or end in the exception its box
+// declares: no other gate runs it, and agreeing is not enough when both runtimes throw.
 //   node runtime/test/examples.mjs <examples.json>    (JF_DIST: the runtime to test; JF_JAVA_HOME: the JDK)
 import fs from "node:fs";
 import path from "node:path";
@@ -59,9 +61,18 @@ for (const ex of examples) {
   // differs; and an overflow no box declares is compared frame by frame, as before.
   const frameless = (o) => ex.raises === "java.lang.StackOverflowError" && o.stderrHead === STACK_OVERFLOW ? { ...o, frames: [] } : o;
   const key = (o) => ex.varies ? { status: finished(o).status, stderrHead: o.stderrHead } : frameless(finished(o));
+  // How a worked solution may end (both runtimes agree, so one side is enough): ok, or the box's declared exception's
+  // first line, as the audit holds a raises box (its message, if any, after ": ").
+  const thrown = `Exception in thread "main" ${ex.raises}`;
+  const ended = (o) => o.status === "ok" || (ex.raises != null && o.status === "uncaught"
+    && (o.stderrHead === thrown || o.stderrHead.startsWith(`${thrown}: `)));
   if (!same(key(fork), key(jdk))) {
     differing++;
     console.log(`  !! ${ex.id}: the browser runtime and the JDK disagree\n    fork ${JSON.stringify(fork)}\n    jdk  ${JSON.stringify(jdk)}`);
+  } else if (ex.solution && !ended(jdk)) {
+    differing++;
+    console.log(`  !! ${ex.id}: does not run to its end${ex.raises ? ` or end in ${ex.raises}` : ""}: on both runtimes, ` +
+      `${finished(jdk).status === "did-not-finish" ? "it did not finish" : jdk.stderrHead || jdk.status}`);
   }
 }
 await runner.close();

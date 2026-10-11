@@ -181,7 +181,7 @@ public class Build {
         out.println("  quizzes: " + quizQuestions + " questions run");
         int exampleCount = 0, differing = 0, wrongVerdicts = 0;
         if (!noForkGate) {
-          List<Object> examples = examplesOf(allBoxes, only);
+          List<Object> examples = examplesOf(boxesByVolume, only);
           exampleCount = examples.size();
           if (examples.isEmpty() && onlyName != null) {
             // A plain --check with no example fails in the fork gate (an empty examples.json is never a pass), but the
@@ -305,25 +305,44 @@ public class Build {
 
   private static String seconds(long millis) { return String.format(Locale.ROOT, "%.1f s", millis / 1000.0); }
 
-  /** The fork gate's input: every non-reference box (compileError boxes included: both sides must fail to
-   *  compile the same way) on a page only selects, as {id, src, stdin, varies, raises}, in page order (raises lets
-   *  runtime/test/examples.mjs leave a declared runaway recursion's frames out). */
-  private static List<Object> examplesOf(Map<Page, List<Box>> allBoxes, Predicate<Page> only) {
+  /** The fork gate's input: every non-reference box (compileError boxes included: both sides must fail to compile the
+   *  same way) on a page only selects, as {id, src, stdin, varies, raises, solution}, in page order (raises lets
+   *  runtime/test/examples.mjs leave a declared runaway recursion's frames out). Right after each box comes the first
+   *  worked solution of its _solutions.md section, the one a reader may reveal and copy (I1), as "<box id> (worked
+   *  solution)", run as the reader's run of it would be: with its input check's first run's answers, else the box's
+   *  declared stdin, and with the box's varies and raises. No other gate runs it (the audit runs the box's own fence, the
+   *  proof a checked box's answers alone), so it is marked solution, and examples.mjs holds it to running to its end or
+   *  ending in the box's declared raises, as well as to both runtimes agreeing. */
+  static List<Object> examplesOf(Map<Volume, Map<Page, List<Box>>> boxesByVolume, Predicate<Page> only) throws BuildError {
     List<Object> examples = new ArrayList<>();
-    for (var e : allBoxes.entrySet()) {
-      if (!only.test(e.getKey())) continue;
-      for (Box b : e.getValue()) {
-        if (b.decl().reference()) continue;
-        Map<String, Object> entry = new LinkedHashMap<>();
-        entry.put("id", b.id());
-        entry.put("src", b.source());
-        entry.put("stdin", b.decl().stdin().isEmpty() ? "" : String.join("\n", b.decl().stdin()) + "\n");
-        entry.put("varies", b.decl().varies());
-        entry.put("raises", b.decl().raises());
-        examples.add(entry);
+    for (var vol : boxesByVolume.entrySet()) {
+      Volume v = vol.getKey();
+      Map<String, Vocabulary.Section> sections = v.solutions() == null ? Map.of() : Vocabulary.solutions(v.solutions());
+      for (var e : vol.getValue().entrySet()) {
+        if (!only.test(e.getKey())) continue;
+        for (Box b : e.getValue()) {
+          if (!b.decl().reference()) examples.add(example(b.id(), b.source(), b.decl().stdin(), b.decl(), false));
+          Vocabulary.Section s = sections.get(b.id());
+          if (s == null || s.worked().isEmpty()) continue;
+          Checks.Check c = Checks.of(v, b);
+          @SuppressWarnings("unchecked")
+          List<String> typed = c != null && c.kind().equals("input") ? (List<String>) c.runs().get(0).get("typed") : b.decl().stdin();
+          examples.add(example(b.id() + " (worked solution)", s.worked().get(0), typed, b.decl(), true));
+        }
       }
     }
     return examples;
+  }
+
+  private static Map<String, Object> example(String id, String src, List<String> stdin, Decl d, boolean solution) {
+    Map<String, Object> entry = new LinkedHashMap<>();
+    entry.put("id", id);
+    entry.put("src", src);
+    entry.put("stdin", stdin.isEmpty() ? "" : String.join("\n", stdin) + "\n");
+    entry.put("varies", d.varies());
+    entry.put("raises", d.raises());
+    entry.put("solution", solution);
+    return entry;
   }
 
   private static void writeJson(Path file, Object value) throws BuildError {

@@ -137,7 +137,10 @@ heading a section takes (any other is a build error), starts its **mistakes**: t
 are realistic wrong answers, and need not compile. A `predict` box's ` ```text ` fences are its predictions, right
 ones under the heading and wrong ones under `### mistake` (the three-way proof, above); the build reads no other
 fence here. Worked solutions are
-held to the starter rule (above) and to the vocabulary gate (below). A mistake is never held to the starter
+held to the starter rule (above) and to the vocabulary gate (below). The first, the one a reader may reveal and copy,
+also runs on both runtimes in `--check`'s fork gate, as `<box id> (worked solution)`, typed its input check's first
+run's answers, else its box's `stdin`: the two must agree, and it must run to its end, or end in its box's `raises`,
+even where no check runs it. A mistake is never held to the starter
 rule; it is held to the vocabulary gate when it compiles (a mistake a reader at that chapter could not write
 proves nothing about the check), and let be when it does not.
 
