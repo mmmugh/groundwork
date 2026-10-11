@@ -4,6 +4,7 @@
  "ch02-types-and-input#1": {"stdin": ["21"]},
  "ch02-types-and-input#2": {"compileError": "incompatible types: String cannot be converted to int", "why": "Text is not a number."},
  "ch02-types-and-input#3": {"varies": true, "why": "Set.of picks a new order every time the JVM starts."},
+ "ch02-types-and-input#5": {"raises": "java.lang.StackOverflowError", "why": "down never stops calling itself."},
  "ch02-types-and-input-practice#2": {"reference": true},
  "ch02-types-and-input-practice#3": {"compileError": "incompatible types: String cannot be converted to int", "why": "Text is not a number, same mistake as chapter 2."},
  "ch02-types-and-input-practice#1": {"stdin": ["5"]}

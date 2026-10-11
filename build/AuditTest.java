@@ -26,10 +26,10 @@ final class AuditTest {
     var r = Fixtures.build(Fixtures.project("audit"), "--check", "--no-fork-gate-for-tests");
     T.eq(0, r.exit(), "check passes on the fixture: " + r.out());
     // ch02-types-and-input#3 is both varies:true and carries a stated output fence: checkBox skips rule 4
-    // for it (decl.varies()), so it must not be counted as "compared" either—3 of the fixture's 4 stated
-    // outputs are actually compared, not 4. The practice page's reference box does not count either (never
+    // for it (decl.varies()), so it must not be counted as "compared" either—4 of the fixture's 5 stated
+    // outputs are actually compared, not 5. The practice page's reference box does not count either (never
     // checked at all), but its compileError box does (checked, just not for output).
-    T.check(r.out().contains("9 boxes checked, 3 stated outputs compared, 0 problem(s)"),
+    T.check(r.out().contains("10 boxes checked, 4 stated outputs compared, 0 problem(s)"),
         "a varies box with a stated output is not counted as compared: " + r.out());
   }
   static void testEachRuleFailsWhenBroken() throws Exception {
@@ -132,5 +132,32 @@ final class AuditTest {
     var r = Fixtures.build(p, "--check", "--no-fork-gate-for-tests");
     T.eq(0, r.exit(), "no volumes is not a failure: " + r.out());
     T.check(r.out().contains("no volumes"), "says so: " + r.out());
+  }
+  /** DESIGN section 2: chapter 12's runaway recursion crashes on purpose, declared raises java.lang.StackOverflowError.
+   *  The browser runtime reports a stack overflow with the JDK's first line alone (runtime/runner/java-line.js), so the
+   *  box states that line alone; the JDK's frames below it (up to 1,024) are compared neither with the stated output
+   *  nor between the audit's two runs. The fixture's ch02-types-and-input#5 is such a box and passes
+   *  (testTheFixturePassesCheck). It still fails when it does not overflow, throws something else first, states a
+   *  frame, or prints what it does not state. */
+  static void testARunawayRecursionBoxStatesItsFirstLineAlone() throws Exception {
+    String overflow = "Exception in thread \"main\" java.lang.StackOverflowError\n```";
+    record Break(String from, String to, String expect) {}
+    var breaks = List.of(
+      new Break("return down(n + 1) + 1;", "return n > 3 ? n : down(n + 1) + 1;", "ch02-types-and-input#5: does not fail the way it says"),
+      new Break("return down(n + 1) + 1;", "return 1 / (100 - n) + down(n + 1);", "ch02-types-and-input#5: does not fail the way it says"),
+      new Break(overflow, "Exception in thread \"main\" java.lang.StackOverflowError\n\tat Main.down(Main.java:2)\n```",
+          "ch02-types-and-input#5: states an output the code does not print"),
+      new Break("    IO.println(down(0));", "    IO.println(\"down we go\");\n    IO.println(down(0));",
+          "ch02-types-and-input#5: states an output the code does not print"));
+    for (var b : breaks) {
+      Path p = Fixtures.project("audit-overflow");
+      Path f = p.resolve("volumes/vol-fixture/content/ch02-types-and-input.md");
+      String s = Files.readString(f);
+      T.check(s.contains(b.from()), "the break applies: " + b.from());
+      Files.writeString(f, s.replace(b.from(), b.to()));
+      var r = Fixtures.build(p, "--check", "--no-fork-gate-for-tests");
+      T.eq(1, r.exit(), "exit when " + b.expect() + ": " + r.out());
+      T.check(r.out().contains(b.expect()), "message \"" + b.expect() + "\" in: " + r.out());
+    }
   }
 }

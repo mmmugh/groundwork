@@ -151,4 +151,34 @@ final class ForkGateTest {
     T.check(ForkGate.checkNodeVersion("v24.4.1").contains("the fork gate needs Node 25 or later (D-P2-1)"), "below 25 fails, worded per D-P2-1");
     T.check(ForkGate.checkNodeVersion("not a version").contains("the fork gate needs Node 25 or later (D-P2-1)"), "unparseable output fails the same way, never silently passes");
   }
+  static final String DOWN = "int down(int n) {\n    return down(n + 1) + 1;\n}\n\nvoid main() {\n    IO.println(down(0));\n}\n";
+  /** One example as Build.java writes it, raises included (null when the box declares none). */
+  static Path example(String name, String src, String raises) throws Exception {
+    Map<String, Object> e = new LinkedHashMap<>();
+    e.put("id", "s#1");
+    e.put("src", src);
+    e.put("stdin", "");
+    e.put("varies", false);
+    e.put("raises", raises);
+    return examples(name, Json.write(List.of(e)));
+  }
+  /** DESIGN section 2: chapter 12's runaway recursion crashes on purpose. The fork reports the overflow with the JDK's
+   *  first line alone (runtime/runner/java-line.js); the JDK prints up to 1,024 frames below it. Declared, the box is
+   *  compared without frames; undeclared, frame by frame as before; and a program that catches the overflow, which
+   *  the JDK can and the fork cannot, disagrees either way (DESIGN section 2: the differential gate enforces that no
+   *  example tries). */
+  static void testADeclaredRunawayRecursionIsComparedWithoutItsFrames() throws Exception {
+    String overflow = "java.lang.StackOverflowError";
+    T.eq(List.of(), ForkGate.run(Fixtures.TOOLS, example("fork-overflow", DOWN, overflow), DIST),
+        "declared, it agrees: the same status, stdout and first line");
+    var undeclared = ForkGate.run(Fixtures.TOOLS, example("fork-overflow-undeclared", DOWN, null), DIST);
+    T.check(undeclared.size() == 1 && undeclared.get(0).startsWith("s#1: the browser runtime and the JDK disagree")
+        && undeclared.get(0).contains("Main.down(Main.java:2)"),
+        "undeclared, the JDK's frames are compared, and the fork has none: " + undeclared);
+    String caught = DOWN.replace("    IO.println(down(0));",
+        "    try {\n        IO.println(down(0));\n    } catch (StackOverflowError e) {\n        IO.println(\"caught\");\n    }");
+    var caughtProblems = ForkGate.run(Fixtures.TOOLS, example("fork-overflow-caught", caught, overflow), DIST);
+    T.check(caughtProblems.size() == 1 && caughtProblems.get(0).startsWith("s#1: the browser runtime and the JDK disagree"),
+        "a program that catches the overflow still disagrees: " + caughtProblems);
+  }
 }

@@ -98,7 +98,7 @@ final class Audit {
     if (!readsInput && declaresStdin) problems.add(box.id() + ": declares stdin but reads no input");
 
     String stdin = decl.stdin().isEmpty() ? "" : String.join("\n", decl.stdin()) + "\n";
-    Jdk.Run run = Jdk.run(compiled.classes(), stdin, DEADLINE);
+    Jdk.Run run = withoutOverflowFrames(decl, Jdk.run(compiled.classes(), stdin, DEADLINE));
 
     // D73. A terminal shows stdout and stderr in the order the program wrote them; captured apart, that order
     // is unknowable, so no stated output can be checked against such a run and the page could not replay it
@@ -137,7 +137,7 @@ final class Audit {
     }
 
     if (!decl.varies()) {
-      Jdk.Run second = Jdk.run(compiled.classes(), stdin, DEADLINE);
+      Jdk.Run second = withoutOverflowFrames(decl, Jdk.run(compiled.classes(), stdin, DEADLINE));
       if (!run.equals(second))
         problems.add(box.id() + ": output varies between runs: mark it varies, with why");
     }
@@ -186,6 +186,19 @@ final class Audit {
     for (int i = 1; i < lines.length; i++)
       if (OWN_FRAME.matcher(lines[i]).matches()) sb.append(lines[i]).append('\n');
     return sb.toString();
+  }
+
+  /** run, but for a box declared to raise java.lang.StackOverflowError (DESIGN section 2: chapter 12's runaway
+   *  recursion crashes on purpose) that ended uncaught, with stderr cut to its first line. The browser runtime reports
+   *  a stack overflow with the JDK's first line alone (runtime/runner/java-line.js: the engine's overflow is no Java
+   *  exception, so no frame is known), where the JDK prints up to 1,024 frames below it. So such a box states that
+   *  line alone, and its frames are compared neither with the stated output nor between the audit's two runs. Its
+   *  status, stdout and first line still are: a box that does not overflow, throws something else or prints something
+   *  else still fails. */
+  static Jdk.Run withoutOverflowFrames(Decl decl, Jdk.Run run) {
+    if (!"java.lang.StackOverflowError".equals(decl.raises()) || !run.status().equals("uncaught")) return run;
+    int end = run.stderr().indexOf('\n');
+    return new Jdk.Run(run.status(), run.stdout(), end < 0 ? run.stderr() : run.stderr().substring(0, end + 1));
   }
 
   /** Removes, in order, each typed answer's own line from a stated-output transcript, leaving what the

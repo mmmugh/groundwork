@@ -195,10 +195,10 @@ final class ChecksTest {
   static void testTheAuditStillHoldsAStarterBoxsAuthorFenceToItsStatedOutput() throws Exception {
     // What a starter box publishes changed; what the build checks did not. The audit still runs the author's
     // own fence and compares it with the stated output, which it never publishes: the right output passes
-    // and is counted as compared (4, where the fixture alone has 3), and a wrong one fails as before.
+    // and is counted as compared (5, where the fixture alone has 4), and a wrong one fails as before.
     var ok = Fixtures.build(starterBoxStating("checks-starter-audit-ok", "Ada"), "--check", "--no-fork-gate-for-tests");
     T.eq(0, ok.exit(), "the author's fence prints its stated output: " + ok.out());
-    T.check(ok.out().contains("4 stated outputs compared, 0 problem(s)"), "#4's stated output is compared: " + ok.out());
+    T.check(ok.out().contains("5 stated outputs compared, 0 problem(s)"), "#4's stated output is compared: " + ok.out());
     var bad = Fixtures.build(starterBoxStating("checks-starter-audit-bad", "Bob"), "--check", "--no-fork-gate-for-tests");
     T.eq(1, bad.exit(), "a stated output the author's fence does not print fails --check: " + bad.out());
     T.check(bad.out().contains("ch01-first-programs#4: states an output the code does not print"), bad.out());

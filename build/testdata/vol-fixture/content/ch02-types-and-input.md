@@ -44,3 +44,19 @@ void main() {
     IO.println(average(1, 4));
 }
 ```
+
+A method that calls itself with no way to stop crashes on purpose:
+
+```java
+int down(int n) {
+    return down(n + 1) + 1;
+}
+
+void main() {
+    IO.println(down(0));
+}
+```
+
+```output
+Exception in thread "main" java.lang.StackOverflowError
+```

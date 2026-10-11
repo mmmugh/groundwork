@@ -15,12 +15,14 @@
  */
 // The course's own examples on both runtimes: every box Build.java --check writes to its examples file runs on
 // the fork and on the pinned JDK, and any difference fails. Unlike differential.mjs there is no list of known
-// differences: a page may not show a program the reader's browser runs differently.
+// differences: a page may not show a program the reader's browser runs differently. The one exemption is declared by
+// the box itself: a runaway recursion's frames, which the browser cannot print (below).
 //   node runtime/test/examples.mjs <examples.json>    (JF_DIST: the runtime to test; JF_JAVA_HOME: the JDK)
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { NodeRunner } from "../runner/node-runner.mjs";
+import { STACK_OVERFLOW } from "../runner/java-line.js";
 import { checkJdk, runJdk } from "./jdk.mjs";
 import { outcome, jdkOutcome, same } from "./compare.mjs";
 
@@ -49,7 +51,14 @@ for (const ex of examples) {
   // Java program calling System.exit(143) on purpose is not a realistic case this course teaches or would ever
   // produce, and 143 is specifically 128+SIGTERM, the signal spawnSync's default killSignal sends.
   const finished = (o) => o.status === "timeout" || o.status === "output-limit" || o.status === "exit-143" || /^killed-/.test(o.status) ? { status: "did-not-finish" } : o;
-  const key = (o) => ex.varies ? { status: finished(o).status, stderrHead: o.stderrHead } : finished(o);
+  // A box declared to raise java.lang.StackOverflowError (DESIGN section 2: chapter 12's runaway recursion crashes on
+  // purpose) is compared without frames when it overflowed: the fork reports a stack overflow with the JDK's first line
+  // alone (runtime/runner/java-line.js: the engine's overflow is no Java exception, so no frame is known), where the
+  // JDK prints up to 1,024 frames below it. Its status, stdout and first line still count, so a box that does not
+  // overflow, throws something else, prints something else or catches the overflow (the JDK can, the fork cannot) still
+  // differs; and an overflow no box declares is compared frame by frame, as before.
+  const frameless = (o) => ex.raises === "java.lang.StackOverflowError" && o.stderrHead === STACK_OVERFLOW ? { ...o, frames: [] } : o;
+  const key = (o) => ex.varies ? { status: finished(o).status, stderrHead: o.stderrHead } : frameless(finished(o));
   if (!same(key(fork), key(jdk))) {
     differing++;
     console.log(`  !! ${ex.id}: the browser runtime and the JDK disagree\n    fork ${JSON.stringify(fork)}\n    jdk  ${JSON.stringify(jdk)}`);

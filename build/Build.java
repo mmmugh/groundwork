@@ -239,7 +239,8 @@ public class Build {
   }
 
   /** The fork gate's input: every non-reference box (compileError boxes included: both sides must fail to
-   *  compile the same way), as {id, src, stdin, varies}, in page order. */
+   *  compile the same way), as {id, src, stdin, varies, raises}, in page order (raises lets
+   *  runtime/test/examples.mjs leave a declared runaway recursion's frames out). */
   private static List<Object> examplesOf(Map<Page, List<Box>> allBoxes) {
     List<Object> examples = new ArrayList<>();
     for (var boxes : allBoxes.values()) {
@@ -250,6 +251,7 @@ public class Build {
         entry.put("src", b.source());
         entry.put("stdin", b.decl().stdin().isEmpty() ? "" : String.join("\n", b.decl().stdin()) + "\n");
         entry.put("varies", b.decl().varies());
+        entry.put("raises", b.decl().raises());
         examples.add(entry);
       }
     }

@@ -48,7 +48,7 @@ Keyed by box id. Every key is optional; an entry may combine `stdin` with `raise
 | Key | Meaning |
 | --- | --- |
 | `"reference": true` | A syntax reference with nothing to run: no other key but `why` is allowed. |
-| `"raises": "java.lang.ArrayIndexOutOfBoundsException"` | The box is expected to throw this exception (a fully qualified name); needs `why`. |
+| `"raises": "java.lang.ArrayIndexOutOfBoundsException"` | The box is expected to throw this exception (a fully qualified name); needs `why`. Its stated output is what a terminal shows: anything it printed first, the exception's first line, and the program's own `at Main...` lines below it. A box that raises `java.lang.StackOverflowError` (a runaway recursion that crashes on purpose, as in chapter 12) states the first line alone, as the browser prints it; the JDK's frames below it are left out of every comparison. |
 | `"compileError": "..."` | The box is expected to fail to compile with this message; needs `why`. Exempted from the vocabulary gate only if it truly fails to compile. |
 | `"varies": true` | The stated output is not exactly reproducible (e.g. `Set.of` iteration order); the box compiles and runs once to ok, and its stated output is not checked against anything. Needs `why`. |
 | `"stdin": ["21"]` | The typed answers an input box receives, in order, one per prompt. |

@@ -26,7 +26,7 @@ final class VolumeTest {
     T.eq(2, v.pages().get(3).chapter(), "a practice page belongs to its chapter");
     T.check(v.pages().get(3).practice(), "practice flag");
     T.eq(-1, v.pages().get(0).chapter(), "front matter has no chapter");
-    T.eq(8, v.boxes().size(), "box declarations loaded");
+    T.eq(9, v.boxes().size(), "box declarations loaded");
     T.eq(1, v.quizzes().size(), "quizzes found");
   }
   static void testABadVolumeFileFailsTheBuildWithItsName() throws Exception {
