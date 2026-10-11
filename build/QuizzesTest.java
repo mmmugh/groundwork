@@ -118,7 +118,20 @@ final class QuizzesTest {
       new Break("quiz", " 3. What does this print?", " 2. What does this print?", "quizzes/ch01-quiz.txt question 2: the number is used twice"),
       new Break("quiz", "Date: ______________", "Date: ______________\n      ANSWER: Hi", "quizzes/ch01-quiz.txt: line 5 is an ANSWER: line"),
       new Break("quiz", "Chapter 1 - First programs", "Chapter 1 \u2014 First programs", "quizzes/ch01-quiz.txt: line 2 is not plain ASCII"),
-      new Break("key", "\nANSWER KEY\n", "\nANSWERS\n", "answer-keys/ch01-answers.txt: does not say ANSWER KEY"));
+      new Break("key", "\nANSWER KEY\n", "\nANSWERS\n", "answer-keys/ch01-answers.txt: does not say ANSWER KEY"),
+      // A misaligned or reworded print question would otherwise be neither run nor said, and since the key repeats the
+      // quiz, the pairing would pass: both files carry the same misformat, as an author copying one into the other would.
+      new Break("both", " 3. What does this print?", "  3. What does this print?", "quizzes/ch01-quiz.txt: line 28 looks like a question but is not laid out as one"),
+      new Break("both", " 3. What does this print?", " 3.\tWhat does this print?", "quizzes/ch01-quiz.txt: line 28 looks like a question but is not laid out as one"),
+      new Break("both", " 3. What does this print?", " 3. What does this program print?", "question 3: it asks for output and shows code with no blank to fill in"),
+      new Break("both", " 3. What does this print?", " 3. What is the output?", "question 3: it asks for output and shows code with no blank to fill in"),
+      // The code ends at the first line not indented 8, and a line after the answer that is not a question or heading is
+      // not ignored: either would silently change what is run or compared.
+      new Break("both", "        IO.println();\n", "      IO.println();\n", "question 2: line 23 is not what follows the code"),
+      new Break("key", "          there\n", "          there\n        IO.println(9);\n", "answer-keys/ch01-answers.txt question 2: line 27 is not what follows the answer"),
+      // An identity hash may be short, or have a word character after it; five runs on one JDK would not show either.
+      new Break("both", "IO.println(\"there\");", "IO.println(new int[] {1} + \"x\");", "question 2: prints an identity hash"),
+      new Break("both", "IO.println(\"there\");", "IO.println(\"[I@1a\");", "question 2: prints an identity hash"));
     for (var b : breaks) {
       Path p = Fixtures.project("quiz-break");
       List<String> files = switch (b.where()) { case "quiz" -> List.of(QUIZ); case "key" -> List.of(KEY); default -> List.of(QUIZ, KEY); };
@@ -131,6 +144,16 @@ final class QuizzesTest {
       var problems = check(p).problems();
       T.check(problems.stream().anyMatch(x -> x.contains(b.expect())), "\"" + b.expect() + "\" in: " + problems);
     }
+  }
+
+  // An address such as a@b.c is hex-looking after an "@" but is not an identity hash; flagging it would fail a right quiz.
+  static void testAnAddressIsNotTakenForAnIdentityHash() throws Exception {
+    Path p = Fixtures.project("quiz-address");
+    for (String f : List.of(QUIZ, KEY)) {
+      Path file = p.resolve(f);
+      Files.writeString(file, Files.readString(file).replace("IO.println(\"there\");", "IO.println(\"a@b.c\");").replace("          there", "          a@b.c"));
+    }
+    T.eq(List.of(), check(p).problems(), "a@b.c is printed and agrees with the key");
   }
 
   // Every quiz needs its key, every key its quiz, and a quiz needs its chapter: a quiz without its key would publish

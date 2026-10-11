@@ -40,7 +40,16 @@ final class Quizzes {
   static final Pattern QUIZ_NAME = Pattern.compile("ch(\\d+)-quiz\\.txt");
   private static final Pattern KEY_NAME = Pattern.compile("ch(\\d+)-answers\\.txt");
   /** A question's first line: its number right-aligned in two columns (" 5. ", "12. "), then its text. */
-  private static final Pattern QUESTION = Pattern.compile(" ?(\\d+)\\. (.*)");
+  private static final Pattern QUESTION = Pattern.compile("( \\d|\\d\\d)\\. (.*)");
+  /** Anything that looks like a numbered question (a number and a dot, then white space, at the margin or a few spaces in)
+   *  and so must match QUESTION exactly or be reported: otherwise a misaligned question would be neither run nor said. */
+  private static final Pattern LOOKS_NUMBERED = Pattern.compile("[ \\t]{0,7}\\d+\\.[ \\t].*");
+  /** The place to write under a quiz's code: four spaces and 36 underscores. */
+  private static final Pattern PLACE = Pattern.compile(" {4}_{36}");
+  /** A section heading (VOCABULARY) and its hyphen underline. */
+  private static final Pattern HEADING = Pattern.compile("[A-Z][A-Z ]*");
+  private static final Pattern UNDERLINE = Pattern.compile("-{3,}");
+  private static final Pattern MENTIONS_OUTPUT = Pattern.compile("(?i).*(print|output).*");
   /** An answer in a key: "ANSWER:", one space, then the answer's first line exactly as printed (any more spaces are its own). */
   private static final Pattern ANSWER = Pattern.compile(" *ANSWER:(?: (.*))?");
   static final String PRINT = "What does this print?";
@@ -49,8 +58,10 @@ final class Quizzes {
   private static final Duration DEADLINE = Duration.ofSeconds(10);
   /** Five runs, not two: a small Set.of or Map.of agrees with itself across two JVM starts about a quarter of the time. */
   private static final int RUNS = 5;
-  /** An identity hash (an array's or a plain object's toString) repeats across starts of one JDK but is promised nowhere. */
-  private static final Pattern IDENTITY_HASH = Pattern.compile("@[0-9a-f]{5,8}\\b");
+  /** An identity hash (an array's or a plain object's toString: a type-name character, "@", hex) repeats across starts of
+   *  one JDK but is promised nowhere. A hash may be short or have a word character after it; "a@b.c" (a dot and more
+   *  after the hex) is an address, not a hash. */
+  private static final Pattern IDENTITY_HASH = Pattern.compile("[A-Za-z0-9_$;\\]]@[0-9a-f]{1,8}(?![0-9a-f])(?!\\.[A-Za-z0-9])");
 
   /** One "What does this print?" question: its number, its code with the 8-space indent removed (no trailing newline),
    *  and each answer under it, its lines joined with "\n" (none in a quiz). */
@@ -147,8 +158,13 @@ final class Quizzes {
     Set<Integer> numbers = new HashSet<>();
     for (int i = 0; i < lines.length; i++) {
       Matcher q = QUESTION.matcher(lines[i]);
-      if (!q.matches()) continue;
-      int n = Integer.parseInt(q.group(1));
+      if (!q.matches()) {
+        if (LOOKS_NUMBERED.matcher(lines[i]).matches())
+          problems.add(where + ": line " + (i + 1) + " looks like a question but is not laid out as one: write its number right-aligned in two columns,"
+              + " then a dot and one space (\" 5. text\", \"12. text\")");
+        continue;
+      }
+      int n = Integer.parseInt(q.group(1).trim());
       if (!numbers.add(n)) {
         problems.add(where + " question " + n + ": the number is used twice");
         continue;
@@ -156,6 +172,9 @@ final class Quizzes {
       if (!q.group(2).equals(PRINT)) {
         if (q.group(2).toLowerCase(Locale.ROOT).contains("does this print"))
           problems.add(where + " question " + n + ": write it as \"" + PRINT + "\" alone on its line, or the build cannot find its code");
+        else if (asksWhatIsPrinted(lines, i, q.group(2)))
+          problems.add(where + " question " + n + ": it asks for output and shows code with no blank to fill in, so it must be worded exactly \""
+              + PRINT + "\" on its line to be run");
         continue;
       }
       int j = i + 1;
@@ -169,9 +188,25 @@ final class Quizzes {
         continue;
       }
       List<String> answers = new ArrayList<>();
-      while (j < lines.length && !QUESTION.matcher(lines[j]).matches()) {
-        Matcher a = ANSWER.matcher(lines[j++]);
-        if (!a.matches()) continue;
+      boolean afterCode = true, reported = false;
+      while (j < lines.length && !QUESTION.matcher(lines[j]).matches() && !LOOKS_NUMBERED.matcher(lines[j]).matches()) {
+        String line = lines[j++];
+        if (line.isBlank()) continue;
+        Matcher a = ANSWER.matcher(line);
+        if (!a.matches()) {
+          // Right after the code comes the place to write (a quiz) or the ANSWER: line (a key); after those only a new
+          // question, a section heading or its underline. Anything else is a line the build would otherwise skip.
+          boolean fine = PLACE.matcher(line).matches() || (!afterCode && (HEADING.matcher(line).matches() || UNDERLINE.matcher(line).matches()));
+          if (!fine && !reported) {
+            problems.add(where + " question " + n + ": line " + j + " is not what follows "
+                + (afterCode ? "the code (the place to write, 4 spaces and 36 underscores, or an ANSWER: line; the code ends at the first line not indented 8 spaces)"
+                             : "the answer (a new question or a section heading)") + ": " + line.strip());
+            reported = true;
+          }
+          afterCode = false;
+          continue;
+        }
+        afterCode = false;
         List<String> answer = new ArrayList<>(List.of(a.group(1) == null ? "" : a.group(1)));
         for (; j < lines.length && (lines[j].isBlank() || lines[j].startsWith(ANSWER_INDENT)); j++)
           answer.add(lines[j].isBlank() ? "" : lines[j].substring(ANSWER_INDENT.length()));
@@ -181,6 +216,20 @@ final class Quizzes {
       i = j - 1;
     }
     return found;
+  }
+
+  /** Whether the question at lines[i], not worded as a print question, asks what is printed or output (in its first line or
+   *  the indented lines wrapping it) and shows code (lines indented 8) with no blank (a run of "__") to fill in: it would
+   *  be neither run nor held to the vocabulary, and nobody would be told. */
+  private static boolean asksWhatIsPrinted(String[] lines, int i, String first) {
+    StringBuilder text = new StringBuilder(first);
+    int j = i + 1;
+    for (; j < lines.length && !lines[j].isBlank() && !lines[j].startsWith(CODE_INDENT); j++) text.append(' ').append(lines[j]);
+    if (!MENTIONS_OUTPUT.matcher(text).matches()) return false;
+    while (j < lines.length && lines[j].isBlank()) j++;
+    if (j >= lines.length || !lines[j].startsWith(CODE_INDENT)) return false;
+    for (; j < lines.length && (lines[j].isBlank() || lines[j].startsWith(CODE_INDENT)); j++) text.append(' ').append(lines[j]);
+    return !text.toString().contains("__");
   }
 
   /** The compact source file a question's code runs as. Code with a line that starts "void main(" at its own margin is a

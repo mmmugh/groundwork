@@ -187,6 +187,9 @@ columns (` 5. `, `12. `), its further lines are indented four spaces, and lines 
 answer follows its question on its own line, `      ANSWER: <answer>` (six spaces). A quiz is plain ASCII, because a
 `.txt` cannot say its encoding and a phone may garble anything else: `-` for a dash, `'` and `"` for curly quotes, `...`
 for an ellipsis. A quiz never holds an `ANSWER:` line.
+A line that looks like a numbered question (a number, a dot and a space, at the margin or a few spaces in) but is not laid out
+as one (the number right-aligned in two columns, then a dot and one space) is reported with its file and line, never
+skipped.
 
 **"What does this print?"** A question whose line is exactly ` N. What does this print?` is run. Its code is the lines
 under it indented eight spaces (a blank line inside the code is kept), and in the quiz the place to write follows, four
@@ -222,7 +225,13 @@ needs a method or an import beside `main` is written that way. `--check` compile
 runs it five times with no input, and requires it to run to its end, print the same every time, print no identity hash,
 and print exactly the key's
 answer, both tidied as a stated output is (above). The key must show the quiz's code, so the two cannot drift apart
-unnoticed, and a question that asks "does this print" in any other words is reported rather than skipped. The code is
+unnoticed, and a question that asks "does this print" in any other words is reported rather than skipped. So is a question that asks for the
+output in any other words ("print" or "output" in its text) and shows code with no blank (`__`) to fill in, which must be worded
+exactly "What does this print?" to be run. The code ends at the first line not indented eight spaces, and the next
+non-blank line must be the place to write (a quiz) or the `ANSWER:` line (a key); after the answer only a new question, a section
+heading or its underline may follow, and any other line is reported with its file and line rather than ignored. An identity
+hash in the output (a type-name character, `@`, then hex, such as `[I@1b6d3586`, short or followed by a word character) is
+reported as well, since it repeats across starts of one JDK and no JDK promises it; an address such as `a@b.c` is not one. The code is
 also held to the vocabulary gate (below). Every other question (a term, code with a blank in it, a reason) is neither run
 nor held to the vocabulary gate: the review reads it.
 
