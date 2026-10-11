@@ -300,6 +300,17 @@ final class ChecksTest {
     T.check(r.out().contains("ch01-first-programs#1: the page would publish the worked solution; give its check a \"starter\""), r.out());
     T.check(!r.out().contains("ch01-first-programs#4: the page would publish"), "the starter box beside it is not refused: " + r.out());
   }
+  static void testAFenceAddedAboveAnExerciseFailsWhereTheExerciseWouldPublishAnotherBoxsAnswer() throws Exception {
+    // C1, the reviewer's probe: a teaching box added above chapter 1's exercise and no key changed. The exercise is #5
+    // now, with no check, so it publishes its own fence, which is the first worked solution of the section still keyed
+    // #4: the page would show the answer as the exercise's code, and bundle/ch01/ch01_05.java would publish it. The rule
+    // holds each box's published code against every worked solution on its page, so the plain build fails, naming both.
+    var r = Fixtures.build(ProofGateTest.shifted("checks-shift", false));
+    T.eq(1, r.exit(), "exit: " + r.out());
+    T.check(r.out().contains("ch01-first-programs#5: the page would publish ch01-first-programs#4's worked solution as this box's code"),
+        r.out());
+    T.check(!r.out().contains("ch01-first-programs#4: the page would publish"), "the starter box itself is not refused: " + r.out());
+  }
   static void testAMistakeMayBeWhatTheBoxPublishes() throws Exception {
     // Interface 2: the starter rule holds what a box publishes against its worked solutions only. A mistake is a wrong
     // answer, never revealed, and the starter left as it is, the commonest mistake there is, may well be one: refusing it

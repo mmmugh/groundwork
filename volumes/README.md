@@ -94,6 +94,14 @@ box, the answer (`worked solution 2`, `mistake 1`), the runtime and what Check s
 `input` check also needs a mistake that compiles: one that fails to compile, or changes the method's signature,
 never reaches the check's cases, so a box whose every mistake stops at the compiler fails the build.
 
+Box ids count fences, so a fence added or removed above an exercise moves every key below it onto another box
+unless each key is moved too. So a check with a `starter` is proved with two answers more, which tie it to the box it
+lands on: the box's own fence, the author's answer, must pass (`the box's own fence`), and the starter, the code the
+box publishes, must fail (`the published code`: a starter that already passes is an exercise with nothing to do).
+Neither counts toward the two worked solutions and a mistake, nor as the mistake that compiles. A check with no
+starter publishes the box's own fence, which may be the answer or the exercise's wrong starting code, so it gets
+neither; the starter rule (below) still catches an exercise that would publish another box's answer.
+
 **The starter rule.** A `starter` is the code the reader starts from, held to the same vocabulary rule as
 everything else below. When a check declares one, the box shows the starter, and its own fence, the
 author's answer, is never what the box shows: the page's editor and `site/boxes.json`'s `source` both carry the
@@ -107,7 +115,9 @@ audit still runs the author's fence and compares it with the box's stated output
 any other box. The build fails with
 `the page would publish the worked solution; give its check a "starter"` when the code a box publishes
 (its starter, or its own fence when it has none) is, once tidied, a worked solution in that box's own
-section of `_solutions.md`; a mistake may be (the unchanged starter is the commonest mistake).
+section of `_solutions.md`, and with `the page would publish <box id>'s worked solution as this box's code` when it
+is another box's worked solution on the same page (most often a fence added or removed above it, its keys left
+behind); a mistake may be (the unchanged starter is the commonest mistake).
 
 **What reaches the page.** `_checks.json` itself is never published. Each check travels only inside its
 own box, in the box's `data-check` attribute, with just what that check needs: a method check's `name`,

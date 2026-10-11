@@ -34,6 +34,12 @@ final class ProofGateTest {
     a.put("right", right);
     return a;
   }
+  /** The published code's answer, as Proofs.of writes it for a starter box: wrong, and marked. */
+  static Map<String, Object> published(String source) {
+    Map<String, Object> a = answer("the published code", source, false);
+    a.put("published", true);
+    return a;
+  }
   static Map<String, Object> proof(String id, Map<String, Object> check, List<Map<String, Object>> answers) {
     Map<String, Object> p = new LinkedHashMap<>();
     p.put("id", id);
@@ -56,14 +62,93 @@ final class ProofGateTest {
     Files.writeString(checks, s.replace("{\n \"ch01-first-programs#4\"", "{\n \"ch01-first-programs#1\": {\"kind\": \"predict\"},\n \"ch01-first-programs#4\""));
   }
 
+  /** The reviewer's probe (C1): chapter 1's page with a teaching box added above its exercise and no key changed, so
+   *  every key for #4 (its check, its starter, its _solutions.md section) now lands on the new box, and the exercise is
+   *  #5. With vary, the exercise's fence gains a comment, so it is no worked solution and the starter rule cannot see
+   *  the shift: only the proof can. */
+  static Path shifted(String name, boolean vary) throws Exception {
+    Path p = Fixtures.project(name);
+    Path ch1 = p.resolve("volumes/vol-fixture/content/ch01-first-programs.md");
+    String s = Files.readString(ch1), exercise = "1. Make it print your name.\n\n```java\nvoid main() {\n";
+    T.check(s.contains("\n### Try It\n") && s.contains(exercise), "the fixture's chapter 1 ends with its Try It exercise: " + s);
+    s = s.replace("\n### Try It\n", "\nAnother program prints a name:\n\n```java\nvoid main() {\n    IO.println(\"Bo\");\n}\n```\n\n"
+        + "```output\nBo\n```\n\n### Try It\n");
+    if (vary) s = s.replace(exercise, exercise + "    // my name\n");
+    Files.writeString(ch1, s);
+    return p;
+  }
+  static List<String> labels(Object proof) {
+    List<String> out = new ArrayList<>();
+    for (Object a : (List<?>) ((Map<?, ?>) proof).get("answers")) out.add((String) ((Map<?, ?>) a).get("label"));
+    return out;
+  }
+
+  static void testAStarterBoxIsProvedWithItsOwnFenceAndThePublishedCodeToo() throws Exception {
+    // C1: a check is tied to the box it lands on. A box whose check has a starter publishes the starter, so its own
+    // fence is the author's answer, which must pass, and the starter, the code the box publishes, must fail (a starter
+    // that passes is an exercise with nothing to do). Neither counts toward the two worked solutions and a mistake. A
+    // box whose check has no starter publishes its fence, which may be the exercise's wrong starting code (the
+    // acceptance fixture's "Make it print Ada" box) or its answer, so the data cannot say which: it gets neither.
+    Path p = Fixtures.project("proof-tie");
+    Path checks = p.resolve("volumes/vol-fixture/content/_checks.json");
+    Files.writeString(checks, Files.readString(checks).replace("\n}", ",\n \"ch02-types-and-input#1\": {\"kind\": \"input\", "
+        + "\"runs\": [{\"typed\": [\"21\"], \"numbers\": [\"42\"]}]}\n}"));
+    Path solutions = p.resolve("volumes/vol-fixture/content/_solutions.md");
+    String ask = "```java\nvoid main() {\n    int n = Integer.parseInt(IO.readln(\"How many? \"));\n    IO.println(%s);\n}\n```\n\n";
+    Files.writeString(solutions, Files.readString(solutions) + "\n## ch02-types-and-input#1\n\n" + ask.formatted("n * 2")
+        + ask.formatted("n + n") + "### mistake\n\n" + ask.formatted("n"));
+    Volume v = Volume.loadAll(p.resolve("volumes")).get(0);
+    Map<Page, List<Box>> boxes = new LinkedHashMap<>();
+    for (Page page : v.pages()) boxes.put(page, Boxes.of(v, page));
+    List<String> problems = new ArrayList<>();
+    List<Object> proofs = Proofs.of(v, boxes, problems, page -> true);
+    T.eq(List.of(), problems, "the two extra answers count toward nothing the rule asks for");
+    T.eq(3, proofs.size(), "three checks: " + proofs);
+    T.eq(List.of("worked solution 1", "worked solution 2", "the box's own fence", "mistake 1", "mistake 2", "the published code"),
+        labels(proofs.get(0)), "chapter 1's starter box: its worked solutions, its own fence, its mistakes, then the code it publishes");
+    List<?> answers = (List<?>) ((Map<?, ?>) proofs.get(0)).get("answers");
+    T.eq(answer("the box's own fence", "void main() {\n    IO.println(\"Ada\");\n}\n", true), answers.get(2), "the fence is right");
+    T.eq(published("void main() {\n    IO.println(\"\");\n}\n"), answers.get(5), "the starter is wrong, and marked as the published code, which proofs.mjs's compile rule leaves out");
+    T.eq("ch02-types-and-input#1", ((Map<?, ?>) proofs.get(1)).get("id"), "chapter 2's input check, which has no starter");
+    T.eq(List.of("worked solution 1", "worked solution 2", "mistake 1"), labels(proofs.get(1)), "a box with no starter gets neither");
+    T.eq(List.of("worked solution 1", "worked solution 2", "the box's own fence", "mistake 1", "the published code"),
+        labels(proofs.get(2)), "chapter 2's method check has a starter too");
+  }
+  static void testAFenceAddedAboveAnExerciseFailsTheProofOfTheBoxItsCheckNowLandsOn() throws Exception {
+    // The probe with the exercise's fence varied: the starter rule sees nothing, so the build reaches the proof, where the
+    // new box #4, which the check, starter and solutions now land on, is held to its own fence: it prints Bo, not Ada.
+    var r = Fixtures.build(shifted("proof-shift", true), "--check", "--runtime", DIST.toString());
+    T.eq(1, r.exit(), "the shifted keys fail --check: " + r.out());
+    for (String where : List.of("on the browser runtime", "on the JDK"))
+      T.check(r.out().contains("  !! ch01-first-programs#4: the box's own fence fails " + where + ", but it is right. Check said:\n"),
+          "names the box the check landed on, and its fence, " + where + ": " + r.out());
+    T.check(r.out().contains("2 checks, 11 answers judged, 2 wrong verdict(s)"), "and nothing else is wrong: " + r.out());
+  }
+  static void testAStarterThatAlreadyPassesItsCheckFails() throws Exception {
+    // The starter prints Ada already; a blank line inside it keeps it from being a worked solution, so the starter rule
+    // passes it and only the proof sees that a reader who changed nothing would pass.
+    Path p = Fixtures.project("proof-starter-passes");
+    Path checks = p.resolve("volumes/vol-fixture/content/_checks.json");
+    String s = Files.readString(checks), starter = "\"starter\": \"void main() {\\n    IO.println(\\\"\\\");\\n}\\n\"";
+    T.check(s.contains(starter), "the fixture's chapter 1 starter: " + s);
+    Files.writeString(checks, s.replace(starter, "\"starter\": \"void main() {\\n    IO.println(\\\"Ada\\\");\\n\\n}\\n\""));
+    var r = Fixtures.build(p, "--check", "--runtime", DIST.toString());
+    T.eq(1, r.exit(), "a starter that passes fails --check: " + r.out());
+    for (String where : List.of("on the browser runtime", "on the JDK"))
+      T.check(r.out().contains("  !! ch01-first-programs#4: the published code passes " + where + ", but it is a mistake. Check said:\n    Correct."),
+          where + ": " + r.out());
+    T.check(r.out().contains("2 wrong verdict(s)"), "and nothing else: " + r.out());
+  }
+
   static void testTheFixtureProvesEveryCheckOnBothRuntimes() throws Exception {
     // The fixture's two checks: chapter 1's output check (two worked solutions; two mistakes, one that does not
     // compile and one that is the starter itself) and chapter 2's method check on a double (two worked solutions, each
-    // one unit in the last place from 0.15 for average(0.1, 0.2), and one mistake), each answer judged on both runtimes.
+    // one unit in the last place from 0.15 for average(0.1, 0.2), and one mistake), each answer judged on both runtimes;
+    // both have a starter, so each is also held to its own fence and its published code (C1): 6 and 5 answers.
     Path p = Fixtures.project("proof");
     var r = Fixtures.build(p, "--check", "--runtime", DIST.toString());
     T.eq(0, r.exit(), "full --check with the proof gate: " + r.out());
-    T.check(r.out().contains("2 checks, 7 answers judged, 0 wrong verdict(s)"), r.out());
+    T.check(r.out().contains("2 checks, 11 answers judged, 0 wrong verdict(s)"), r.out());
     // What the gate judged with is what the page carries: each proof's check is its box's data-check, as written.
     for (Object o : (List<?>) Json.parse(Files.readString(p.resolve("build/.work/proofs.json")))) {
       Map<?, ?> proof = (Map<?, ?>) o;
@@ -231,7 +316,9 @@ final class ProofGateTest {
     // A mistake that fails to compile, or that changes the method's signature, proves only that Check reports it: it
     // never reaches the check's cases. With one case, 4 -> true, m#1's check passes `return true;`, and no such mistake
     // could show it. So a checked box needs a mistake that compiles: m#1 and o#1 have none and are reported, once each
-    // whatever their number of mistakes and runtimes; m#2, with one that compiles beside one that does not, is not.
+    // whatever their number of mistakes and runtimes; m#2, with one that compiles beside one that does not, is not. o#1's
+    // published code compiles and fails, as a starter's must, but it is no mistake the author chose (Proofs), so it
+    // does not count as the one that compiles.
     String noSemicolon = "boolean isEven(int n) {\n    return n % 2 == 0\n}\n";
     Map<String, Object> weak = Map.of("kind", "method", "name", "isEven", "returns", "boolean", "params", List.of("int"),
         "cases", List.of(List.of("4", "true")));
@@ -244,7 +331,8 @@ final class ProofGateTest {
         proof("o#1", Map.of("kind", "output", "expected", "Ada\n"), List.of(
             answer("worked solution 1", "void main() {\n    IO.println(\"Ada\");\n}\n", true),
             answer("worked solution 2", "void main() {\n    IO.print(\"Ada\\n\");\n}\n", true),
-            answer("mistake 1", "void main() {\n    IO.println(\"Ada\")\n}\n", false))),
+            answer("mistake 1", "void main() {\n    IO.println(\"Ada\")\n}\n", false),
+            published("void main() {\n    IO.println(\"\");\n}\n"))),
         proof("m#2", IS_EVEN, List.of(
             answer("worked solution 1", EVEN, true),
             answer("mistake 1", noSemicolon, false),

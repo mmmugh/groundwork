@@ -17,9 +17,11 @@
 // 390 px, through the page's own controls and nothing else (no call into the page's code). It builds the volume as the
 // course is built (harness buildSite), then on each of the chapter's pages, the chapter and its practice page:
 // - Check, three ways (DESIGN section 3): each worked solution in _solutions.md, typed into its box, must pass and each
-//   mistake must fail; a predict box takes its stated output and each right prediction (at least one besides it), which
-//   must pass, and each wrong prediction, which must fail. A box with noCheck says so in its own words and offers no
-//   Check.
+//   mistake must fail; a box whose check has a starter is held to two answers more, as build/Proofs.java holds it, with
+//   the same labels: its own fence in the page's Markdown, the author's answer, must pass ("the box's own fence"), and
+//   the code it publishes must fail ("the published code"), which ties the check to the box it lands on (C1). A predict
+//   box takes its stated output and each right prediction (at least one besides it), which must pass, and each wrong
+//   prediction, which must fail. A box with noCheck says so in its own words and offers no Check.
 // - Each box is of the kind the build published for it in boxes.json, so none is left unrun by being shown as another.
 // - Show a solution: a box with a worked solution offers it, shut as the page loads, and no other box does; opening
 //   it shows that box's own first worked solution, and every other box's stays shut.
@@ -97,6 +99,7 @@ if (!fs.existsSync(path.join(volumeDir, "volume.json"))) {
 const slug = path.basename(volumeDir);
 const mdIn = (d) => (fs.existsSync(d) ? fs.readdirSync(d).filter((f) => f.endsWith(".md")).sort() : []);
 const pageFiles = [...mdIn(path.join(volumeDir, "content")), ...mdIn(path.join(volumeDir, "practice"))];
+const pageFile = (f) => path.join(volumeDir, fs.existsSync(path.join(volumeDir, "content", f)) ? "content" : "practice", f);
 const chapters = [...new Set(pageFiles.map((f) => /^(ch\d+)-/.exec(f)?.[1]).filter(Boolean))].sort();
 if (!chapters.length) { console.log(`${path.relative(REPO, volumeDir)} has no chapter: nothing was accepted`); process.exit(1); }
 if (which !== "all" && !chapters.includes(which)) {
@@ -110,6 +113,11 @@ const DECL = json(path.join(volumeDir, "content/_boxes.json"));
 const CHECKS = json(path.join(volumeDir, "content/_checks.json"));
 const SOLUTIONS = readSolutions(path.join(volumeDir, "content/_solutions.md"));
 const NONE = { rightJava: [], rightText: [], mistakeJava: [], mistakeText: [] };
+// Each box's own fence, the code the author wrote in the page's Markdown, by box id (for a starter box, what Proofs calls
+// the box's own fence).
+const FENCES = new Map(pageFiles.flatMap((f) => javaFences(pageFile(f)).map((body, i) => [`${f.slice(0, -3)}#${i + 1}`, body])));
+// The two answers that tie a starter box's check to its box, labeled as build/Proofs.java's FENCE and PUBLISHED.
+const FENCE = "the box's own fence", PUBLISHED = "the published code";
 const site = path.join(buildSite(volumeDir, `acceptance-site-${slug}`), "site");
 const BOXES = JSON.parse(fs.readFileSync(path.join(site, "boxes.json"), "utf8"));
 const OUT = path.join(REPO, "build/.work", slug === "vol1" ? "acceptance" : `acceptance-${slug}`);
@@ -154,6 +162,20 @@ const OVERFLOW = (firefox) => {
   return wide;
 };
 
+// A page's java fences in order, read as build/Markdown.java reads a fence (a line of three backticks and a language opens
+// it, a line of three backticks closes it, and its body is each line followed by "\n"): the nth is box <page>#n's code.
+function javaFences(file) {
+  const lines = fs.readFileSync(file, "utf8").replace(/\r\n?/g, "\n").split("\n"), fences = [];
+  for (let i = 0; i < lines.length; i++) {
+    const fence = /^```([^`]*)$/.exec(lines[i]);
+    if (!fence) continue;
+    let body = "";
+    for (i++; i < lines.length && lines[i] !== "```"; i++) body += lines[i] + "\n";
+    if (fence[1].trim() === "java") fences.push(body);
+  }
+  return fences;
+}
+
 // _solutions.md as Plan 5 extends it, read as build/Markdown.java reads fences and headings: under "## <box id>", the
 // java fences before any level-3 heading are worked solutions (the first is the one a reader may reveal) and the text
 // fences there are further right predictions; under "### mistake", java fences are mistakes and text fences wrong
@@ -188,13 +210,18 @@ function readSolutions(file) {
 // Check, three ways, through the box's own field and button; then the box is put back as it was built.
 async function prove(t, e, r, expect, wide, engine) {
   const box = boxOf(t, e.id), s = SOLUTIONS.get(e.id) ?? NONE, predict = r.kind === "predict";
+  // A starter box's two more answers (build/Proofs.java): they count toward neither the two right answers nor the mistake.
+  const tie = !predict && r.starter;
   const answers = predict
     ? [{ label: "the stated output", answer: JSON.parse(await box.getAttribute("data-check")).expected, want: "pass" },
       ...s.rightText.map((a, i) => ({ label: `right prediction ${i + 2}`, answer: a, want: "pass" })),
       ...s.mistakeText.map((a, i) => ({ label: `wrong prediction ${i + 1}`, answer: a, want: "fail" }))]
     : [...s.rightJava.map((a, i) => ({ label: `worked solution ${i + 1}`, answer: a, want: "pass" })),
-      ...s.mistakeJava.map((a, i) => ({ label: `mistake ${i + 1}`, answer: a, want: "fail" }))];
-  const rights = answers.filter((a) => a.want === "pass").length, wrongs = answers.length - rights;
+      ...(tie ? [{ label: FENCE, answer: FENCES.get(e.id), want: "pass" }] : []),
+      ...s.mistakeJava.map((a, i) => ({ label: `mistake ${i + 1}`, answer: a, want: "fail" })),
+      ...(tie ? [{ label: PUBLISHED, answer: e.source, want: "fail" }] : [])];
+  const own = answers.filter((a) => a.label !== FENCE && a.label !== PUBLISHED);
+  const rights = own.filter((a) => a.want === "pass").length, wrongs = own.length - rights;
   const enough = predict ? "a right prediction besides its stated output, and a wrong one,"
     : "two worked solutions and a mistake";
   expect(`${e.id}: its ${e.check.kind} check has ${enough} to prove it with`, rights >= 2 && wrongs >= 1,
@@ -373,9 +400,10 @@ function covered(engine, report) {
     if (b.noCheck != null) seen.add("noCheck");
     if (b.starter) seen.add("starter");
     if (b.reveal) seen.add("reveal");
+    for (const a of b.proof) if (a.label === FENCE || a.label === PUBLISHED) seen.add(a.label);
   }
   const want = ["run", "input", "raises", "compile-error", "predict", "reference", "varies", "check:method", "check:output",
-    "check:input", "check:predict", "noCheck", "starter", "reveal"];
+    "check:input", "check:predict", "noCheck", "starter", "reveal", FENCE, PUBLISHED];
   const missing = want.filter((k) => !seen.has(k));
   report.checks++;
   if (!check(`${engine}: the fixture drove a box of every kind (${want.join(", ")})`, missing.length === 0, missing)) report.failed++;

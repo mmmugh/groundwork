@@ -17,10 +17,12 @@
 // file, every worked solution must pass and every mistake must fail, judged by the page's own web/page/check.js
 // (runCheck) on the browser runtime and on the pinned JDK, so a check the page would get wrong cannot pass. A box whose
 // every mistake stops at the compiler on a runtime (a compile error, or a signature Check cannot call) fails too: such a
-// mistake never reaches the check's cases, so it shows nothing about them. A prediction is text: the page's
-// predictVerdict judges it once, and no runtime runs it.
+// mistake never reaches the check's cases, so it shows nothing about them; the published code (build/Proofs.java: a
+// starter box's starter, marked "published") is a wrong answer too, but no mistake the author chose, so it never counts
+// as the one that compiles. A prediction is text: the page's predictVerdict judges it once, and no runtime runs it.
 //   node runtime/test/proofs.mjs <proofs.json>    (JF_DIST: the runtime to test; JF_JAVA_HOME: the JDK)
 // proofs.json, from build/Proofs.java: [{"id": "<box id>", "check": <its data-check>, "answers": [{"label", "source", "right"}]}]
+// (an answer may also carry "published": true)
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -58,7 +60,7 @@ for (const p of proofs) {
     if (p.check.kind === "predict") judged.push(["as text (a prediction runs on no runtime)", predictVerdict(a.source, p.check.expected)]);
     else for (const [where, runner] of runtimes) judged.push([where, await runCheck(runner, a.source, p.check)]);
     for (const [where, v] of judged) {
-      if (p.check.kind !== "predict" && !a.right) casesTried.set(where, (casesTried.get(where) ?? false) || !v.compile);
+      if (p.check.kind !== "predict" && !a.right && !a.published) casesTried.set(where, (casesTried.get(where) ?? false) || !v.compile);
       verdicts++;
       if (v.passed === a.right) continue;
       wrong++;

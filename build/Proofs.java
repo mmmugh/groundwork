@@ -25,15 +25,28 @@ import java.util.function.Predicate;
  *  own web/page/check.js on the browser runtime and on the pinned JDK (ForkGate.runProofs). A checked box needs two
  *  worked solutions, the second in another style, and a mistake. A predict box's answers are text: its stated output
  *  is the first right one, and it needs one more (a text fence under its heading) and a wrong one (a text fence under
- *  "### mistake"). */
+ *  "### mistake").
+ *
+ *  <p>Box ids are positional, so a fence added or removed above an exercise moves its check, starter and solutions onto
+ *  another box unless every key is moved too (C1). So a checked box whose check has a starter is proved with two more
+ *  answers, which tie the check to the box it lands on: its own fence, the author's answer, which the audit already runs
+ *  and which must pass ("the box's own fence"), and the starter, the code the box publishes, which must fail ("the
+ *  published code": a starter that passes is an exercise with nothing to do). A box whose check has no starter publishes
+ *  its fence, which may be the answer or the exercise's wrong starting code, so the data cannot say which way it must go:
+ *  it gets neither. Neither answer counts toward the two worked solutions and a mistake, nor toward the mistake that
+ *  compiles (runtime/test/proofs.mjs reads "published"); web/test/acceptance.mjs adds both, in this order, with these
+ *  labels. */
 final class Proofs {
   private Proofs() {}
 
   /** A box with no section in _solutions.md. */
   private static final Vocabulary.Section NONE = new Vocabulary.Section(List.of(), List.of(), List.of(), List.of(), List.of());
+  /** The labels of the two answers that tie a starter box's check to the box (the class comment). */
+  static final String FENCE = "the box's own fence", PUBLISHED = "the published code";
 
   /** v's checked boxes on the pages only selects (every page, unless --only names some), in page order, as proofs.json
-   *  entries {id, check, answers: [{label, source, right}]}, check being exactly what the box's data-check carries
+   *  entries {id, check, answers: [{label, source, right}]} (the published code's answer also carries "published": true),
+   *  check being exactly what the box's data-check carries
    *  (Checks.published). Each such box without the answers its proof needs adds a problem saying which are missing; a
    *  box on a page only leaves out is neither held to its answers nor proved. */
   static List<Object> of(Volume v, Map<Page, List<Box>> boxes, List<String> problems, Predicate<Page> only) throws BuildError {
@@ -57,8 +70,15 @@ final class Proofs {
           if (s.mistakeText().isEmpty())
             problems.add(b.id() + ": its predict check needs a wrong prediction: a text fence under \"### mistake\" in _solutions.md");
         } else {
+          boolean starter = c.starter() != null;
           add(answers, "worked solution ", 1, s.worked(), true);
+          if (starter) answers.add(answer(FENCE, b.source(), true));
           add(answers, "mistake ", 1, s.mistakes(), false);
+          if (starter) {
+            Map<String, Object> published = answer(PUBLISHED, c.starter(), false);
+            published.put("published", true);
+            answers.add(published);
+          }
           if (s.worked().size() < 2)
             problems.add(b.id() + ": its check needs two worked solutions in _solutions.md, the second in another style; it has "
                 + s.worked().size());

@@ -27,7 +27,8 @@ import javax.lang.model.SourceVersion;
  *  reads one box's entry, and Checks.published is the part of it the box carries on the page (D37: each check
  *  travels only inside its own box; no file carrying every check is published). The starter rule (D40(b)):
  *  a box whose check declares a starter publishes the starter in place of its own fence, and no box may
- *  publish a worked solution from its own _solutions.md section. */
+ *  publish a worked solution of any box on its page, its own or another's (C1: a fence added or removed above an
+ *  exercise, its keys left as they were, makes the exercise publish its own answer). */
 final class Checks {
   private Checks() {}
 
@@ -133,7 +134,7 @@ final class Checks {
         default -> predict(problems, b);
       }
     }
-    workedSolutions(problems, v, boxes);
+    workedSolutions(problems, v, all);
     return problems;
   }
 
@@ -197,21 +198,31 @@ final class Checks {
       problems.add(b.id() + ": a predict box cannot be varies, raises, compileError or stdin");
   }
 
-  /** The second half of the starter rule: the source a box publishes (its starter, or its own fence when
-   *  it has none) must not be, after Audit.tidy, any worked solution in that box's own _solutions.md section. A
-   *  mistake may be: it is a wrong answer, never revealed, and the unchanged starter is the commonest one. */
-  private static void workedSolutions(List<String> problems, Volume v, Map<String, Box> boxes) throws BuildError {
+  /** The second half of the starter rule: the source a box publishes (its starter, or its own fence when it has none)
+   *  must not be, after Audit.tidy, any worked solution of any box on its page: its own section's (the rule since D40(b))
+   *  or another box's (C1: box ids are positional, so a fence added or removed above an exercise with its keys left as
+   *  they were moves the exercise's section onto another box, and the exercise, now without its check and starter,
+   *  publishes its own fence, the answer). A mistake may be: it is a wrong answer, never revealed, and the unchanged
+   *  starter is the commonest one. */
+  private static void workedSolutions(List<String> problems, Volume v, Map<Page, List<Box>> all) throws BuildError {
     if (v.solutions() == null) return;
-    for (var s : Vocabulary.solutions(v.solutions()).entrySet()) {
-      Box b = boxes.get(s.getKey());
-      if (b == null) continue; // Vocabulary.check reports a section for no such box
-      Object starter = v.checks().get(b.id()) instanceof Map<?, ?> m ? m.get("starter") : null;
-      String shown = Audit.tidy(starter instanceof String t ? t : b.source());
-      for (String fence : s.getValue().worked()) {
-        if (Audit.tidy(fence).equals(shown)) {
+    Map<String, Vocabulary.Section> sections = Vocabulary.solutions(v.solutions());
+    for (List<Box> page : all.values()) {
+      // Each worked solution on this page, tidied, and the first box whose section gives it.
+      Map<String, String> owner = new HashMap<>();
+      for (Box b : page) {
+        Vocabulary.Section s = sections.get(b.id());
+        if (s != null) for (String fence : s.worked()) owner.putIfAbsent(Audit.tidy(fence), b.id());
+      }
+      for (Box b : page) {
+        Object starter = v.checks().get(b.id()) instanceof Map<?, ?> m ? m.get("starter") : null;
+        String shown = Audit.tidy(starter instanceof String t ? t : b.source());
+        Vocabulary.Section own = sections.get(b.id());
+        if (own != null && own.worked().stream().anyMatch(fence -> Audit.tidy(fence).equals(shown)))
           problems.add(b.id() + ": the page would publish the worked solution; give its check a \"starter\"");
-          break;
-        }
+        else if (owner.containsKey(shown))
+          problems.add(b.id() + ": the page would publish " + owner.get(shown) + "'s worked solution as this box's code; if a"
+              + " fence was added or removed above it, move its keys in _checks.json, _boxes.json and _solutions.md with it");
       }
     }
   }
