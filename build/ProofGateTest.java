@@ -115,8 +115,9 @@ final class ProofGateTest {
         labels(proofs.get(2)), "chapter 2's method check has a starter too");
   }
   static void testAFenceAddedAboveAnExerciseFailsTheProofOfTheBoxItsCheckNowLandsOn() throws Exception {
-    // The probe with the exercise's fence varied: the starter rule sees nothing, so the build reaches the proof, where the
-    // new box #4, which the check, starter and solutions now land on, is held to its own fence: it prints Bo, not Ada.
+    // The probe with the exercise's fence varied: the starter rule sees nothing, so the build reaches the proof, where
+    // the new box #4, which the check, starter and solutions now land on, is held to its own fence: it prints Bo, not
+    // Ada.
     var r = Fixtures.build(shifted("proof-shift", true), "--check", "--runtime", DIST.toString());
     T.eq(1, r.exit(), "the shifted keys fail --check: " + r.out());
     for (String where : List.of("on the browser runtime", "on the JDK"))
@@ -143,8 +144,9 @@ final class ProofGateTest {
   static void testTheFixtureProvesEveryCheckOnBothRuntimes() throws Exception {
     // The fixture's two checks: chapter 1's output check (two worked solutions; two mistakes, one that does not
     // compile and one that is the starter itself) and chapter 2's method check on a double (two worked solutions, each
-    // one unit in the last place from 0.15 for average(0.1, 0.2), and one mistake), each answer judged on both runtimes;
-    // both have a starter, so each is also held to its own fence and its published code (C1): 6 and 5 answers.
+    // one unit in the last place from 0.15 for average(0.1, 0.2), and one mistake), each answer judged on both
+    // runtimes; both have a starter, so each is also held to its own fence and its published code (C1): 6 and 5
+    // answers.
     Path p = Fixtures.project("proof");
     var r = Fixtures.build(p, "--check", "--runtime", DIST.toString());
     T.eq(0, r.exit(), "full --check with the proof gate: " + r.out());
@@ -316,9 +318,9 @@ final class ProofGateTest {
     // A mistake that fails to compile, or that changes the method's signature, proves only that Check reports it: it
     // never reaches the check's cases. With one case, 4 -> true, m#1's check passes `return true;`, and no such mistake
     // could show it. So a checked box needs a mistake that compiles: m#1 and o#1 have none and are reported, once each
-    // whatever their number of mistakes and runtimes; m#2, with one that compiles beside one that does not, is not. o#1's
-    // published code compiles and fails, as a starter's must, but it is no mistake the author chose (Proofs), so it
-    // does not count as the one that compiles.
+    // whatever their number of mistakes and runtimes; m#2, with one that compiles beside one that does not, is not.
+    // o#1's published code compiles and fails, as a starter's must, but it is no mistake the author chose (Proofs), so
+    // it does not count as the one that compiles.
     String noSemicolon = "boolean isEven(int n) {\n    return n % 2 == 0\n}\n";
     Map<String, Object> weak = Map.of("kind", "method", "name", "isEven", "returns", "boolean", "params", List.of("int"),
         "cases", List.of(List.of("4", "true")));

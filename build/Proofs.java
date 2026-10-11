@@ -29,13 +29,13 @@ import java.util.function.Predicate;
  *
  *  <p>Box ids are positional, so a fence added or removed above an exercise moves its check, starter and solutions onto
  *  another box unless every key is moved too (C1). So a checked box whose check has a starter is proved with two more
- *  answers, which tie the check to the box it lands on: its own fence, the author's answer, which the audit already runs
- *  and which must pass ("the box's own fence"), and the starter, the code the box publishes, which must fail ("the
- *  published code": a starter that passes is an exercise with nothing to do). A box whose check has no starter publishes
- *  its fence, which may be the answer or the exercise's wrong starting code, so the data cannot say which way it must go:
- *  it gets neither. Neither answer counts toward the two worked solutions and a mistake, nor toward the mistake that
- *  compiles (runtime/test/proofs.mjs reads "published"); web/test/acceptance.mjs adds both, in this order, with these
- *  labels. */
+ *  answers, which tie the check to the box it lands on: its own fence, the author's answer, which the audit already
+ *  runs and which must pass ("the box's own fence"), and the starter, the code the box publishes, which must fail ("the
+ *  published code": a starter that passes is an exercise with nothing to do). A box whose check has no starter
+ *  publishes its fence, which may be the answer or the exercise's wrong starting code, so the data cannot say which way
+ *  it must go: it gets neither. Neither answer counts toward the two worked solutions and a mistake, nor toward the
+ *  mistake that compiles (runtime/test/proofs.mjs reads "published"); web/test/acceptance.mjs adds both, in this order,
+ *  with these labels. */
 final class Proofs {
   private Proofs() {}
 
@@ -45,8 +45,8 @@ final class Proofs {
   static final String FENCE = "the box's own fence", PUBLISHED = "the published code";
 
   /** v's checked boxes on the pages only selects (every page, unless --only names some), in page order, as proofs.json
-   *  entries {id, check, answers: [{label, source, right}]} (the published code's answer also carries "published": true),
-   *  check being exactly what the box's data-check carries
+   *  entries {id, check, answers: [{label, source, right}]} (the published code's answer also carries "published":
+   *  true), check being exactly what the box's data-check carries
    *  (Checks.published). Each such box without the answers its proof needs adds a problem saying which are missing; a
    *  box on a page only leaves out is neither held to its answers nor proved. */
   static List<Object> of(Volume v, Map<Page, List<Box>> boxes, List<String> problems, Predicate<Page> only) throws BuildError {

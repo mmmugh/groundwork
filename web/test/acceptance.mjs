@@ -40,9 +40,9 @@
 // each page took. It never opens the scratchpad (web/test/scratchpad.mjs holds that, D115), and it runs after the
 // build's own gates (Build.java --check), which it does not repeat.
 //   node web/test/acceptance.mjs [--volume <dir>] <name|all> [chromium|webkit|firefox]
-// name picks pages as Build.java's --only does: each page whose name is <name> or starts <name>- (ch03: chapter 3's page
-// and its practice page; 00: the front matter; 99: the appendices). all is every page, a group at a time by the part
-// of its name before its first "-": the front matter, each chapter, then the appendices.
+// name picks pages as Build.java's --only does: each page whose name is <name> or starts <name>- (ch03: chapter 3's
+// page and its practice page; 00: the front matter; 99: the appendices). all is every page, a group at a time by the
+// part of its name before its first "-": the front matter, each chapter, then the appendices.
 // The course is volumes/vol1; while no volume exists it says "no volumes" and passes, as Build.java --check does. Its
 // fixture, web/test/vol-accept, holds a box of every kind it drives.
 import fs from "node:fs";
@@ -127,8 +127,8 @@ const DECL = json(path.join(volumeDir, "content/_boxes.json"));
 const CHECKS = json(path.join(volumeDir, "content/_checks.json"));
 const SOLUTIONS = readSolutions(path.join(volumeDir, "content/_solutions.md"));
 const NONE = { rightJava: [], rightText: [], mistakeJava: [], mistakeText: [] };
-// Each box's own fence, the code the author wrote in the page's Markdown, by box id (for a starter box, what Proofs calls
-// the box's own fence).
+// Each box's own fence, the code the author wrote in the page's Markdown, by box id (for a starter box, what Proofs
+// calls the box's own fence).
 const FENCES = new Map(pageFiles.flatMap((f) => javaFences(pageFile(f)).map((body, i) => [`${f.slice(0, -3)}#${i + 1}`, body])));
 // The two answers that tie a starter box's check to its box, labeled as build/Proofs.java's FENCE and PUBLISHED.
 const FENCE = "the box's own fence", PUBLISHED = "the published code";
@@ -176,8 +176,9 @@ const OVERFLOW = (firefox) => {
   return wide;
 };
 
-// A page's java fences in order, read as build/Markdown.java reads a fence (a line of three backticks and a language opens
-// it, a line of three backticks closes it, and its body is each line followed by "\n"): the nth is box <page>#n's code.
+// A page's java fences in order, read as build/Markdown.java reads a fence (a line of three backticks and a language
+// opens it, a line of three backticks closes it, and its body is each line followed by "\n"): the nth is box <page>#n's
+// code.
 function javaFences(file) {
   const lines = fs.readFileSync(file, "utf8").replace(/\r\n?/g, "\n").split("\n"), fences = [];
   for (let i = 0; i < lines.length; i++) {
@@ -224,7 +225,8 @@ function readSolutions(file) {
 // Check, three ways, through the box's own field and button; then the box is put back as it was built.
 async function prove(t, e, r, expect, wide, engine, dir) {
   const box = boxOf(t, e.id), s = SOLUTIONS.get(e.id) ?? NONE, predict = r.kind === "predict";
-  // A starter box's two more answers (build/Proofs.java): they count toward neither the two right answers nor the mistake.
+  // A starter box's two more answers (build/Proofs.java): they count toward neither the two right answers nor the
+  // mistake.
   const tie = !predict && r.starter;
   const answers = predict
     ? [{ label: "the stated output", answer: JSON.parse(await box.getAttribute("data-check")).expected, want: "pass" },
@@ -366,7 +368,8 @@ async function acceptPage(engine, pageSlug, dir, report) {
   try {
     await ready(t);
     expect("the page can run Java", await t.page.evaluate(() => document.documentElement.dataset.java) === "ready", null);
-    // A page with no box (the front matter) is held to the rest; one whose boxes went missing is not: its Markdown says.
+    // A page with no box (the front matter) is held to the rest; one whose boxes went missing is not: its Markdown
+    // says.
     const onPage = await t.page.locator(".box").count(), fences = javaFences(pageFile(`${pageSlug}.md`)).length;
     expect(`it shows the ${entries.length} boxes the build published, one for each java fence in its Markdown, and each is driven below`,
       onPage === entries.length && entries.length === fences, { onPage, published: entries.length, fences });

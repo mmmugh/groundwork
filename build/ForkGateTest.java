@@ -193,9 +193,9 @@ final class ForkGateTest {
     e.put("solution", true);
     return examples(name, Json.write(List.of(e)));
   }
-  /** I1: the worked solution a stuck reader reveals and copies is run by no other gate (the audit runs a box's own fence,
-   *  the proof only a checked box's answers), so the fork gate holds it to running to its end on both runtimes, or to
-   *  ending in the exception its box declares; agreeing is not enough. */
+  /** I1: the worked solution a stuck reader reveals and copies is run by no other gate (the audit runs a box's own
+   *  fence, the proof only a checked box's answers), so the fork gate holds it to running to its end on both runtimes,
+   *  or to ending in the exception its box declares; agreeing is not enough. */
   static void testARevealedWorkedSolutionMustRunToItsEndOrRaiseWhatItsBoxDeclares() throws Exception {
     String throwing = "void main() {\n    int[] a = new int[2];\n    IO.println(a[2]);\n}\n";
     var thrown = ForkGate.run(Fixtures.TOOLS, solutionExample("fork-solution-throws", throwing, null), DIST);
@@ -272,10 +272,10 @@ final class ForkGateTest {
 
   // --only hands the fork gate the named pages' examples alone, and the proof gate their checks alone. As Tasks 5 and 6
   // leave the fixture, chapter 2's page and its practice page hold seven of its ten non-reference boxes (5 + 2; chapter
-  // 1 has the other 3), each one example, and one of its two worked solutions' sections, ch02-types-and-input#4's, whose
-  // first worked solution is an example too (I1), and one of its two checks, ch02-types-and-input#4, with 5 answers (2 worked
-  // solutions, its own fence, 1 mistake and its published code; chapter 1's check has 2, 1, 2 and 1). Pages with none to
-  // run (the front matter) skip the gate and say so, where a plain --check with none fails
+  // 1 has the other 3), each one example, and one of its two worked solutions' sections, ch02-types-and-input#4's,
+  // whose first worked solution is an example too (I1), and one of its two checks, ch02-types-and-input#4, with 5
+  // answers (2 worked solutions, its own fence, 1 mistake and its published code; chapter 1's check has 2, 1, 2 and 1).
+  // Pages with none to run (the front matter) skip the gate and say so, where a plain --check with none fails
   // (testAnEmptyExampleListIsAFailure): a page with nothing to run is not a pass of the course.
   static void testTheOnlyFlagGivesTheForkGateTheNamedPagesExamplesAlone() throws Exception {
     var r = Fixtures.build(Fixtures.project("fork-only"), "--check", "--runtime", DIST.toString(), "--only", "ch02");

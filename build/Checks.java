@@ -200,11 +200,11 @@ final class Checks {
   }
 
   /** The second half of the starter rule: the source a box publishes (its starter, or its own fence when it has none)
-   *  must not be, after Audit.tidy, any worked solution of any box on its page: its own section's (the rule since D40(b))
-   *  or another box's (C1: box ids are positional, so a fence added or removed above an exercise with its keys left as
-   *  they were moves the exercise's section onto another box, and the exercise, now without its check and starter,
-   *  publishes its own fence, the answer). A mistake may be: it is a wrong answer, never revealed, and the unchanged
-   *  starter is the commonest one. */
+   *  must not be, after Audit.tidy, any worked solution of any box on its page: its own section's (the rule since
+   *  D40(b)) or another box's (C1: box ids are positional, so a fence added or removed above an exercise with its keys
+   *  left as they were moves the exercise's section onto another box, and the exercise, now without its check and
+   *  starter, publishes its own fence, the answer). A mistake may be: it is a wrong answer, never revealed, and the
+   *  unchanged starter is the commonest one. */
   private static void workedSolutions(List<String> problems, Volume v, Map<Page, List<Box>> all) throws BuildError {
     if (v.solutions() == null) return;
     Map<String, Vocabulary.Section> sections = Vocabulary.solutions(v.solutions());
@@ -228,8 +228,8 @@ final class Checks {
     }
   }
 
-  /** M1: a box with noCheck offers no verdict, so its worked solution is the one thing a reader can compare with (and its
-   *  words may point to it): every such box needs one. */
+  /** M1: a box with noCheck offers no verdict, so its worked solution is the one thing a reader can compare with (and
+   *  its words may point to it): every such box needs one. */
   private static void noCheckSolutions(List<String> problems, Volume v, Map<Page, List<Box>> all) throws BuildError {
     Map<String, Vocabulary.Section> sections = v.solutions() == null ? Map.of() : Vocabulary.solutions(v.solutions());
     for (List<Box> page : all.values())

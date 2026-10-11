@@ -25,8 +25,8 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.function.Predicate;
 
-/** Turns volumes/ into site/. Run with `java build/Build.java` (add --check to also run every box; --check --only chNN
- *  runs every gate on chapter NN's pages and quiz alone). */
+/** Turns volumes/ into site/. Run with `java build/Build.java` (add --check to also run every box; --check --only
+ *  <name> runs every gate on the pages that name picks alone: --only chNN, chapter NN's pages and quiz). */
 public class Build {
   public static void main(String[] args) {
     Path cwd = Path.of("").toAbsolutePath();
@@ -278,7 +278,7 @@ public class Build {
   }
 
   private static String usage() {
-    return "usage: java build/Build.java [--project <dir>] [--check [--only <page>]] [--runtime <dir>] [--scratchpad <dir>] [--fetch-runtime | --fetch-variant]";
+    return "usage: java build/Build.java [--project <dir>] [--check [--only <name>]] [--runtime <dir>] [--scratchpad <dir>] [--fetch-runtime | --fetch-variant]";
   }
 
   /** --only's choice of pages: with no name, every page; with a name, each page whose slug is that name or starts with it
@@ -310,9 +310,9 @@ public class Build {
    *  runtime/test/examples.mjs leave a declared runaway recursion's frames out). Right after each box comes the first
    *  worked solution of its _solutions.md section, the one a reader may reveal and copy (I1), as "<box id> (worked
    *  solution)", run as the reader's run of it would be: with its input check's first run's answers, else the box's
-   *  declared stdin, and with the box's varies and raises. No other gate runs it (the audit runs the box's own fence, the
-   *  proof a checked box's answers alone), so it is marked solution, and examples.mjs holds it to running to its end or
-   *  ending in the box's declared raises, as well as to both runtimes agreeing. */
+   *  declared stdin, and with the box's varies and raises. No other gate runs it (the audit runs the box's own fence,
+   *  the proof a checked box's answers alone), so it is marked solution, and examples.mjs holds it to running to its
+   *  end or ending in the box's declared raises, as well as to both runtimes agreeing. */
   static List<Object> examplesOf(Map<Volume, Map<Page, List<Box>>> boxesByVolume, Predicate<Page> only) throws BuildError {
     List<Object> examples = new ArrayList<>();
     for (var vol : boxesByVolume.entrySet()) {

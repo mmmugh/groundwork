@@ -52,11 +52,12 @@ was written from the real tool's observed output). A change to it goes only thro
 the pinned JDK and refuses to ship if they disagree. See [volumes/README.md](volumes/README.md) for the
 course layout and box declaration rules `_boxes.json` and `_checks.json` enforce.
 
-`--only <name>` is for writing a chapter: every gate runs on the pages whose name is `<name>` or starts `<name>-` (`ch03`
-is chapter 3's page and its practice page) and on that chapter's quiz, and on nothing else; the vocabulary the chapters
-before it teach is still derived from all their boxes. A plain `--check` runs everything, and is what CI and the Pages
-build run. Every `--check` ends with each gate's time, `gate times: audit <s> s, vocabulary <s> s, quizzes <s> s, fork
-gate <s> s, proofs <s> s; all gates <s> s`: the number to watch against the Pages build job's 30 minutes.
+`--only <name>` is for writing a chapter: every gate runs on the pages whose name is `<name>` or starts `<name>-`
+(`ch03` is chapter 3's page and its practice page) and on that chapter's quiz, and on nothing else; the vocabulary the
+chapters before it teach is still derived from all their boxes. A plain `--check` runs everything, and is what CI and
+the Pages build run. Every `--check` ends with each gate's time,
+`gate times: audit <s> s, vocabulary <s> s, quizzes <s> s, fork gate <s> s, proofs <s> s; all gates <s> s`: the number
+to watch against the Pages build job's 30 minutes.
 
 ## Reading the course locally
 
@@ -174,7 +175,7 @@ node web/test/scratchpad-panel.mjs [engine]   # the scratchpad's panel in a real
 node web/test/scratchpad.mjs [engine]         # the real scratchpad in a real browser
 node web/test/doors.mjs [engine]              # a worker that has closed its doors reaches nobody
 node web/test/zip.mjs [engine]                # the self-hosting zip, unzipped and served as a self-hoster would
-node web/test/acceptance.mjs <name|all> [engine]   # the course's pages (a chapter's, 00, 99 or all), as a reader uses them
+node web/test/acceptance.mjs <name|all> [engine]   # the course's pages (chNN, 00, 99 or all), as a reader uses them
 node web/test/acceptance-logs.mjs [engine]          # the acceptance's log shows no worked solution or mistake typed in
 ```
 

@@ -411,9 +411,10 @@ for (const engine of only ? [only] : Object.keys(ENGINES)) {
   await b1.getByRole("button", { name: "Reset", exact: true }).click();
   b1 = await reopen();
   check(`${engine}: Reset forgets the kept edit`, (await b1.locator("textarea.code").inputValue()).includes("Hello, <world>"), null);
-  // A kept edit belongs to the code it edited, wherever that code stands (I4): its key is the code's fingerprint and which
-  // of the page's boxes with that code it is, and never the box's id. So the key forms that named a box's place, alone
-  // (before Task 2) or with its code's fingerprint (Task 2), never load, not even with this box's own fingerprint.
+  // A kept edit belongs to the code it edited, wherever that code stands (I4): its key is the code's fingerprint and
+  // which of the page's boxes with that code it is, and never the box's id. So the key forms that named a box's place,
+  // alone (before Task 2) or with its code's fingerprint (Task 2), never load, not even with this box's own
+  // fingerprint.
   const plantedKeys = await b1.page().evaluate(() => {
     let h = 0x811c9dc5; // box.js's fingerprint of box 1's code, as Task 2's key carried it
     const code = document.querySelector('.box[data-box="ch01-run#1"] textarea.code').defaultValue;
@@ -441,10 +442,11 @@ for (const engine of only ? [only] : Object.keys(ENGINES)) {
   check(`${engine}: no page error across the reloads`, reloadErrors.length === 0, reloadErrors);
   await t.close();
 
-  // Two boxes that publish the same code (ch02-check's #6 and #7, an empty main) keep separate edits, and a later version
-  // of the page with a box added above them, every box after it renumbered as a fence added there renumbers them, does
-  // not move either edit: each follows its own code's place among the boxes with that code (I4). The test changes the
-  // page its server serves between two loads in one browser context, as a reader's browser meets a revised course.
+  // Two boxes that publish the same code (ch02-check's #6 and #7, an empty main) keep separate edits, and a later
+  // version of the page with a box added above them, every box after it renumbered as a fence added there renumbers
+  // them, does not move either edit: each follows its own code's place among the boxes with that code (I4). The test
+  // changes the page its server serves between two loads in one browser context, as a reader's browser meets a revised
+  // course.
   const revised = workDir("page-test-revised");
   fs.cpSync(site, revised, { recursive: true });
   t = await open(engine, revised, PAGES[1]);

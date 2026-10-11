@@ -208,6 +208,8 @@ final class AuditTest {
     r = Fixtures.build(p, "--check", "--only");
     T.eq(2, r.exit(), "a bare --only is misuse: " + r.out());
     T.check(r.out().contains("usage: java build/Build.java"), "with the usage line: " + r.out());
+    // M7: one word for what --only takes, as README.md and Build.java's comment write it.
+    T.check(r.out().contains("[--check [--only <name>]]"), "the usage line names it <name>: " + r.out());
     r = Fixtures.build(p, "--check", "--no-fork-gate-for-tests", "--only", "ch09");
     T.eq(1, r.exit(), "a name no page has fails: " + r.out());
     T.check(r.out().contains("--only ch09: no page is named ch09 or starts ch09-"), r.out());

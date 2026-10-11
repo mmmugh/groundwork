@@ -20,18 +20,22 @@ volumes/<slug>/
   practice/
     ch01-<slug>-practice.md   practice pages, one per chapter that has one
   quizzes/
-    ch01-quiz.txt              published as-is and linked from its chapter's page, one per chapter that has one (see Quizzes below)
+    ch01-quiz.txt              published as-is and linked from its chapter's page, one per chapter that has one
+                               (see Quizzes below)
   answer-keys/
     ch01-answers.txt           each quiz's key (see Quizzes below); anything here, at any depth, is never published
 ```
 
-`practice/`, `quizzes/`, `answer-keys/` and `content/_solutions.md` are all optional (a quiz and its key come together): a volume with
-none of them still builds and still runs every gate, including the private-content scan. A practice
-page's file name must start with its chapter's own `chNN-` prefix (the same digits as the chapter
-file, e.g. `ch02-...`) so the build can place it on that chapter's shelf; anything else in `content/`
-that isn't `00-`, `chNN-`, `99-` or an underscore-prefixed data file is a build error.
+`practice/`, `quizzes/`, `answer-keys/` and `content/_solutions.md` are all optional (a quiz and its key come together):
+a volume with none of them still builds and still runs every gate, including the private-content scan. A practice page's
+file name must start with its chapter's own `chNN-` prefix (the same digits as the chapter file, e.g. `ch02-...`) so the
+build can place it on that chapter's shelf; anything else in `content/` that isn't `00-`, `chNN-`, `99-` or an
+underscore-prefixed data file is a build error.
 
-Every page's first `# ` heading is its title: the browser's tab, the pager and the index (which lists every page by it, each chapter's practice pages under that chapter) show it, and a page without one is a build error. A quiz is named after its chapter's own digits, `chNN-quiz.txt` (a chapter file `ch01-<anything>.md` takes `ch01-quiz.txt`); any other `*-quiz.txt` is a build error, since no page would link it.
+Every page's first `# ` heading is its title: the browser's tab, the pager and the index (which lists every page by it,
+each chapter's practice pages under that chapter) show it, and a page without one is a build error. A quiz is named
+after its chapter's own digits, `chNN-quiz.txt` (a chapter file `ch01-<anything>.md` takes `ch01-quiz.txt`); any other
+`*-quiz.txt` is a build error, since no page would link it.
 
 ## Boxes
 
@@ -75,7 +79,7 @@ written as a JSON string, because the page writes it into generated Java and com
 
 | Kind | Keys | Meaning |
 | --- | --- | --- |
-| `method` | `name`, `returns`, `params`, `cases`, optional `starter` | Check calls the method `name` with each case and compares what it returns: a `double` or `float` within 1e-9 times the larger of 1 and the expected value's size, so a right answer that differs in the last bit passes, and anything else with `Objects.deepEquals`. `returns` is the return type (never `void`); `params` is the list of parameter types, such as `["int"]`; `cases` is a non-empty list of `["<arguments>", "<expected>"]`, such as `["4", "true"]`. The page lists the cases under the box as "What it should do", such as `isEven(4) -> true`. |
+| `method` | `name`, `returns`, `params`, `cases`, optional `starter` | Check calls the method `name` with each case and compares what it returns: a `double` within 1e-9 times the larger of 1 and the expected value's size, so a right answer that differs in the last bit passes (a `float` is compared within the same tolerance, which is finer than one `float` step; the course never teaches `float`), and anything else with `Objects.deepEquals`. `returns` is the return type (never `void`); `params` is the list of parameter types, such as `["int"]`; `cases` is a non-empty list of `["<arguments>", "<expected>"]`, such as `["4", "true"]`. The page lists the cases under the box as "What it should do", such as `isEven(4) -> true`. |
 | `input` | `runs`, optional `starter` | Each run types its `typed` answers (a list of strings, one per prompt) and looks for at least one of: `numbers` (decimals written as text, such as `"42"`, `"-8"` or `"2.5"`, found in order within 0.005; digits only, with an optional leading `-` and decimal part, because that is the only form the page can find in a program's output, so `"1e3"`, `"+2"` and `".5"` are build errors), `words` (found in order, any case; each one word of letters or digits, such as `"many"` or `"café"`, because the page splits the output at every other character, so `"New York"` and `"can't"` are build errors) or `contains` (text the output must hold as written), however the program words the rest. |
 | `output` | `expected`, optional `starter` | The program's output must be `expected`, compared after both are tidied as a stated output is (above: line endings become LF, and spaces and tabs at the end of a line and blank lines at the start and end are ignored); any other difference fails. |
 | `predict` | none | The reader reads the code and says what it prints; the answer is the box's own stated output, which the audit has already verified, and the two are compared after the same tidying as an `output` check. A predict box needs a stated output, and cannot be `varies`, `raises`, `compileError` or `stdin`. |
@@ -181,7 +185,8 @@ other box.
 **The scratchpad**: a tab on every chapter page, beside the boxes, that opens a jshell in the page. Nothing is downloaded
 until the reader opens it (DESIGN.md section 2).
 
-**At the end of a chapter's page**, before the links to the previous and next pages: its quiz, when the volume has one for it, and its programs as `.java` files (its section of `bundle.html`), when it has any to download.
+**At the end of a chapter's page**, before the links to the previous and next pages: its quiz, when the volume has one
+for it, and its programs as `.java` files (its section of `bundle.html`), when it has any to download.
 
 In a browser that cannot run Java, a note takes the place of the buttons in every box but a `reference`:
 it says so and names the minimum versions, Chrome 119, Firefox 120 and Safari 18.2 (on iPhone and iPad,
@@ -191,24 +196,23 @@ in DESIGN.md section 2.
 ## Quizzes
 
 `quizzes/chNN-quiz.txt` is chapter NN's quiz, published as it is, and `answer-keys/chNN-answers.txt` is its key, never
-published; NN is written as the chapter's own file writes it (`ch01`). Every quiz needs its key, every key its quiz, and a
-quiz needs its chapter. Both are plain text in the Python course's layout: `GROUNDWORK`, `Chapter N - <title>`, then the
-quiz's `Name:` and `Date:` blanks or the key's line `ANSWER KEY` (the words the publishing guard refuses to publish, so a
-key that reached `site/` by mistake would stop the build); then the sections `VOCABULARY`, `READING CODE`, `WRITING CODE`
-and `WHY IT WORKS`, each underlined with hyphens. A question starts at the margin with its number right-aligned in two
-columns (` 5. `, `12. `), its further lines are indented four spaces, and lines wrap at 74 columns. In the key, each blank's
-answer follows its question on its own line, `      ANSWER: <answer>` (six spaces). A quiz is plain ASCII, because a
-`.txt` cannot say its encoding and a phone may garble anything else: `-` for a dash, `'` and `"` for curly quotes, `...`
-for an ellipsis. A quiz never holds an `ANSWER:` line.
-A line that looks like a numbered question (a number, a dot and a space, at the margin or a few spaces in) but is not laid out
-as one (the number right-aligned in two columns, then a dot and one space) is reported with its file and line, never
-skipped.
+published; NN is written as the chapter's own file writes it (`ch01`). Every quiz needs its key, every key its quiz, and
+a quiz needs its chapter. Both are plain text in the Python course's layout: `GROUNDWORK`, `Chapter N - <title>`, then
+the quiz's `Name:` and `Date:` blanks or the key's line `ANSWER KEY` (the words the publishing guard refuses to publish,
+so a key that reached `site/` by mistake would stop the build); then the sections `VOCABULARY`, `READING CODE`,
+`WRITING CODE` and `WHY IT WORKS`, each underlined with hyphens. A question starts at the margin with its number
+right-aligned in two columns (` 5. `, `12. `), its further lines are indented four spaces, and lines wrap at 74 columns.
+In the key, each blank's answer follows its question on its own line, `      ANSWER: <answer>` (six spaces). A quiz is
+plain ASCII, because a `.txt` cannot say its encoding and a phone may garble anything else: `-` for a dash, `'` and `"`
+for curly quotes, `...` for an ellipsis. A quiz never holds an `ANSWER:` line. A line that looks like a numbered
+question (a number, a dot and a space, at the margin or a few spaces in) but is not laid out as one (the number
+right-aligned in two columns, then a dot and one space) is reported with its file and line, never skipped.
 
 **"What does this print?"** A question whose line is exactly ` N. What does this print?` is run. Its code is the lines
 under it indented eight spaces (a blank line inside the code is kept), and in the quiz the place to write follows, four
-spaces and 36 underscores. In the key the same question and the same code are followed by one `ANSWER:` line holding what
-the program prints: the output's first line after `ANSWER: ` (one space; any further leading spaces are the program's
-own), each further line under it indented ten spaces, and a blank line of output as a blank line:
+spaces and 36 underscores. In the key the same question and the same code are followed by one `ANSWER:` line holding
+what the program prints: the output's first line after `ANSWER: ` (one space; any further leading spaces are the
+program's own), each further line under it indented ten spaces, and a blank line of output as a blank line:
 
 ```text
  6. What does this print?
@@ -232,23 +236,23 @@ own), each further line under it indented ten spaces, and a blank line of output
           B
 ```
 
-Code like this, statements, runs as `main`'s body (`void main() {`, the code indented four spaces, `}`). When a line of the
-code starts `void main(` at the code's own margin, the code is a whole compact source file and runs as written; code that
-needs a method or an import beside `main` is written that way. `--check` compiles each such question on the pinned JDK,
-runs it five times with no input, and requires it to run to its end, print the same every time, print no identity hash,
-and print exactly the key's
-answer, both tidied as a stated output is (above). A key whose answer differs is reported with where the two first differ
-and how many lines each has, never the answer or the output itself (the quick and Pages jobs' logs are public); both in
-full go to `build/.work/quizzes/chNN-quiz-N/differs.txt`, which CI never uploads. The key must show the quiz's code, so the two cannot drift apart
-unnoticed, and a question that asks "does this print" in any other words is reported rather than skipped. So is a question that asks for the
-output in any other words ("print" or "output" in its text) and shows code with no blank (`__`) to fill in, which must be worded
+Code like this, statements, runs as `main`'s body (`void main() {`, the code indented four spaces, `}`). When a line of
+the code starts `void main(` at the code's own margin, the code is a whole compact source file and runs as written; code
+that needs a method or an import beside `main` is written that way. `--check` compiles each such question on the pinned
+JDK, runs it five times with no input, and requires it to run to its end, print the same every time, print no identity
+hash, and print exactly the key's answer, both tidied as a stated output is (above). A key whose answer differs is
+reported with where the two first differ and how many lines each has, never the answer or the output itself (the quick
+and Pages jobs' logs are public); both in full go to `build/.work/quizzes/chNN-quiz-<question>/differs.txt`, which CI
+never uploads. The key must show the quiz's code, so the two cannot drift apart unnoticed, and a question that asks
+"does this print" in any other words is reported rather than skipped. So is a question that asks for the output in any
+other words ("print" or "output" in its text) and shows code with no blank (`__`) to fill in, which must be worded
 exactly "What does this print?" to be run. The code ends at the first line not indented eight spaces, and the next
-non-blank line must be the place to write (a quiz) or the `ANSWER:` line (a key); after the answer only a new question, a section
-heading or its underline may follow, and any other line is reported with its file and line rather than ignored. An identity
-hash in the output (a type-name character, `@`, then hex, such as `[I@1b6d3586`, short or followed by a word character) is
-reported as well, since it repeats across starts of one JDK and no JDK promises it; an address such as `a@b.c` is not one. The code is
-also held to the vocabulary gate (below). Every other question (a term, code with a blank in it, a reason) is neither run
-nor held to the vocabulary gate: the review reads it.
+non-blank line must be the place to write (a quiz) or the `ANSWER:` line (a key); after the answer only a new question,
+a section heading or its underline may follow, and any other line is reported with its file and line rather than
+ignored. An identity hash in the output (a type-name character, `@`, then hex, such as `[I@1b6d3586`, short or followed
+by a word character) is reported as well, since it repeats across starts of one JDK and no JDK promises it; an address
+such as `a@b.c` is not one. The code is also held to the vocabulary gate (below). Every other question (a term, code
+with a blank in it, a reason) is neither run nor held to the vocabulary gate: the review reads it.
 
 ## The vocabulary gate
 

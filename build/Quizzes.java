@@ -284,9 +284,9 @@ final class Quizzes {
       return List.of(id + ": prints an identity hash (such as [I@1b6d3586), which no JDK promises to repeat");
     String want = Audit.tidy(answer), got = Audit.tidy(first.stdout());
     if (!want.equals(got)) {
-      // DESIGN section 4 (M5): a key's answer is private, and what the code prints is the answer the key should hold, so
-      // the message, which the quick and Pages jobs print in public logs, holds neither: where they first differ and how
-      // many lines each has, and a file under build/.work/ (which CI never uploads) with both in full.
+      // DESIGN section 4 (M5): a key's answer is private, and what the code prints is the answer the key should hold,
+      // so the message, which the quick and Pages jobs print in public logs, holds neither: where they first differ and
+      // how many lines each has, and a file under build/.work/ (which CI never uploads) with both in full.
       Path detail = outDir.resolve("differs.txt");
       try {
         Files.createDirectories(outDir);
