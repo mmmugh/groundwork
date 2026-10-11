@@ -78,32 +78,39 @@ final class NameTest {
   }
 
   /**
-   * The author chose that the published tree name the author only in the byline (DESIGN.md) and in D25 (DECISIONS.md).
-   * Plans written later must say "the author". Tracked files only.
+   * The author chose that the published tree name the author only in three byline lines: DESIGN.md's, D25's
+   * (DECISIONS.md) and the course's own, once, at the top of its front matter (D124). Plans written later must say
+   * "the author". Tracked files and untracked ones that are not ignored, as the old name's search does, so a new page
+   * is held to this before its first commit.
    * Either name is matched at the start of a word, so a handle, a slug or an email address that begins with it is found
    * too, while a word that only holds the first name's letters inside it is not. Both names are built from pieces, so
-   * this file names neither, and the two bylines are known by what follows the name.
+   * this file names neither, and the three bylines are known by what follows the name.
    */
   static void testTheAuthorsNameAppearsOnlyInTheTwoBylines() throws Exception {
     String names = "\\b(jus" + "tin|ste" + "wart)";
     Path root = Path.of("").toAbsolutePath();
-    Process p = new ProcessBuilder("git", "grep", "-I", "-n", "-i", "-P", names)
+    Process p = new ProcessBuilder("git", "grep", "-I", "-n", "-i", "--untracked", "-P", names)
         .directory(root.toFile()).redirectErrorStream(true).start();
     String out = new String(p.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
     int exit = p.waitFor();
     T.check(exit == 0 || exit == 1, "git grep ran (exit 2 means an error): " + out);
     List<String> stray = new ArrayList<>();
     boolean design = false, decisions = false;
+    boolean frontMatter = false;
     for (String line : out.split("\n")) {
       if (line.isEmpty()) continue;
       if (line.contains("\u2014built with Claude")) {
         if (line.startsWith("DESIGN.md:")) design = true;
         else if (line.startsWith("DECISIONS.md:")) decisions = true;
+        // D124: the course's own byline, once, at the top of its front matter.
+        else if (line.startsWith("volumes/vol1/content/00-front-matter.md:") && !frontMatter) frontMatter = true;
         else stray.add(line);
       } else stray.add(line);
     }
     T.check(design, "the search works: DESIGN.md's byline is found");
     T.check(decisions, "the search works: DECISIONS.md's D25 byline is found");
-    T.check(stray.isEmpty(), "the author's name appears outside the two byline lines (write \"the author\"): " + stray);
+    T.check(frontMatter || !Files.exists(root.resolve("volumes/vol1/content/00-front-matter.md")),
+        "the search works: the front matter's byline is found (D124)");
+    T.check(stray.isEmpty(), "the author's name appears outside the three byline lines (write \"the author\"): " + stray);
   }
 }

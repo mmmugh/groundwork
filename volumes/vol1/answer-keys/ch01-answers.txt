@@ -1,0 +1,125 @@
+GROUNDWORK
+Chapter 1 - Your First Programs
+
+ANSWER KEY
+
+
+VOCABULARY
+----------
+
+ 1. A ____ is a list of instructions written in an order a computer can
+    follow.
+
+      ANSWER: program
+
+ 2. The ____ method displays something on the screen and then ends the
+    line; it is how a program tells you what it is doing.
+
+      ANSWER: IO.println
+
+ 3. Text inside quotes, like "hello", is called a ____.
+
+      ANSWER: string
+
+ 4. Everything from // to the end of a line is called a ____, and Java
+    ignores it completely.
+
+      ANSWER: comment
+
+
+READING CODE
+------------
+
+ 5. What does this print?
+
+        IO.println("Hydrogen" + "Helium" + "Lithium");
+
+      ANSWER: HydrogenHeliumLithium
+
+ 6. What does this print?
+
+        IO.println(3 + 4);
+        IO.println("3 + 4");
+        IO.println("3 + 4 = " + (3 + 4));
+        IO.println("3 + 4 = " + 3 + 4);
+
+      ANSWER: 7
+          3 + 4
+          3 + 4 = 7
+          3 + 4 = 34
+
+ 7. What does this print?
+
+        // This line does nothing
+        IO.println("Done");
+
+      ANSWER: Done
+
+ 8. What does this print?
+
+        IO.println("A");
+        IO.println("B" + "C");
+        IO.println();
+        IO.println(2 * 3);
+        IO.println("2 * 3");
+
+      ANSWER: A
+          BC
+
+          6
+          2 * 3
+
+ 9. What does this print?
+
+        IO.println("Section 1");
+        IO.println();
+        IO.println("Section 2");
+
+      ANSWER: Section 1
+
+          Section 2
+
+
+WRITING CODE
+------------
+
+10. Complete this line so it prints the text 3 + 4 exactly, with no
+    arithmetic performed: IO.println(____);
+
+      ANSWER: "3 + 4"
+
+11. Complete this program so a blank line separates the two sections:
+    IO.println("Section 1"); ____ IO.println("Section 2");
+
+      ANSWER: IO.println();
+
+12. Complete this line so it prints Hydrogen Helium Lithium, with a
+    single space between the words:
+    IO.println("Hydrogen" + ____ + "Lithium");
+
+      ANSWER: " Helium " (or " " + "Helium" + " ")
+
+
+WHY IT WORKS
+------------
+
+13. Java runs the instructions in main one at a time, from ____ to ____,
+    which is why swapping the order of two IO.println lines changes the
+    order of the output.
+
+      ANSWER: top
+      ANSWER: bottom
+
+14. Without quotes, 3 + 4 is ____ that Java works out and prints as 7;
+    with quotes, "3 + 4" is ____ that Java prints exactly as written.
+
+      ANSWER: a calculation
+      ANSWER: a string
+
+15. When a program does not compile, the first line of javac's message
+    names the file, the ____ number where javac noticed the problem, and
+    the problem itself; under a copy of that line, a ____ (^) points to
+    the spot.
+
+      ANSWER: line
+      ANSWER: caret

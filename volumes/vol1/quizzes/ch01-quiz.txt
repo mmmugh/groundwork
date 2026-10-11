@@ -1,0 +1,98 @@
+GROUNDWORK
+Chapter 1 - Your First Programs
+
+Name: ________________________________     Date: ______________
+
+Fill in every blank. Where a term is asked for, write the word the course
+uses. Where code is asked for, write exact Java. Where output is asked
+for, write what the program prints, one line per line.
+
+
+VOCABULARY
+----------
+
+ 1. A __________________ is a list of instructions written in an order a
+    computer can follow.
+
+ 2. The __________________ method displays something on the screen and
+    then ends the line; it is how a program tells you what it is doing.
+
+ 3. Text inside quotes, like "hello", is called a __________________.
+
+ 4. Everything from // to the end of a line is called a
+    __________________, and Java ignores it completely.
+
+
+READING CODE
+------------
+
+ 5. What does this print?
+
+        IO.println("Hydrogen" + "Helium" + "Lithium");
+
+    ____________________________________
+
+ 6. What does this print?
+
+        IO.println(3 + 4);
+        IO.println("3 + 4");
+        IO.println("3 + 4 = " + (3 + 4));
+        IO.println("3 + 4 = " + 3 + 4);
+
+    ____________________________________
+
+ 7. What does this print?
+
+        // This line does nothing
+        IO.println("Done");
+
+    ____________________________________
+
+ 8. What does this print?
+
+        IO.println("A");
+        IO.println("B" + "C");
+        IO.println();
+        IO.println(2 * 3);
+        IO.println("2 * 3");
+
+    ____________________________________
+
+ 9. What does this print?
+
+        IO.println("Section 1");
+        IO.println();
+        IO.println("Section 2");
+
+    ____________________________________
+
+
+WRITING CODE
+------------
+
+10. Complete this line so it prints the text 3 + 4 exactly, with no
+    arithmetic performed: IO.println(__________________);
+
+11. Complete this program so a blank line separates the two sections:
+    IO.println("Section 1"); __________________ IO.println("Section 2");
+
+12. Complete this line so it prints Hydrogen Helium Lithium, with a
+    single space between the words:
+    IO.println("Hydrogen" + __________________ + "Lithium");
+
+
+WHY IT WORKS
+------------
+
+13. Java runs the instructions in main one at a time, from
+    __________________ to __________________, which is why swapping the
+    order of two IO.println lines changes the order of the output.
+
+14. Without quotes, 3 + 4 is __________________ that Java works out and
+    prints as 7; with quotes, "3 + 4" is __________________ that Java
+    prints exactly as written.
+
+15. When a program does not compile, the first line of javac's message
+    names the file, the __________________ number where javac noticed
+    the problem, and the problem itself; under a copy of that line, a
+    __________________ (^) points to the spot.

@@ -1,0 +1,12 @@
+{
+  "ch01-your-first-programs#9": {
+    "compileError": "unclosed string literal",
+    "why": "A missing closing quote. The error message is the lesson."
+  },
+  "ch01-your-first-programs#10": {
+    "noCheck": "Any name, school and subject is right, so this one has no Check: run it and read what it prints."
+  },
+  "ch01-your-first-programs#12": {
+    "noCheck": "Any shape is right, so this one has no Check: run it and look at what it draws."
+  }
+}

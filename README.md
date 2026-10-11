@@ -4,9 +4,9 @@
 twelve-chapter first course where every example is an editable box that runs in the browser, with
 nothing installed and no server.
 
-**Status: no chapter yet.** The first chapter is being written, and the site at https://mmmugh.github.io/groundwork/
-says so until it is published. [DESIGN.md](DESIGN.md) records how the course is built and why;
-[DECISIONS.md](DECISIONS.md) records each decision by number.
+**Status: chapter 1 is live; the rest are being written.** Read it at
+https://mmmugh.github.io/groundwork/vol1/ch01-your-first-programs.html. [DESIGN.md](DESIGN.md) records how the course is
+built and why; [DECISIONS.md](DECISIONS.md) records each decision by number.
 
 ## Building and checking
 
@@ -82,8 +82,8 @@ file map the claude.ai Artifact tool publishes it from. The scratchpad is not in
 ## Host it yourself
 
 The ready-site zip, `groundwork-<version>.zip`, arrives on the [releases page](https://github.com/mmmugh/groundwork/releases)
-with the first chapter; until then there is no course to host. Then: download it, unzip it, and serve the folder with any
-static web server. For example, inside the folder:
+with each release of the course. Download it, unzip it, and serve the folder with any static web server. For
+example, inside the folder:
 
 ```
 python3 -m http.server 8000     # then open http://localhost:8000/

@@ -1,0 +1,45 @@
+{
+  "ch01-your-first-programs#11": {
+    "kind": "output",
+    "expected": "10080",
+    "starter": "void main() {\n    // Print the number of minutes in a week, worked out by Java.\n}\n"
+  },
+  "ch01-your-first-programs#13": {
+    "kind": "predict"
+  },
+  "ch01-your-first-programs-practice#1": {
+    "kind": "output",
+    "expected": "======================================\n         RIVERSIDE FILM CLUB\n======================================",
+    "starter": "void main() {\n    IO.println(\"======================================\");\n    // Then the club name, indented by nine spaces, and the rule again.\n}\n"
+  },
+  "ch01-your-first-programs-practice#2": {
+    "kind": "output",
+    "expected": "Feature:  The Quiet Harbor  (1998)",
+    "starter": "void main() {\n    // The feature line, as one string.\n}\n"
+  },
+  "ch01-your-first-programs-practice#3": {
+    "kind": "output",
+    "expected": "Feature: The Quiet Harbor  (1998)",
+    "starter": "void main() {\n    IO.println(\"Feature:\" + \"The Quiet Harbor  (1998)\");\n}\n"
+  },
+  "ch01-your-first-programs-practice#4": {
+    "kind": "output",
+    "expected": "When:     Friday, 7:30 pm\nWhere:    Room 14",
+    "starter": "void main() {\n    // The When: and Where: lines, their values lined up.\n}\n"
+  },
+  "ch01-your-first-programs-practice#5": {
+    "kind": "output",
+    "expected": "Seats available: 96",
+    "starter": "void main() {\n    // The seat count: 8 rows of 12 seats, worked out by Java.\n}\n"
+  },
+  "ch01-your-first-programs-practice#6": {
+    "kind": "output",
+    "expected": "Snack bar total: 17.25",
+    "starter": "void main() {\n    // The snack total: 3 popcorn at 3.75 and 2 drinks at 3.00, worked out by Java.\n}\n"
+  },
+  "ch01-your-first-programs-practice#7": {
+    "kind": "output",
+    "expected": "======================================\n         RIVERSIDE FILM CLUB\n======================================\n\nFeature:  The Quiet Harbor  (1998)\nWhen:     Friday, 7:30 pm\nWhere:    Room 14\n\nSeats available: 96\nSnack bar total: 17.25\n\n======================================",
+    "starter": "void main() {\n    IO.println(\"======================================\");\n    // Then the rest of the flyer: every line in order, blank lines and all.\n}\n"
+  }
+}
