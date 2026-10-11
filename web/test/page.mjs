@@ -574,8 +574,9 @@ for (const engine of only ? [only] : Object.keys(ENGINES)) {
   t = await open(engine, site, PAGES[1], { viewport: { width: 390, height: 844 } });
   await ready(t);
   const offered = await t.page.locator(".box > details.solution > summary", { hasText: "Show a solution" }).count();
-  check(`${engine}: each box with a worked solution offers Show a solution (two on ${PAGES[1]})`, offered === 2, offered);
-  if (offered === 2) {
+  check(`${engine}: each box with a worked solution offers Show a solution (three on ${PAGES[1]}, its noCheck box's included)`,
+    offered === 3, offered);
+  if (offered === 3) {
     const solution = (n) => t.page.locator(`.box[data-box="ch02-check#${n}"] > details.solution`);
     const shut = [await solution(1).evaluate((d) => d.open), await solution(2).evaluate((d) => d.open)];
     await solution(1).getByText("Show a solution", { exact: true }).click();

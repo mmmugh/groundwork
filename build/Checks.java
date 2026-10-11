@@ -135,6 +135,7 @@ final class Checks {
       }
     }
     workedSolutions(problems, v, all);
+    noCheckSolutions(problems, v, all);
     return problems;
   }
 
@@ -225,6 +226,17 @@ final class Checks {
               + " fence was added or removed above it, move its keys in _checks.json, _boxes.json and _solutions.md with it");
       }
     }
+  }
+
+  /** M1: a box with noCheck offers no verdict, so its worked solution is the one thing a reader can compare with (and its
+   *  words may point to it): every such box needs one. */
+  private static void noCheckSolutions(List<String> problems, Volume v, Map<Page, List<Box>> all) throws BuildError {
+    Map<String, Vocabulary.Section> sections = v.solutions() == null ? Map.of() : Vocabulary.solutions(v.solutions());
+    for (List<Box> page : all.values())
+      for (Box b : page)
+        if (b.decl().noCheck() != null && (!sections.containsKey(b.id()) || sections.get(b.id()).worked().isEmpty()))
+          problems.add(b.id() + ": a box with \"noCheck\" needs a worked solution in _solutions.md, the one thing a reader with no"
+              + " Check can compare with");
   }
 
   private static boolean isStrings(Object o) {

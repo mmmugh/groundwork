@@ -44,3 +44,12 @@ void main() {
     IO.println("Ada");
 }
 ```
+
+## ch02-check#5
+
+```java
+void main() {
+    IO.println("Roses are red,");
+    IO.println("violets are blue.");
+}
+```

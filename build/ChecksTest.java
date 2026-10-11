@@ -311,6 +311,22 @@ final class ChecksTest {
         r.out());
     T.check(!r.out().contains("ch01-first-programs#4: the page would publish"), "the starter box itself is not refused: " + r.out());
   }
+  static void testABoxWithNoCheckNeedsAWorkedSolution() throws Exception {
+    // M1: a noCheck box offers no verdict, so a reader can only compare with its worked solution, and the box's words
+    // may say so; one with no worked solution leaves the reader nothing. The rule needs _boxes.json and _solutions.md
+    // together, so it is Checks.problems', and holds on a plain build.
+    Path p = Fixtures.project("checks-nocheck-solution");
+    Path boxes = p.resolve("volumes/vol-fixture/content/_boxes.json");
+    Files.writeString(boxes, Files.readString(boxes).replace("{\n", "{\n \"ch01-first-programs#1\": {\"noCheck\": \"Any greeting is right: compare yours with a worked solution.\"},\n"));
+    var r = Fixtures.build(p);
+    T.eq(1, r.exit(), "a noCheck box with no worked solution fails the build: " + r.out());
+    T.check(r.out().contains("ch01-first-programs#1: a box with \"noCheck\" needs a worked solution in _solutions.md, the one thing a reader"
+        + " with no Check can compare with"), r.out());
+    Path solutions = p.resolve("volumes/vol-fixture/content/_solutions.md");
+    Files.writeString(solutions, Files.readString(solutions) + "\n## ch01-first-programs#1\n\n```java\nvoid main() {\n    IO.println(\"Hello!\");\n}\n```\n");
+    r = Fixtures.build(p);
+    T.eq(0, r.exit(), "with one, it builds: " + r.out());
+  }
   static void testAMistakeMayBeWhatTheBoxPublishes() throws Exception {
     // Interface 2: the starter rule holds what a box publishes against its worked solutions only. A mistake is a wrong
     // answer, never revealed, and the starter left as it is, the commonest mistake there is, may well be one: refusing it

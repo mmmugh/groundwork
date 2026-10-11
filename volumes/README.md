@@ -53,7 +53,7 @@ Keyed by box id. Every key is optional; an entry may combine `stdin` with `raise
 | `"varies": true` | The stated output is not exactly reproducible (e.g. `Set.of` iteration order); the box compiles and runs once to ok, and its stated output is not checked against anything. Needs `why`. |
 | `"stdin": ["21"]` | The typed answers an input box receives, in order, one per prompt. |
 | `"why"` | Required alongside `raises`, `compileError` or `varies`; explains the exemption. It is not private: it is shown to readers as a note above the box, and in the downloaded bundle, except on a box whose check has a `starter`, where it explains the author's fence and so is published nowhere (see the starter rule). |
-| `"noCheck": "Any poem is right: run it and read it."` | An exercise whose answers cannot be judged fairly (DESIGN.md section 3): the box has no Check, and the page shows these words under its controls, where Check would be. Not on a reference box, and not on a box with a check in `_checks.json`. It is not private: write it for readers. |
+| `"noCheck": "Any poem is right: run it and read it."` | An exercise whose answers cannot be judged fairly (DESIGN.md section 3): the box has no Check, and the page shows these words under its controls, where Check would be. Not on a reference box, and not on a box with a check in `_checks.json`. Needs a worked solution in `_solutions.md`: with no Check, it is what a reader compares with. It is not private: write it for readers. |
 
 ### The transcript rule for input boxes
 
