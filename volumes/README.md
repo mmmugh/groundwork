@@ -103,8 +103,9 @@ unless each key is moved too. So a check with a `starter` is proved with two ans
 lands on: the box's own fence, the author's answer, must pass (`the box's own fence`), and the starter, the code the
 box publishes, must fail (`the published code`: a starter that already passes is an exercise with nothing to do).
 Neither counts toward the two worked solutions and a mistake, nor as the mistake that compiles. A check with no
-starter publishes the box's own fence, which may be the answer or the exercise's wrong starting code, so it gets
-neither; the starter rule (below) still catches an exercise that would publish another box's answer.
+starter would publish the box's own fence, which may be the answer or the exercise's wrong starting code, so the data
+could not say which and could not tie the check to its box: `--check` refuses every check but `predict` that has no
+`starter`, and says so (a `predict` check publishes the box's code and has none to carry).
 
 **The starter rule.** A `starter` is the code the reader starts from, held to the same vocabulary rule as
 everything else below. When a check declares one, the box shows the starter, and its own fence, the
@@ -142,9 +143,11 @@ are realistic wrong answers, and need not compile. A `predict` box's ` ```text `
 ones under the heading and wrong ones under `### mistake` (the three-way proof, above); the build reads no other
 fence here. Worked solutions are
 held to the starter rule (above) and to the vocabulary gate (below). The first, the one a reader may reveal and copy,
-also runs on both runtimes in `--check`'s fork gate, as `<box id> (worked solution)`, typed its input check's first
-run's answers, else its box's `stdin`: the two must agree, and it must run to its end, or end in its box's `raises`,
-even where no check runs it. A mistake is never held to the starter
+is what Show a solution reveals and the reader runs, so it is a whole compact source file with its `void main`, a
+method check's too (Check stubs `main` for a method check, but the reveal does not). It also runs on both runtimes in
+`--check`'s fork gate, as `<box id> (worked solution)`, typed its input check's first run's answers, else its box's
+`stdin`: the two must agree, and it must run to its end, or end in its box's `raises`, even where no check runs it. A
+mistake is never held to the starter
 rule; it is held to the vocabulary gate when it compiles (a mistake a reader at that chapter could not write
 proves nothing about the check), and let be when it does not.
 

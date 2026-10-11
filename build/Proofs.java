@@ -71,6 +71,9 @@ final class Proofs {
             problems.add(b.id() + ": its predict check needs a wrong prediction: a text fence under \"### mistake\" in _solutions.md");
         } else {
           boolean starter = c.starter() != null;
+          if (!starter)
+            problems.add(b.id() + ": a check needs a \"starter\", the code the page publishes; the box's own fence is then its answer, "
+                + "proved right");
           add(answers, "worked solution ", 1, s.worked(), true);
           if (starter) answers.add(answer(FENCE, b.source(), true));
           add(answers, "mistake ", 1, s.mistakes(), false);

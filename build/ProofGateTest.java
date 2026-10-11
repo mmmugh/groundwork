@@ -102,7 +102,8 @@ final class ProofGateTest {
     for (Page page : v.pages()) boxes.put(page, Boxes.of(v, page));
     List<String> problems = new ArrayList<>();
     List<Object> proofs = Proofs.of(v, boxes, problems, page -> true);
-    T.eq(List.of(), problems, "the two extra answers count toward nothing the rule asks for");
+    T.eq(List.of("ch02-types-and-input#1: a check needs a \"starter\", the code the page publishes; the box's own fence is then "
+        + "its answer, proved right"), problems, "the two extra answers count toward nothing the rule asks for; the no-starter input check is refused");
     T.eq(3, proofs.size(), "three checks: " + proofs);
     T.eq(List.of("worked solution 1", "worked solution 2", "the box's own fence", "mistake 1", "mistake 2", "the published code"),
         labels(proofs.get(0)), "chapter 1's starter box: its worked solutions, its own fence, its mistakes, then the code it publishes");
@@ -113,6 +114,34 @@ final class ProofGateTest {
     T.eq(List.of("worked solution 1", "worked solution 2", "mistake 1"), labels(proofs.get(1)), "a box with no starter gets neither");
     T.eq(List.of("worked solution 1", "worked solution 2", "the box's own fence", "mistake 1", "the published code"),
         labels(proofs.get(2)), "chapter 2's method check has a starter too");
+  }
+  static void testANonPredictCheckWithNoStarterFailsCheckAndAPredictCheckWithNoneDoesNot() throws Exception {
+    // Plan 5 requires every check to carry a starter; without one a shift of the keys onto another box goes unseen, so
+    // --check refuses it. A predict check publishes the box's own code and has no starter to carry.
+    Path p = Fixtures.project("proof-no-starter");
+    Path checks = p.resolve("volumes/vol-fixture/content/_checks.json");
+    String s = Files.readString(checks), starter = ", \"starter\": \"void main() {\\n    IO.println(\\\"\\\");\\n}\\n\"";
+    T.check(s.contains(starter), "the fixture's chapter 1 starter: " + s);
+    Files.writeString(checks, s.replace(starter, ""));
+    // With the exercise's fence varied by a comment it is no worked solution, so the starter rule (which would say so
+    // first) sees nothing and the build reaches the proof gate.
+    Path ch1 = p.resolve("volumes/vol-fixture/content/ch01-first-programs.md");
+    String text = Files.readString(ch1), exercise = "1. Make it print your name.\n\n```java\nvoid main() {\n";
+    T.check(text.contains(exercise), "the fixture's chapter 1 exercise: " + text);
+    Files.writeString(ch1, text.replace(exercise, exercise + "    // my name\n"));
+    var r = Fixtures.build(p, "--check", "--runtime", DIST.toString());
+    T.eq(1, r.exit(), "a non-predict check with no starter fails --check: " + r.out());
+    T.check(r.out().contains("a check needs a \"starter\", the code the page publishes; the box's own fence is then its answer, proved right"),
+        r.out());
+    Path q = Fixtures.project("proof-predict-no-starter");
+    predictTheFirstBox(q);
+    Volume v = Volume.loadAll(q.resolve("volumes")).get(0);
+    Map<Page, List<Box>> boxes = new LinkedHashMap<>();
+    for (Page page : v.pages()) boxes.put(page, Boxes.of(v, page));
+    List<String> problems = new ArrayList<>();
+    Proofs.of(v, boxes, problems, page -> true);
+    T.check(problems.stream().noneMatch(x -> x.startsWith("ch01-first-programs#1:") && x.contains("needs a \"starter\"")),
+        "a predict check needs none: " + problems);
   }
   static void testAFenceAddedAboveAnExerciseFailsTheProofOfTheBoxItsCheckNowLandsOn() throws Exception {
     // The probe with the exercise's fence varied: the starter rule sees nothing, so the build reaches the proof, where
