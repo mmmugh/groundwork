@@ -116,7 +116,7 @@ final class ChecksTest {
     T.eq(0, Fixtures.build(p).exit(), "build");
     String ch1 = page(p, "ch01-first-programs");
     T.check(ch1.contains("data-check=\"{&quot;kind&quot;:&quot;output&quot;,&quot;expected&quot;:&quot;Ada\\n&quot;}\""), "the output check rides in its box: " + ch1);
-    T.check(ch1.contains("<textarea class=\"code\" wrap=\"off\" spellcheck=\"false\">void main() {\n    IO.println(&quot;&quot;);\n}\n</textarea>"), "the textarea holds the starter");
+    T.check(ch1.contains("<textarea class=\"code\" rows=\"3\" wrap=\"off\" spellcheck=\"false\">void main() {\n    IO.println(&quot;&quot;);\n}\n</textarea>"), "the textarea holds the starter");
     // The reveal (DESIGN section 6, D24): box #4's first worked solution in _solutions.md, the author's answer itself
     // here, rides in that box's own <details class="solution">, shut behind Show a solution. That is the one place on
     // the page it may be: never the box's editor, its data-check, or anywhere outside its own box.

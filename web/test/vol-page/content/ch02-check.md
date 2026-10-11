@@ -64,3 +64,11 @@ Print your city:
 void main() {
 }
 ```
+
+A line with two spaces in it:
+
+```java
+void main() {
+    IO.println("a  b");
+}
+```

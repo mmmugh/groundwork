@@ -168,3 +168,20 @@ void main() {
     }
 }
 ```
+
+A program of twelve lines, tall enough that an editor which showed two lines would hide most of it:
+
+```java
+void main() {
+    int total = 0;
+    for (int i = 1; i <= 3; i++) {
+        total = total + i;
+    }
+    IO.println("total: " + total);
+    int count = 0;
+    for (int i = 1; i <= 4; i++) {
+        count = count + 1;
+    }
+    IO.println("count: " + count);
+}
+```

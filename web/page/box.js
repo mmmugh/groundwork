@@ -103,7 +103,8 @@ function showVerdict(v, check, result, source) {
   // A compiler that died has no diagnostics to show (BrowserRunner's "crash" stage): only that says to reload.
   if (c && !c.diagnostics.length) return finish(v, STATUS.fatal);
   if (c) return finish(v, "Your code does not compile yet:", element("pre", "err", javacText(c.diagnostics, source)));
-  if (check.kind === "output") return finish(v, result.text);
+  // An output check quotes the program's lines in its summary, so it is set in the monospace face (web/app.css).
+  if (check.kind === "output") { finish(v, result.text); v.querySelector(".summary").classList.add("quoted"); return; }
   const list = element("ul");
   for (const l of result.lines) list.append(element("li", l.ok ? "pass" : "fail", l.text));
   const noun = check.kind === "method" ? "cases" : "runs";
@@ -150,12 +151,24 @@ export function wireBox(box, runner) {
   let current = null;
   const setState = (s) => { box.dataset.state = s; };
   const edited = () => { resetButton.hidden = code.value === original; };
+  // The editor is as tall as its code, so the reader never scrolls inside it: the height that holds the text (scrollHeight
+  // is taken with the height at 0, where the scrollbar a long line adds is still counted) plus the borders and that
+  // scrollbar, which offsetHeight less clientHeight measures. The rows the build wrote stand in until this runs, and when
+  // the box is not shown (no width, no measure).
+  const fitCode = () => {
+    if (!code.clientWidth) return;
+    code.style.height = "0";
+    code.style.height = `${code.scrollHeight + code.offsetHeight - code.clientHeight}px`;
+  };
 
   const kept = readKept(key);
   if (kept != null && kept !== original) code.value = kept;
   edited();
+  fitCode();
   setState("idle");
-  code.addEventListener("input", () => { writeKept(key, code.value, original); edited(); });
+  code.addEventListener("input", () => { writeKept(key, code.value, original); edited(); fitCode(); });
+  // A width change can add or take away the scrollbar under a long line.
+  addEventListener("resize", fitCode);
 
   function stop() {
     if (current) current.abort.abort(); // a run that ends canceled shows nothing
@@ -317,6 +330,7 @@ export function wireBox(box, runner) {
     code.value = original;
     writeKept(key, original, original);
     edited();
+    fitCode();
   }
 }
 
@@ -334,6 +348,7 @@ export function wirePredict(box) {
   controls.append(button("Check", () => {
     const v = newVerdict(box, controls);
     finish(v, predictVerdict(prediction.value, check.expected).text, element("pre", "output", check.expected));
+    v.querySelector(".summary").classList.add("quoted"); // it quotes the reader's line too
   }));
   box.querySelector("pre.predict-code").after(label, controls);
 }

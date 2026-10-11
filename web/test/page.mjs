@@ -694,6 +694,70 @@ for (const engine of only ? [only] : Object.keys(ENGINES)) {
   check(`${engine}: and it scrolls sideways inside its box, not the page`, javac.scrollW > javac.clientW && javac.page <= 390, javac);
   await t.close();
 
+  // The editor shows the whole program: no scrolling inside it down the page, whatever the reader does to the code. A
+  // textarea shows two rows unless it is sized, and a horizontal scrollbar under a long line must not hide the last line.
+  t = await open(engine, site, PAGES[0], { viewport: { width: 390, height: 844 } });
+  await ready(t);
+  const needsNoScroll = (n) => box(n).locator("textarea.code").evaluate((el) => ({ scrollH: el.scrollHeight, clientH: el.clientHeight,
+    ok: el.scrollHeight <= el.clientHeight + 1, lines: el.value.split("\n").length }));
+  const fitTall = await needsNoScroll(17);
+  check(`${engine}: a long editor (10 lines or more) needs no vertical scrolling`, fitTall.lines >= 10 && fitTall.ok, fitTall);
+  const fitWide = await needsNoScroll(11);
+  check(`${engine}: nor does one with a line wider than the phone, whose scrollbar sits under the last line`, fitWide.ok, fitWide);
+  const fitOriginal = (await box(17).locator("textarea.code").inputValue());
+  await box(17).locator("textarea.code").fill(fitOriginal + "// one\n// two\n// three\n");
+  const fitTaller = await needsNoScroll(17);
+  check(`${engine}: after three more lines typed it still needs none`, fitTaller.ok && fitTaller.clientH > fitTall.clientH, { fitTall, fitTaller });
+  await box(17).locator("textarea.code").fill("void main() {\n}\n");
+  const fitShorter = await needsNoScroll(17);
+  check(`${engine}: and after most of it is deleted it shrinks to fit`, fitShorter.ok && fitShorter.clientH < fitTall.clientH, { fitTall, fitShorter });
+  await click(17, "Reset");
+  const fitAgain = await needsNoScroll(17);
+  check(`${engine}: after Reset it fits the original again`, fitAgain.ok && Math.abs(fitAgain.clientH - fitTall.clientH) <= 1, { fitTall, fitAgain });
+  // A kept edit longer than the original is restored on load, and the editor fits it.
+  await box(17).locator("textarea.code").fill(fitOriginal + "// one\n// two\n// three\n");
+  await t.page.reload();
+  await ready(t);
+  const fitReloaded = await needsNoScroll(17);
+  check(`${engine}: a kept edit that is longer than the original fits on load`, fitReloaded.ok && fitReloaded.clientH > fitTall.clientH, { fitTall, fitReloaded });
+  await click(17, "Reset");
+  await t.close();
+
+  // Inline code keeps a run of spaces, as the practice page's target line "Feature:  The Quiet Harbor (1998)" needs.
+  t = await open(engine, site, PAGES[0]);
+  await ready(t);
+  const inlineWidths = await t.page.evaluate(() => {
+    const p = document.createElement("p");
+    p.innerHTML = "<code>a  b</code> <code>a b</code>";
+    document.querySelector("main, body").append(p);
+    const [two, one] = [...p.querySelectorAll("code")].map((c) => c.getBoundingClientRect().width);
+    p.remove();
+    return { two, one };
+  });
+  check(`${engine}: inline code with two spaces renders wider than with one`, inlineWidths.two > inlineWidths.one + 1, inlineWidths);
+  await t.close();
+
+  // A verdict quotes the reader's line and the right one exactly: every space kept, in the monospace face, wrapping
+  // inside the box rather than overflowing it (a 39-sign rule overflowed a phone, and two lines that differ only in
+  // spacing looked the same).
+  t = await open(engine, site, PAGES[1], { viewport: { width: 390, height: 844 } });
+  await ready(t);
+  const qverdict = async (n, code) => {
+    await cbox(n).locator("textarea.code").fill(code);
+    await cbox(n).getByRole("button", { name: "Check", exact: true }).click();
+    await t.page.waitForFunction((id) => document.querySelector(`.box[data-box="${id}"] .verdict`)?.dataset.done === "yes",
+      `ch02-check#${n}`, { timeout: 20000 });
+    return cbox(n).locator(".verdict .summary").evaluate((el) => ({ shown: el.innerText.replace(/\r/g, ""),
+      scrollW: el.scrollWidth, clientW: el.clientWidth, family: getComputedStyle(el).fontFamily }));
+  };
+  const spaceVerdict = await qverdict(8, 'void main() {\n    IO.println("a b");\n}\n');
+  check(`${engine}: a verdict quoting two lines that differ only in spacing shows both spaces of the right one`,
+    spaceVerdict.shown.includes("Line 1 is: a b\nIt should be: a  b"), spaceVerdict);
+  check(`${engine}: in the monospace face, so the widths differ`, /mono|courier|menlo|consolas/i.test(spaceVerdict.family), spaceVerdict);
+  const ruleVerdict = await qverdict(2, 'void main() {\n    IO.println("' + "=".repeat(39) + '");\n}\n');
+  check(`${engine}: a verdict quoting a 39-sign rule wraps inside the box at 390 px`, ruleVerdict.shown.includes("=".repeat(39)) && ruleVerdict.scrollW <= ruleVerdict.clientW, ruleVerdict);
+  await t.close();
+
   // D85: the built site from a server that knows only .html, .css, .js, .json and .txt (no .mjs, which stock nginx lacks,
   // and no .wasm, which nginx 1.18 and older lack: both would be refused if the page needed them). Boxes run, a stack
   // trace is still deobfuscated, and the scratchpad starts.

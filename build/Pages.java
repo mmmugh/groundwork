@@ -249,6 +249,13 @@ final class Pages {
     return new Rendered(pageTitle, part, body.toString());
   }
 
+  /** The lines of a published source: a final newline ends its last line and starts no line of its own; at least 1. */
+  private static int lineCount(String source) {
+    int n = 1;
+    for (int i = 0; i < source.length() - 1; i++) if (source.charAt(i) == '\n') n++;
+    return n;
+  }
+
   /** One box. A box with a check carries that check's published fields, and nothing more, in data-check
    *  (D37); its code is the check's starter when it has one, never the author's own fence (D40(b)), and then
    *  nothing that describes that fence either (see stated and declared). A method check lists its cases under
@@ -267,7 +274,10 @@ final class Pages {
     String source = shown(c, b);
     if (kind.equals("reference")) out.append("<pre class=\"reference\">").append(escape(source)).append("</pre>");
     else if (kind.equals("predict")) out.append("<pre class=\"predict-code\">").append(escape(source)).append("</pre>");
-    else out.append("<textarea class=\"code\" wrap=\"off\" spellcheck=\"false\">").append(escape(source)).append("</textarea>");
+    // rows is the code's line count, so the editor shows the whole program before any script runs; web/page/box.js keeps
+    // it fitted as the reader edits.
+    else out.append("<textarea class=\"code\" rows=\"").append(lineCount(source)).append("\" wrap=\"off\" spellcheck=\"false\">")
+        .append(escape(source)).append("</textarea>");
     // DESIGN section 3: where a verdict cannot be trusted there is no Check, and the page says so where Check would be.
     // web/page/box.js keeps it right under the controls it adds after the code.
     if (d.noCheck() != null) out.append("<p class=\"nocheck\">").append(escape(d.noCheck())).append("</p>");

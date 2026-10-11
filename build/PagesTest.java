@@ -77,6 +77,28 @@ final class PagesTest {
     T.check(!boxes.contains("IO.println(\\\"Ada\\\")"), "the author's own fence, the answer, is not published");
     T.check(!boxes.contains("\"starter\""), "no starter key reaches boxes.json");
   }
+  static void testEveryEditorHasAsManyRowsAsThePublishedSourceHasLines() throws Exception {
+    // A textarea shows two rows unless told otherwise, so a five-line program was cut after line 2: the reader should see
+    // the whole program without scrolling inside the editor (web/page/box.js keeps it fitted as the code changes).
+    Path p = Fixtures.project("editor-rows");
+    Files.writeString(p.resolve("volumes/vol-fixture/content/_checks.json"),
+        "{\"ch01-first-programs#4\": {\"kind\": \"output\", \"expected\": \"x\\n\", "
+        + "\"starter\": \"void main() {\\n    int a = 1;\\n    int b = 2;\\n    IO.println(a);\\n}\\n\"}}");
+    var r = Fixtures.build(p);
+    T.eq(0, r.exit(), "build exit: " + r.out());
+    String page = Files.readString(p.resolve("site/vol-fixture/ch01-first-programs.html"));
+    var m = java.util.regex.Pattern.compile("<textarea class=\"code\"([^>]*)>(.*?)</textarea>", java.util.regex.Pattern.DOTALL).matcher(page);
+    int seen = 0, longest = 0;
+    while (m.find()) {
+      seen++;
+      String text = m.group(2);
+      int lines = text.endsWith("\n") ? text.split("\n", -1).length - 1 : text.split("\n", -1).length;
+      longest = Math.max(longest, lines);
+      T.check(m.group(1).contains(" rows=\"" + lines + "\""), "a box of " + lines + " lines has rows=" + lines + ": " + m.group(1));
+    }
+    T.check(seen >= 2, "the page has runnable boxes: " + seen);
+    T.check(longest == 5, "the box with a starter is sized by its published code, the starter's five lines: " + longest);
+  }
   static void testARemovedVolumeIsGoneAfterTheNextBuild() throws Exception {
     Path p = Fixtures.project("prune");
     T.eq(0, Fixtures.build(p).exit(), "first build");

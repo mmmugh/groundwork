@@ -116,6 +116,8 @@ p { margin: 0 0 1.1rem; }
 strong { font-weight: 600; }
 
 p code, li code, td code, h3 code {
+  /* A run of spaces in code is part of it ("Feature:  The Quiet Harbor"); long code still wraps. */
+  white-space: pre-wrap;
   padding: 0.1em 0.35em;
   font-size: 0.86em;
   background: var(--code-bg);
@@ -337,7 +339,15 @@ pre:not(.output):not(.reference) {
 .box .verdict p.summary {
   margin: 0;
   font-weight: 600;
-  white-space: pre-line; /* the first difference is two lines: what it is, and what it should be */
+  /* The first difference is two lines, what it is and what it should be, and a line quoted from the program keeps every
+     space and wraps inside the box. */
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+/* A check of the program's output quotes its lines, so the whole summary is monospace and a missing space shows. */
+.box .verdict p.summary.quoted {
+  font-family: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.84rem;
 }
 .box .verdict pre {
   margin: 0.5rem 0 0;
