@@ -363,6 +363,9 @@ final class PagesTest {
     Path f = p.resolve("volumes/vol-fixture/content/_boxes.json");
     Files.writeString(f, Files.readString(f).replace("\"ch01-first-programs#3\": {\"reference\": true},",
         "\"ch01-first-programs#3\": {\"reference\": true},\n \"ch01-first-programs#1\": {\"noCheck\": \"Any greeting is right: <run it> & read it.\"},"));
+    // A noCheck box needs a worked solution (M1).
+    Path solutions = p.resolve("volumes/vol-fixture/content/_solutions.md");
+    Files.writeString(solutions, Files.readString(solutions) + "\n## ch01-first-programs#1\n\n```java\nvoid main() {\n    IO.println(\"Hi!\");\n}\n```\n");
     var r = Fixtures.build(p);
     T.eq(0, r.exit(), "build: " + r.out());
     String ch1 = Files.readString(p.resolve("site/vol-fixture/ch01-first-programs.html"));
