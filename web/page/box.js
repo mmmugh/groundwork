@@ -111,9 +111,12 @@ function showVerdict(v, check, result, source) {
   finish(v, result.stopped ?? count(result.lines, noun), ...(result.lines.length ? [list] : []));
 }
 
-// A kept edit belongs to the code it edited: its key carries a fingerprint of the box's code as the page was built
-// (FNV-1a, 32 bits), so when a later version of the course changes or moves a box, an edit never loads into another
-// box's code. crypto.subtle is not used: a page over plain http has none, and this needs no secrecy.
+// A kept edit belongs to the code it edited, wherever on the page that code stands: its key is a fingerprint of the
+// box's code as the page was built (FNV-1a, 32 bits) and which of the page's boxes with that same code it is, counting
+// from 0 in page order, and never the box's id, which counts fences (I4). So when a later version of the course adds,
+// removes or changes a box, an edit never loads into another box's code, and two boxes that publish the same code (an
+// empty main, say) keep their edits apart and in place; only a box with that same code added or removed between them
+// could move one. crypto.subtle is not used: a page over plain http has none, and this needs no secrecy.
 function fingerprint(text) {
   let h = 0x811c9dc5;
   for (let i = 0; i < text.length; i++) h = Math.imul(h ^ text.charCodeAt(i), 0x01000193);
@@ -124,7 +127,8 @@ function fingerprint(text) {
 export function wireBox(box, runner) {
   const code = box.querySelector("textarea.code");
   const original = code.defaultValue; // the code as the page was built
-  const key = `jf:${location.pathname}:${box.dataset.box}:${fingerprint(original)}`; // the path carries the volume
+  const occurrence = [...document.querySelectorAll(".box textarea.code")].filter((c) => c.defaultValue === original).indexOf(code);
+  const key = `jf:${location.pathname}:${fingerprint(original)}:${occurrence}`; // the path carries the volume
   const controls = element("div", "controls");
   const runButton = button("Run", run);
   const endButton = button("End input", endInput);

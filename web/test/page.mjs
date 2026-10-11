@@ -411,31 +411,69 @@ for (const engine of only ? [only] : Object.keys(ENGINES)) {
   await b1.getByRole("button", { name: "Reset", exact: true }).click();
   b1 = await reopen();
   check(`${engine}: Reset forgets the kept edit`, (await b1.locator("textarea.code").inputValue()).includes("Hello, <world>"), null);
-  // A kept edit belongs to the code it edited: an edit kept under this box's position but for other code (an earlier
-  // version of the page, or another box that stood here) never loads into it; and each box's key carries a fingerprint
-  // of its own code, so two boxes with different code never share one.
+  // A kept edit belongs to the code it edited, wherever that code stands (I4): its key is the code's fingerprint and which
+  // of the page's boxes with that code it is, and never the box's id. So the key forms that named a box's place, alone
+  // (before Task 2) or with its code's fingerprint (Task 2), never load, not even with this box's own fingerprint.
   const plantedKeys = await b1.page().evaluate(() => {
+    let h = 0x811c9dc5; // box.js's fingerprint of box 1's code, as Task 2's key carried it
+    const code = document.querySelector('.box[data-box="ch01-run#1"] textarea.code').defaultValue;
+    for (let i = 0; i < code.length; i++) h = Math.imul(h ^ code.charCodeAt(i), 0x01000193);
     const at = `jf:${location.pathname}:ch01-run#1`;
     localStorage.setItem(at, "stale: the old key form");
-    localStorage.setItem(`${at}:00000000`, "stale: another box's code");
-    return [at, `${at}:00000000`].filter((k) => localStorage.getItem(k) !== null).length;
+    localStorage.setItem(`${at}:${(h >>> 0).toString(16).padStart(8, "0")}`, "stale: Task 2's key form");
+    return Object.keys(localStorage).filter((k) => k.startsWith(at)).length;
   });
   b1 = await reopen();
-  check(`${engine}: a kept edit for other code at this box's place does not load into it`,
+  check(`${engine}: a kept edit under a key that names the box's place, alone or with its code's fingerprint, never loads`,
     plantedKeys === 2 && (await b1.locator("textarea.code").inputValue()).includes("Hello, <world>"), { plantedKeys });
   const b2 = b1.page().locator('.box[data-box="ch01-run#2"]');
   await b1.locator("textarea.code").fill(KEPT);
   await b2.locator("textarea.code").fill(KEPT);
   await b1.page().waitForTimeout(500); // the box keeps an edit on input; give both a moment
   const kept = await b1.page().evaluate(() => Object.keys(localStorage)
-    .filter((k) => /:ch01-run#[12]:[0-9a-f]{8}$/.test(k) && localStorage.getItem(k).includes("kept")));
-  const hashes = kept.map((k) => k.slice(-8));
-  check(`${engine}: each box keeps its edit under a fingerprint of its own code (two boxes, two fingerprints)`,
-    kept.length === 2 && hashes[0] !== hashes[1] && !hashes.includes("00000000"), kept);
+    .filter((k) => k.startsWith(`jf:${location.pathname}:`) && localStorage.getItem(k).includes("kept")));
+  const hashes = kept.map((k) => /^jf:[^:]*:([0-9a-f]{8}):0$/.exec(k)?.[1]);
+  check(`${engine}: each box keeps its edit under its own code's fingerprint and no id (two boxes, two fingerprints)`,
+    kept.length === 2 && hashes.every(Boolean) && hashes[0] !== hashes[1] && !kept.some((k) => k.includes("#")), kept);
   check(`${engine}: no request left the page's origin across the reloads`, t.offsite.length === 0, t.offsite);
   // The crash box 12 causes is the one page error expected, and only where the tab went down.
   const reloadErrors = [...t.errors.filter((e) => !(crashed && e === "the page crashed")), ...reopened];
   check(`${engine}: no page error across the reloads`, reloadErrors.length === 0, reloadErrors);
+  await t.close();
+
+  // Two boxes that publish the same code (ch02-check's #6 and #7, an empty main) keep separate edits, and a later version
+  // of the page with a box added above them, every box after it renumbered as a fence added there renumbers them, does
+  // not move either edit: each follows its own code's place among the boxes with that code (I4). The test changes the
+  // page its server serves between two loads in one browser context, as a reader's browser meets a revised course.
+  const revised = workDir("page-test-revised");
+  fs.cpSync(site, revised, { recursive: true });
+  t = await open(engine, revised, PAGES[1]);
+  await ready(t);
+  const sameCode = (pg, n) => pg.locator(`.box[data-box="ch02-check#${n}"] textarea.code`);
+  const NAME = 'void main() {\n    IO.println("Ada");\n}\n', CITY = 'void main() {\n    IO.println("Oslo");\n}\n';
+  const unedited = [await sameCode(t.page, 6).inputValue(), await sameCode(t.page, 7).inputValue()];
+  await sameCode(t.page, 6).fill(NAME);
+  await sameCode(t.page, 7).fill(CITY);
+  await t.page.waitForTimeout(500);
+  const sameKeys = await t.page.evaluate(() => Object.keys(localStorage).filter((k) => k.startsWith(`jf:${location.pathname}:`)).sort());
+  check(`${engine}: two boxes with the same code keep their edits apart, under one fingerprint, as its first and second box`,
+    unedited[0] === unedited[1] && sameKeys.length === 2 && sameKeys[0].replace(/:0$/, "") === sameKeys[1].replace(/:1$/, "")
+      && /:[0-9a-f]{8}:0$/.test(sameKeys[0]), { unedited, sameKeys });
+  const revisedPage = path.join(revised, PAGES[1]), built = fs.readFileSync(revisedPage, "utf8");
+  const shifted = built.replace(/ch02-check#(\d+)/g, (m, n) => (Number(n) >= 6 ? `ch02-check#${Number(n) + 1}` : m));
+  const insertAt = shifted.indexOf('<div class="box" id="ch02-check#7"');
+  fs.writeFileSync(revisedPage, shifted.slice(0, insertAt) + '<div class="box" id="ch02-check#6" data-box="ch02-check#6" data-kind="run">'
+    + '<textarea class="code" wrap="off" spellcheck="false">void main() {\n    IO.println(&quot;added&quot;);\n}\n</textarea></div>'
+    + shifted.slice(insertAt));
+  const later = await t.context.newPage();
+  later.on("pageerror", (e) => t.errors.push(String(e)));
+  await later.goto(`${t.origin}/${PAGES[1]}?revised`);
+  await later.waitForFunction(() => document.documentElement.dataset.java);
+  const [added, name, city] = await Promise.all([6, 7, 8].map((n) => sameCode(later, n).inputValue()));
+  check(`${engine}: a box added above them moves neither edit: each stays with its own box, and the new box shows its own code`,
+    insertAt > 0 && added.includes('"added"') && name === NAME && city === CITY, { added, name, city });
+  check(`${engine}: no request left the page's origin, and no page error, across the revision`,
+    t.offsite.length === 0 && t.errors.length === 0, { offsite: t.offsite, errors: t.errors });
   await t.close();
 
   // Storage that throws (a private window, blocked storage) is ignored: the box works as if nothing were kept (D41).

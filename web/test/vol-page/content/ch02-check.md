@@ -50,3 +50,17 @@ void main() {
     IO.println("Roses are red");
 }
 ```
+
+Two exercises may start from the same empty program. Print your name:
+
+```java
+void main() {
+}
+```
+
+Print your city:
+
+```java
+void main() {
+}
+```
