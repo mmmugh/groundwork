@@ -175,6 +175,7 @@ node web/test/scratchpad.mjs [engine]         # the real scratchpad in a real br
 node web/test/doors.mjs [engine]              # a worker that has closed its doors reaches nobody
 node web/test/zip.mjs [engine]                # the self-hosting zip, unzipped and served as a self-hoster would
 node web/test/acceptance.mjs <name|all> [engine]   # the course's pages (a chapter's, 00, 99 or all), as a reader uses them
+node web/test/acceptance-logs.mjs [engine]          # the acceptance's log shows no worked solution or mistake typed in
 ```
 
 `check.mjs` runs the real tool only through `runtime/jshell/test/RealJShell.java`, never the `jshell` binary, which keeps
@@ -197,7 +198,9 @@ through the page's own buttons: every checked box passes each worked solution in
 mistake, Show a solution shows that box's worked solution, and every box runs, its questions answered in place, and
 shows its stated output; a page with no box is held to the rest. Screenshots and what it saw (`results.json`) go to
 `build/.work/acceptance/<name>/<engine>/`. With `--volume web/test/vol-accept` it runs on its own fixture; with no
-volume yet it says `no volumes` and passes.
+volume yet it says `no volumes` and passes. A check that fails prints its label and the page's verdict, never what was
+typed (the weekly job's log is public); what was typed is in `results.json`. `acceptance-logs.mjs` proves that on a copy
+of the fixture with a wrong worked solution and a right mistake (Chromium unless an engine is named).
 
 ## Setting up a clone
 

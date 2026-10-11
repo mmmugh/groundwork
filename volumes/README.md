@@ -237,7 +237,9 @@ code starts `void main(` at the code's own margin, the code is a whole compact s
 needs a method or an import beside `main` is written that way. `--check` compiles each such question on the pinned JDK,
 runs it five times with no input, and requires it to run to its end, print the same every time, print no identity hash,
 and print exactly the key's
-answer, both tidied as a stated output is (above). The key must show the quiz's code, so the two cannot drift apart
+answer, both tidied as a stated output is (above). A key whose answer differs is reported with where the two first differ
+and how many lines each has, never the answer or the output itself (the quick and Pages jobs' logs are public); both in
+full go to `build/.work/quizzes/chNN-quiz-N/differs.txt`, which CI never uploads. The key must show the quiz's code, so the two cannot drift apart
 unnoticed, and a question that asks "does this print" in any other words is reported rather than skipped. So is a question that asks for the
 output in any other words ("print" or "output" in its text) and shows code with no blank (`__`) to fill in, which must be worded
 exactly "What does this print?" to be run. The code ends at the first line not indented eight spaces, and the next

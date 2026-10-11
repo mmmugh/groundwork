@@ -31,6 +31,9 @@
 //   "at" lines under it, D42); a compileError box shows javac's error; every other box, a varies box or a starter
 //   included, runs to its end with no status line, no compile error and no exception it does not declare.
 // - Nothing scrolls sideways at 390 px, no request leaves the page's origin, and no page error happens.
+// A check that fails prints its label and what the page said (Check's verdict, Run's output), never what was typed into
+// a box: the weekly job's log is public, and worked solutions and mistakes are not (M5, DESIGN section 4; web/test/
+// acceptance-logs.mjs proves it). What was typed is kept in results.json, under build/.work/, which CI never uploads.
 // - The page shows one box for each java fence in its Markdown, as the build published them: none on a page with none.
 // It saves a screenshot of each page and of each box, and what it saw (results.json), under
 // build/.work/acceptance/<name>/<engine>/ (build/.work/acceptance-<slug>/... for another volume), and prints how long
@@ -219,7 +222,7 @@ function readSolutions(file) {
 }
 
 // Check, three ways, through the box's own field and button; then the box is put back as it was built.
-async function prove(t, e, r, expect, wide, engine) {
+async function prove(t, e, r, expect, wide, engine, dir) {
   const box = boxOf(t, e.id), s = SOLUTIONS.get(e.id) ?? NONE, predict = r.kind === "predict";
   // A starter box's two more answers (build/Proofs.java): they count toward neither the two right answers nor the mistake.
   const tie = !predict && r.starter;
@@ -247,7 +250,8 @@ async function prove(t, e, r, expect, wide, engine) {
     a.ms = Date.now() - t0;
     a.summary = (await box.locator(".verdict p.summary").innerText()).replace(/\r/g, "").trim();
     a.ok = a.summary !== FATAL && PASSED.test(a.summary) === (a.want === "pass");
-    expect(`${e.id}: ${a.label} ${a.want === "pass" ? "passes" : "fails"} its Check`, a.ok, { summary: a.summary, answer: a.answer });
+    expect(`${e.id}: ${a.label} ${a.want === "pass" ? "passes" : "fails"} its Check`, a.ok,
+      { summary: a.summary, typed: `${a.answer.split("\n").length - 1} line(s), in ${path.relative(REPO, path.join(dir, "results.json"))}` });
     r.proof.push(a);
     wide.push(...await t.page.evaluate(OVERFLOW, engine === "firefox"));
   }
@@ -281,9 +285,12 @@ async function reveal(t, e, r, expect, wide, engine) {
     text: d.querySelector(":scope > pre")?.textContent ?? null,
     others: [...document.querySelectorAll(".box > details.solution")].filter((x) => x !== d && x.open).map((x) => x.parentElement.dataset.box) }));
   seen.visible = await t.page.locator(`${SOLUTION(e.id)} > pre`).isVisible();
-  const ok = seen.open && seen.visible && seen.text != null && tidy(seen.text) === tidy(first) && seen.others.length === 0;
+  const same = seen.text != null && tidy(seen.text) === tidy(first);
+  const ok = seen.open && seen.visible && same && seen.others.length === 0;
   r.reveal = { solution: first, ok };
-  expect(`${e.id}: "${SHOW}" opens that box's own first worked solution, and every other box's stays shut`, ok, seen);
+  // The solution's text is in results.json, never in the log (M5).
+  expect(`${e.id}: "${SHOW}" opens that box's own first worked solution, and every other box's stays shut`, ok,
+    { open: seen.open, visible: seen.visible, sameText: same, others: seen.others });
   wide.push(...await t.page.evaluate(OVERFLOW, engine === "firefox"));
   if (seen.open) await t.page.locator(`${SOLUTION(e.id)} > summary`).click();
 }
@@ -374,7 +381,7 @@ async function acceptPage(engine, pageSlug, dir, report) {
         expect(`${e.id}: the page shows it as the ${published} box the build published`, r.kind === published,
           { page: r.kind, published });
         const checkButtons = () => boxOf(t, e.id).getByRole("button", { name: "Check", exact: true }).count();
-        if (e.check) await prove(t, e, r, expect, wide, engine);
+        if (e.check) await prove(t, e, r, expect, wide, engine, dir);
         else if (r.noCheck != null) {
           const text = await boxOf(t, e.id).innerText();
           expect(`${e.id}: says why it has no Check, in its noCheck words, and offers no Check`,

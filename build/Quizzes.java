@@ -283,10 +283,35 @@ final class Quizzes {
     if (IDENTITY_HASH.matcher(first.stdout()).find())
       return List.of(id + ": prints an identity hash (such as [I@1b6d3586), which no JDK promises to repeat");
     String want = Audit.tidy(answer), got = Audit.tidy(first.stdout());
-    if (!want.equals(got))
-      return List.of(id + ": its key's answer is not what the code prints\n      expected: " + show(want) + "\n      actual:   " + show(got));
+    if (!want.equals(got)) {
+      // DESIGN section 4 (M5): a key's answer is private, and what the code prints is the answer the key should hold, so
+      // the message, which the quick and Pages jobs print in public logs, holds neither: where they first differ and how
+      // many lines each has, and a file under build/.work/ (which CI never uploads) with both in full.
+      Path detail = outDir.resolve("differs.txt");
+      try {
+        Files.createDirectories(outDir);
+        Files.writeString(detail, "The key's answer:\n" + want + "\n\nWhat the code prints:\n" + got + "\n");
+      } catch (IOException e) { throw new BuildError(detail + ": " + e.getMessage()); }
+      return List.of(id + ": its key's answer is not what the code prints: it differs from the key at " + firstDifference(want, got)
+          + " (the key's answer has " + lines(want) + ", the code prints " + lines(got) + "); both in full: " + detail);
+    }
     return List.of();
   }
 
-  private static String show(String s) { return s.replace("\n", "\\n"); }
+  /** Where a and b, which differ, first differ: "line N, column C", or "line N" where one of them has no line N. */
+  private static String firstDifference(String a, String b) {
+    String[] x = a.split("\n", -1), y = b.split("\n", -1);
+    for (int i = 0; ; i++) {
+      if (i >= x.length || i >= y.length) return "line " + (i + 1);
+      if (x[i].equals(y[i])) continue;
+      int c = 0;
+      while (c < x[i].length() && c < y[i].length() && x[i].charAt(c) == y[i].charAt(c)) c++;
+      return "line " + (i + 1) + ", column " + (c + 1);
+    }
+  }
+
+  private static String lines(String s) {
+    int n = s.isEmpty() ? 0 : s.split("\n", -1).length;
+    return n == 1 ? "1 line" : n + " lines";
+  }
 }

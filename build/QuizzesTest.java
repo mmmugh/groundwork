@@ -186,6 +186,31 @@ final class QuizzesTest {
     T.eq(1, r.exit(), "a wrong answer fails --check: " + r.out());
     T.check(r.out().contains("  !! quizzes/ch01-quiz.txt question 3: its key's answer is not what the code prints"), r.out());
   }
+  // M5 (DESIGN section 4): a key's answer is private, and what the code prints is the answer the key should hold, so a
+  // mismatch prints neither where a public CI log would show it (the quick and Pages jobs run --check): the question,
+  // where the two first differ and how many lines each has, and a file under build/.work/ (which CI never uploads) with
+  // both in full. Question 2's code prints one marker and its key holds another; neither reaches the build's output.
+  static void testAWrongKeyPrintsNeitherTheKeysAnswerNorWhatTheCodePrints() throws Exception {
+    Path p = Fixtures.project("quiz-private");
+    String code = "        IO.println(\"Hi\");\n        IO.println();\n        IO.println(\"there\");";
+    for (String file : List.of(QUIZ, KEY)) {
+      String text = Files.readString(p.resolve(file));
+      T.check(text.contains(code), file + " holds question 2's code: " + text);
+      Files.writeString(p.resolve(file), text.replace(code, "        IO.println(\"Hi\");\n        IO.println(\"CODE-PRINTS-7c1e\");"));
+    }
+    Path key = p.resolve(KEY);
+    String k = Files.readString(key), answer = "ANSWER: Hi\n\n          there";
+    T.check(k.contains(answer), "the key's answer to question 2: " + k);
+    Files.writeString(key, k.replace(answer, "ANSWER: Hi\n          KEY-SAYS-4b9d"));
+    var r = Fixtures.build(p, "--check", "--no-fork-gate-for-tests");
+    T.eq(1, r.exit(), "the wrong key fails --check: " + r.out());
+    Path detail = Path.of("build/.work/quizzes/ch01-quiz-2/differs.txt");
+    T.check(r.out().contains("  !! quizzes/ch01-quiz.txt question 2: its key's answer is not what the code prints: it differs from the"
+        + " key at line 2, column 1 (the key's answer has 2 lines, the code prints 2 lines); both in full: " + detail + "\n"), r.out());
+    T.check(!r.out().contains("KEY-SAYS-4b9d") && !r.out().contains("CODE-PRINTS-7c1e"), "neither marker is printed: " + r.out());
+    String full = Files.readString(Fixtures.TOOLS.resolve(detail));
+    T.check(full.contains("KEY-SAYS-4b9d") && full.contains("CODE-PRINTS-7c1e"), "the file holds both, to debug with: " + full);
+  }
   // A quiz and its key belong to their chapter's page: --only ch01 leaves chapter 2's orphan key alone and --only ch02
   // reports it. A key for a chapter the volume lacks belongs to no page --only could name, so a plain --check reports it.
   static void testTheOnlyFlagReportsTheNamedChaptersQuizAndKeyAlone() throws Exception {
