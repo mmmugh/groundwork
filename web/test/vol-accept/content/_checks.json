@@ -1,0 +1,7 @@
+{
+ "ch01-first-steps#5": {"kind": "method", "name": "isEven", "returns": "boolean", "params": ["int"], "cases": [["4", "true"], ["7", "false"], ["0", "true"], ["-2", "true"]], "starter": "boolean isEven(int n) {\n    return false;\n}\n\nvoid main() {\n    IO.println(isEven(4));\n}\n"},
+ "ch01-first-steps#6": {"kind": "output", "expected": "Ada\n"},
+ "ch01-first-steps#7": {"kind": "input", "runs": [{"typed": ["5"], "numbers": ["10"]}, {"typed": ["-4"], "numbers": ["-8"]}]},
+ "ch01-first-steps#8": {"kind": "predict"},
+ "ch01-first-steps-practice#1": {"kind": "method", "name": "greet", "returns": "String", "params": ["String"], "cases": [["\"Ada\"", "\"Hello, Ada!\""], ["\"Bo\"", "\"Hello, Bo!\""]], "starter": "String greet(String name) {\n    return \"\";\n}\n\nvoid main() {\n    IO.println(greet(\"Ada\"));\n}\n"}
+}

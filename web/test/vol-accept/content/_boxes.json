@@ -1,0 +1,9 @@
+{
+ "ch01-first-steps#2": {"stdin": ["Ada"]},
+ "ch01-first-steps#3": {"raises": "java.lang.ArrayIndexOutOfBoundsException", "why": "Index 3 is one past the end."},
+ "ch01-first-steps#4": {"compileError": "cannot find symbol", "why": "count is never declared."},
+ "ch01-first-steps#7": {"stdin": ["5"]},
+ "ch01-first-steps#9": {"noCheck": "Any box of stars is right, so this one has no Check: compare yours with a worked solution."},
+ "ch01-first-steps#10": {"reference": true},
+ "ch01-first-steps#11": {"varies": true, "why": "Set.of picks a new order every time the JVM starts."}
+}

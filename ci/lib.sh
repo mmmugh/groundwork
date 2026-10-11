@@ -108,6 +108,9 @@ weekly_node_steps() {
 browser_steps() { # browser_steps <engine>
   local e=$1 t
   for t in runner page scratchpad-panel scratchpad doors zip; do step "web-$t-$e" node "web/test/$t.mjs" "$e"; done
+  # The acceptance: first on its own fixture, which proves it, then on the course, every chapter as a reader uses it.
+  step "web-acceptance-fixture-$e" node web/test/acceptance.mjs --volume web/test/vol-accept all "$e"
+  step "web-acceptance-$e" node web/test/acceptance.mjs all "$e"
   step "jshell-check-$e" node runtime/jshell/test/check.mjs --browser "$e"
   user_prefs_step "jshell-check-$e-no-user-prefs"
 }

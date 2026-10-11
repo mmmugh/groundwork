@@ -174,6 +174,7 @@ node web/test/scratchpad-panel.mjs [engine]   # the scratchpad's panel in a real
 node web/test/scratchpad.mjs [engine]         # the real scratchpad in a real browser
 node web/test/doors.mjs [engine]              # a worker that has closed its doors reaches nobody
 node web/test/zip.mjs [engine]                # the self-hosting zip, unzipped and served as a self-hoster would
+node web/test/acceptance.mjs <chNN|all> [engine]   # every page of a chapter of the course, as a reader uses it
 ```
 
 `check.mjs` runs the real tool only through `runtime/jshell/test/RealJShell.java`, never the `jshell` binary, which keeps
@@ -188,6 +189,13 @@ its worker and the network, and it counts the connections a live server on anoth
 builds a small test site in `build/.work/page-test`, which `node web/test/replay.mjs --site build/.work/page-test`
 then reads. The rest of the runtime's gates are the other scripts under `runtime/test/` (`differential.mjs`,
 `smoke.mjs` and the like).
+
+`acceptance.mjs` accepts the course as a reader meets it. It builds `volumes/vol1` into
+`build/.work/acceptance-site-vol1`, then, for a chapter (`ch01`, or `all`), drives each of its pages at 390 px through
+the page's own buttons: every checked box passes each worked solution in `_solutions.md` and fails each mistake, Show a
+solution shows that box's worked solution, and every box runs, its questions answered in place, and shows its stated
+output. Screenshots and what it saw (`results.json`) go to `build/.work/acceptance/<chNN>/<engine>/`. With
+`--volume web/test/vol-accept` it runs on its own fixture; with no volume yet it says `no volumes` and passes.
 
 ## Setting up a clone
 

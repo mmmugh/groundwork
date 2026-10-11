@@ -23,6 +23,7 @@
 // - setup.sh --dry-run prints the commands, runs none, and says so;
 // - a DRY_RUN in the environment does not turn a suite into a no-op that passes (T-3);
 // - everything.sh runs the two hook tests, as its header says (B4);
+// - weekly.sh <engine> runs the acceptance in that engine: on its fixture volume, then on the course;
 // - quick.sh leaks on a fork's pull request, which GitHub runs without the repository secret, scans the history with the
 //   generic patterns and says why; any other run without the secret fails, naming it (D102);
 // - the secret's temp file is gone however the history scan ends, and a signal stops the run; the hook tests and the
@@ -76,7 +77,7 @@ const PIN = sha256(TGZ), WRONG = "0".repeat(64);
 // a pins.env pointing at the fixture tarball and the given pin, and a stand-in for the scratchpad's fetch.
 function root(name, pin) {
   const r = path.join(WORK, name);
-  for (const f of ["lib.sh", "setup.sh", "quick.sh", "everything.sh"]) write(path.join(r, "ci", f), fs.readFileSync(path.join(REPO, "ci", f)), 0o755);
+  for (const f of ["lib.sh", "setup.sh", "quick.sh", "everything.sh", "weekly.sh"]) write(path.join(r, "ci", f), fs.readFileSync(path.join(REPO, "ci", f)), 0o755);
   write(path.join(r, "ci/pins.env"), `TEMURIN_LINUX_X64_URL=file://${TGZ}\nTEMURIN_LINUX_X64_SHA256=${pin}\n`);
   write(path.join(r, "runtime/ristretto/fetch-release.sh"), "exit 0\n");
   return r;
@@ -159,6 +160,13 @@ write(path.join(r, "java-home/bin/java"), `#!/bin/sh\n${RECORD}\n`, 0o755);
 o = run(r, "everything.sh", [], { os: "Darwin", env: { HOME: r, JF_JAVA_HOME: path.join(r, "java-home") } });
 check("everything.sh runs the two hook tests",
   o.ran.includes("python3 tests/leak_scan_test.py\n") && o.ran.includes("python3 tests/pre_push_test.py\n"), o.ran);
+
+// weekly.sh <engine> runs the acceptance in that engine (Plan 5): on its fixture volume, which proves it, then on the
+// course. node is a stand-in that records its calls; the exit code is not checked, as for everything.sh above.
+r = root("weekly", PIN);
+o = run(r, "weekly.sh", ["webkit"], { os: "Darwin", env: { HOME: r } });
+check("weekly.sh webkit runs the acceptance in WebKit: on its fixture volume, then on the course",
+  o.ran.includes("node web/test/acceptance.mjs --volume web/test/vol-accept all webkit\nnode web/test/acceptance.mjs all webkit\n"), o.ran);
 
 // The leaks cases, each in a root of its own: a git repository with two commits (else `git rev-list --all` walks this
 // repository's history; the second commit is the scan a signal must stop before), each adding file-<n>.txt, and a
@@ -332,4 +340,4 @@ check("quick.yml's leaks job sets LEAKS_FORK_PR beside the secret: 1 on a pull r
     && leaksJob.some((l) => l.trim() === "LEAK_PATTERNS_LOCAL: ${{ secrets.LEAK_PATTERNS_LOCAL }}"), leaksJob);
 
 console.log(results.every(Boolean) ? "\nthe ci scripts keep their promises" : `\n${results.filter((x) => !x).length} failed`);
-process.exit(results.every(Boolean) && results.length === 28 ? 0 : 1);
+process.exit(results.every(Boolean) && results.length === 29 ? 0 : 1);
