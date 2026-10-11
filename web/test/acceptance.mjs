@@ -17,13 +17,16 @@
 // 390 px, through the page's own controls and nothing else (no call into the page's code). It builds the volume as the
 // course is built (harness buildSite), then on each of the chapter's pages, the chapter and its practice page:
 // - Check, three ways (DESIGN section 3): each worked solution in _solutions.md, typed into its box, must pass and each
-//   mistake must fail; a predict box takes its stated output and each right prediction, which must pass, and each wrong
-//   prediction, which must fail. A box with noCheck says so in its own words and offers no Check.
+//   mistake must fail; a predict box takes its stated output and each right prediction (at least one besides it), which
+//   must pass, and each wrong prediction, which must fail. A box with noCheck says so in its own words and offers no
+//   Check.
+// - Each box is of the kind the build published for it in boxes.json, so none is left unrun by being shown as another.
 // - Show a solution: a box with a worked solution offers it, shut as the page loads, and no other box does; opening
 //   it shows that box's own first worked solution, and every other box's stays shut.
 // - On a fresh load, Run on every box that runs, each question answered in place with the box's declared stdin, as a
 //   reader types it: the box must show its stated output; a raises box ends in its exception's line (in WebKit with no
-//   "at" lines under it, D42); a compileError box shows javac's error.
+//   "at" lines under it, D42); a compileError box shows javac's error; every other box, a varies box or a starter
+//   included, runs to its end with no status line, no compile error and no exception it does not declare.
 // - Nothing scrolls sideways at 390 px, no request leaves the page's origin, and no page error happens.
 // It saves a screenshot of each page and of each box, and what it saw (results.json), under
 // build/.work/acceptance/<chNN>/<engine>/ (build/.work/acceptance-<slug>/... for another volume), and prints how long
@@ -41,7 +44,8 @@ import { FATAL } from "../page/support.js";
 const USAGE = "usage: node web/test/acceptance.mjs [--volume <dir>] <chNN|all> [chromium|webkit|firefox]";
 const COURSE = path.join(REPO, "volumes/vol1");
 // What a box shows when its run went wrong in a way no stated output allows (web/page/box.js's STATUS): the fatal
-// error, a run worker that died, and a replay that printed something else the second time.
+// error, a run worker that died, and a replay that printed something else the second time. A compileError box must show
+// none of them; every other box must show no status line at all (runBox).
 const BROKEN = [FATAL, "The program stopped unexpectedly.", "This program printed something different when it ran again"];
 // WebKit prints an uncaught exception's first line only (D42, web/test/runner.mjs's NO_FRAMES): there a stated output
 // is compared without the program's own frames, the "at" lines a terminal shows under that line.
@@ -77,7 +81,10 @@ if (args[0] === "--volume") {
   args.splice(0, 2);
 }
 const [which, only] = args;
-if (args.length < 1 || args.length > 2 || !/^(ch\d+|all)$/.test(which) || (only && !ENGINES[only])) { console.log(USAGE); process.exit(2); }
+if (args.length < 1 || args.length > 2 || !/^(ch\d+|all)$/.test(which) || (only && !Object.hasOwn(ENGINES, only))) {
+  console.log(USAGE);
+  process.exit(2);
+}
 if (!fs.existsSync(path.join(volumeDir, "volume.json"))) {
   const volumes = path.join(REPO, "volumes");
   const any = fs.readdirSync(volumes).some((d) => fs.existsSync(path.join(volumes, d, "volume.json")));
@@ -108,6 +115,10 @@ const BOXES = JSON.parse(fs.readFileSync(path.join(site, "boxes.json"), "utf8"))
 const OUT = path.join(REPO, "build/.work", slug === "vol1" ? "acceptance" : `acceptance-${slug}`);
 
 const boxOf = (t, id) => t.page.locator(`.box[data-box="${id}"]`);
+// The kind a box's boxes.json entry implies, as build/Pages.java names it (appendBox, kindOf): a predict check makes a
+// predict box; else reference, raises, compileError and stdin, in that order; else a box that runs.
+const publishedKind = (e) => e.check?.kind === "predict" ? "predict" : e.reference ? "reference" : e.raises ? "raises"
+  : e.compileError ? "compile-error" : e.stdin.length ? "input" : "run";
 const stateOf = (t, id) => t.page.evaluate((id) => document.querySelector(`.box[data-box="${id}"]`).dataset.state, id);
 const settled = (t, id) => t.page.waitForFunction((id) =>
   ["done", "waiting"].includes(document.querySelector(`.box[data-box="${id}"]`).dataset.state), id, { timeout: RUN_MS });
@@ -184,8 +195,10 @@ async function prove(t, e, r, expect, wide, engine) {
     : [...s.rightJava.map((a, i) => ({ label: `worked solution ${i + 1}`, answer: a, want: "pass" })),
       ...s.mistakeJava.map((a, i) => ({ label: `mistake ${i + 1}`, answer: a, want: "fail" }))];
   const rights = answers.filter((a) => a.want === "pass").length, wrongs = answers.length - rights;
-  expect(`${e.id}: its ${e.check.kind} check has ${predict ? "a wrong prediction" : "two worked solutions and a mistake"} to prove it with`,
-    (predict || rights >= 2) && wrongs >= 1, { rights, wrongs });
+  const enough = predict ? "a right prediction besides its stated output, and a wrong one,"
+    : "two worked solutions and a mistake";
+  expect(`${e.id}: its ${e.check.kind} check has ${enough} to prove it with`, rights >= 2 && wrongs >= 1,
+    { rights, wrongs });
   const field = box.locator(predict ? "textarea.prediction" : "textarea.code");
   for (const a of answers) {
     await field.fill(a.answer);
@@ -260,7 +273,8 @@ async function runBox(t, e, r, expect, engine) {
   const ms = Date.now() - t0;
   const got = await box.locator(".run").evaluate(READ_RUN);
   const waiting = await stateOf(t, e.id) === "waiting";
-  const shown = r.kind === "compile-error" ? got.javac : got.out + statedStderr(got.err);
+  // What the box showed, javac's error included: a box meant to run that did not compile shows that alone.
+  const shown = r.kind === "compile-error" ? got.javac : got.javac + got.out + statedStderr(got.err);
   r.run = { shown, status: got.status, ms, ok: false };
   let ok = !waiting && typed.length === 0 && !got.status.some((s) => BROKEN.some((b) => s.startsWith(b))), label;
   if (r.kind === "compile-error") {
@@ -268,13 +282,17 @@ async function runBox(t, e, r, expect, engine) {
     ok = ok && /^Main\.java:\d+: error: /.test(first) && first.includes(e.compileError);
     label = `Run shows javac's error: ${e.compileError}`;
   } else {
+    // Every other box runs to its end: no status line (a timeout, the output limit, a crash, a replay that diverged),
+    // no compile error, and no uncaught exception but the one a raises box declares. A varies box and a starter, whose
+    // output is compared with nothing, are held to this alone.
+    ok = ok && got.status.length === 0 && got.javac === "";
     const line = got.err.split("\n")[0], thrown = `Exception in thread "main" ${e.raises}`;
     if (e.raises) ok = ok && (line === thrown || line.startsWith(`${thrown}: `));
-    else if (e.expected != null || e.varies) ok = ok && !/^Exception in thread/m.test(got.err);
+    else ok = ok && !/^Exception in thread/m.test(got.err);
     if (e.expected != null && !e.varies) {
       const want = NO_FRAMES.includes(engine) ? withoutFrames(e.expected) : e.expected;
       r.run.want = want;
-      ok = ok && got.status.length === 0 && tidy(shown) === tidy(want);
+      ok = ok && tidy(shown) === tidy(want);
       label = `Run shows its stated output${e.stdin.length ? `, its ${e.stdin.length} answer(s) typed in place` : ""}` +
         (e.raises ? `, ending in ${e.raises}${NO_FRAMES.includes(engine) ? " without its at lines (D42)" : ""}` : "");
     } else label = e.varies ? "Run runs to its end (varies: its output is compared with nothing)"
@@ -308,6 +326,9 @@ async function acceptPage(engine, pageSlug, dir, report) {
       result.boxes.push(r);
       try {
         r.kind = await boxOf(t, e.id).getAttribute("data-kind");
+        const published = publishedKind(e);
+        expect(`${e.id}: the page shows it as the ${published} box the build published`, r.kind === published,
+          { page: r.kind, published });
         const checkButtons = () => boxOf(t, e.id).getByRole("button", { name: "Check", exact: true }).count();
         if (e.check) await prove(t, e, r, expect, wide, engine);
         else if (r.noCheck != null) {
