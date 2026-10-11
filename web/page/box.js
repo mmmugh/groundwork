@@ -124,9 +124,10 @@ function fingerprint(text) {
   return (h >>> 0).toString(16).padStart(8, "0");
 }
 
-// A width change can add or take away the scrollbar under a long line: one listener for the page refits every box.
+// A width change can add or take away the scrollbar under a long line: one listener for the page refits every box. It
+// is added with the first box, never at import: web/test/runner.mjs imports javacText from here under Node, which has
+// no window.
 const fitters = new Set();
-addEventListener("resize", () => fitters.forEach((fit) => fit()));
 
 // runner(): the page's one BrowserRunner, created on first use.
 export function wireBox(box, runner) {
@@ -171,6 +172,7 @@ export function wireBox(box, runner) {
   fitCode();
   setState("idle");
   code.addEventListener("input", () => { writeKept(key, code.value, original); edited(); fitCode(); });
+  if (!fitters.size) addEventListener("resize", () => fitters.forEach((fit) => fit()));
   fitters.add(fitCode);
 
   function stop() {
