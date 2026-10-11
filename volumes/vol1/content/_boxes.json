@@ -8,5 +8,86 @@
   },
   "ch01-your-first-programs#12": {
     "noCheck": "Any shape is right, so this one has no Check: run it and look at what it draws."
+  },
+  "ch02-variables-and-types#6": {
+    "compileError": "String cannot be converted to int",
+    "why": "A String put into an int variable. The error message is the lesson."
+  },
+  "ch02-variables-and-types#8": {
+    "stdin": [
+      "Ada"
+    ]
+  },
+  "ch02-variables-and-types#9": {
+    "stdin": [
+      "14"
+    ]
+  },
+  "ch02-variables-and-types#10": {
+    "stdin": [
+      "14"
+    ]
+  },
+  "ch02-variables-and-types#12": {
+    "stdin": [
+      "100"
+    ]
+  },
+  "ch02-variables-and-types#13": {
+    "noCheck": "Any book is right, so this one has no Check: run it and read the sentence it prints."
+  },
+  "ch02-variables-and-types#14": {
+    "stdin": [
+      "6",
+      "4"
+    ]
+  },
+  "ch02-variables-and-types#15": {
+    "stdin": [
+      "195"
+    ]
+  },
+  "ch02-variables-and-types#17": {
+    "compileError": "bad operand types for binary operator '/'",
+    "why": "This program divides a String by a number, which javac refuses. Fixing it is the exercise.",
+    "noCheck": "A program that does not compile cannot be checked, so this one has no Check: once your fix runs, 72 inches should come out as 6 feet."
+  },
+  "ch02-variables-and-types#18": {
+    "stdin": [
+      "Ada"
+    ]
+  },
+  "ch02-variables-and-types-practice#2": {
+    "stdin": [
+      "11"
+    ]
+  },
+  "ch02-variables-and-types-practice#3": {
+    "stdin": [
+      "11"
+    ]
+  },
+  "ch02-variables-and-types-practice#4": {
+    "stdin": [
+      "11"
+    ]
+  },
+  "ch02-variables-and-types-practice#5": {
+    "stdin": [
+      "11",
+      "4"
+    ]
+  },
+  "ch02-variables-and-types-practice#6": {
+    "stdin": [
+      "4"
+    ]
+  },
+  "ch02-variables-and-types-practice#7": {
+    "stdin": [
+      "12.4",
+      "11",
+      "4"
+    ]
   }
 }

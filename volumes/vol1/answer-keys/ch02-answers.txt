@@ -1,0 +1,131 @@
+GROUNDWORK
+Chapter 2 - Variables and Types
+
+ANSWER KEY
+
+
+VOCABULARY
+----------
+
+ 1. A ____ is a name that holds a value.
+
+      ANSWER: variable
+
+ 2. Every value in Java has a ____, which determines what you can do
+    with it.
+
+      ANSWER: type
+
+ 3. Joining two strings glues them end to end, an operation called
+    ____.
+
+      ANSWER: concatenation
+
+ 4. The text inside IO.readln() that asks the user a question, such as
+    "What is your name? ", is called the ____.
+
+      ANSWER: prompt
+
+ 5. Java's naming convention for variables, a lowercase first word and a
+    capital letter starting each later word, as in finalScore, is called
+    ____.
+
+      ANSWER: camelCase
+
+
+READING CODE
+------------
+
+ 6. What does this print?
+
+        int count = 5;
+        count = count + 1;
+        IO.println(count);
+
+      ANSWER: 6
+
+ 7. What does this print?
+
+        int count = 7;
+        double weight = 7.0;
+        String label = "7";
+        boolean ready = true;
+        IO.println(count);
+        IO.println(weight);
+        IO.println(label);
+        IO.println(ready);
+
+      ANSWER: 7
+          7.0
+          7
+          true
+
+ 8. What does this print?
+
+        IO.println(7 + 7);
+        IO.println("7" + "7");
+
+      ANSWER: 14
+          77
+
+ 9. What does this print?
+
+        int a = 10;
+        int b = a;
+        a = 99;
+        IO.println(a + " " + b);
+
+      ANSWER: 99 10
+
+10. What does this print?
+
+        IO.println((int) 3.9);
+        IO.println(Integer.parseInt("14"));
+
+      ANSWER: 3
+          14
+
+
+WRITING CODE
+------------
+
+11. Complete this line so the text typed by the user is converted to a
+    whole number before arithmetic is done: int age =
+    ____(IO.readln("How old are you? ").strip());
+
+      ANSWER: Integer.parseInt
+
+12. Complete this program so the variable used on the last line exists:
+    int score = 42; ____ = "Ada";
+    IO.println(player + " scored " + score);
+
+      ANSWER: String player
+
+13. Complete this line so a temperature with a decimal point can be read
+    without crashing, where answer holds the text the user typed:
+    double fahrenheit = ____(answer.strip());
+
+      ANSWER: Double.parseDouble
+
+
+WHY IT WORKS
+------------
+
+14. In int a = 10; int b = a; a = 99;, the line int b = a; copies the
+    value 10 into b at that moment; b does not stay linked to the name a.
+    So after a = 99; runs, printing b still shows ____.
+
+      ANSWER: 10
+
+15. Java fully works out the right side of = before doing anything else,
+    so count = count + 1; first works out count's ____ value, adds 1,
+    and only then stores the ____ value in count.
+
+      ANSWER: old
+      ANSWER: new
+
+16. IO.println(age + 1) prints 141 rather than 15 when age comes from
+    IO.readln and the user types 14, because IO.readln always gives back
+    a ____, even when the user types a number made only of digits.
+
+      ANSWER: String

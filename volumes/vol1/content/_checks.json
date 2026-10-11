@@ -41,5 +41,151 @@
     "kind": "output",
     "expected": "======================================\n         RIVERSIDE FILM CLUB\n======================================\n\nFeature:  The Quiet Harbor  (1998)\nWhen:     Friday, 7:30 pm\nWhere:    Room 14\n\nSeats available: 96\nSnack bar total: 17.25\n\n======================================",
     "starter": "void main() {\n    IO.println(\"======================================\");\n    // Then the rest of the flyer: every line in order, blank lines and all.\n}\n"
+  },
+  "ch02-variables-and-types#14": {
+    "kind": "input",
+    "runs": [
+      {
+        "typed": [
+          "6",
+          "4"
+        ],
+        "numbers": [
+          "10",
+          "24"
+        ]
+      }
+    ],
+    "starter": "void main() {\n    // Two numbers in; their sum, difference and product out.\n}\n"
+  },
+  "ch02-variables-and-types#15": {
+    "kind": "input",
+    "runs": [
+      {
+        "typed": [
+          "195"
+        ],
+        "numbers": [
+          "3",
+          "15"
+        ]
+      }
+    ],
+    "starter": "void main() {\n    // Ask for the seconds, then print minutes and seconds.\n}\n"
+  },
+  "ch02-variables-and-types#16": {
+    "kind": "predict"
+  },
+  "ch02-variables-and-types-practice#1": {
+    "kind": "output",
+    "expected": "Kettle Ridge is 12.4 km",
+    "starter": "void main() {\n    String trail = \"Kettle Ridge\";\n    // Then the length, and the line printed from both.\n}\n"
+  },
+  "ch02-variables-and-types-practice#2": {
+    "kind": "input",
+    "runs": [
+      {
+        "typed": [
+          "11"
+        ],
+        "numbers": [
+          "136.4"
+        ]
+      }
+    ],
+    "starter": "void main() {\n    double distanceKm = 12.4;\n    // Ask for the pace, then print the minutes.\n}\n"
+  },
+  "ch02-variables-and-types-practice#3": {
+    "kind": "input",
+    "runs": [
+      {
+        "typed": [
+          "11"
+        ],
+        "numbers": [
+          "2.2733333"
+        ]
+      }
+    ],
+    "starter": "void main() {\n    double distanceKm = 12.4;\n    // Ask for the pace; print the minutes and the hours.\n}\n"
+  },
+  "ch02-variables-and-types-practice#4": {
+    "kind": "input",
+    "runs": [
+      {
+        "typed": [
+          "11"
+        ],
+        "numbers": [
+          "1.705"
+        ]
+      }
+    ],
+    "starter": "void main() {\n    double distanceKm = 12.4;\n    // Ask for the pace; print one person's water.\n}\n"
+  },
+  "ch02-variables-and-types-practice#5": {
+    "kind": "input",
+    "runs": [
+      {
+        "typed": [
+          "11",
+          "4"
+        ],
+        "numbers": [
+          "6.82"
+        ]
+      }
+    ],
+    "starter": "void main() {\n    double distanceKm = 12.4;\n    // Ask for the pace and the group; print its water.\n}\n"
+  },
+  "ch02-variables-and-types-practice#6": {
+    "kind": "input",
+    "runs": [
+      {
+        "typed": [
+          "4"
+        ],
+        "numbers": [
+          "18"
+        ]
+      }
+    ],
+    "starter": "void main() {\n    // Ask how many people; print the permit total.\n}\n"
+  },
+  "ch02-variables-and-types-practice#7": {
+    "kind": "input",
+    "runs": [
+      {
+        "typed": [
+          "12.4",
+          "11",
+          "4"
+        ],
+        "numbers": [
+          "12.4",
+          "136.4",
+          "2.2733333",
+          "1.705",
+          "6.82",
+          "18"
+        ]
+      },
+      {
+        "typed": [
+          "10",
+          "11",
+          "4"
+        ],
+        "numbers": [
+          "10",
+          "110",
+          "1.8333333",
+          "1.375",
+          "5.5",
+          "18"
+        ]
+      }
+    ],
+    "starter": "void main() {\n    // Three questions, then the whole plan.\n}\n"
   }
 }
