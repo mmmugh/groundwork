@@ -28,6 +28,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.function.Predicate;
 import java.util.regex.Pattern;
 import javax.lang.model.element.Element;
 import javax.lang.model.element.ExecutableElement;
@@ -49,13 +50,14 @@ final class Audit {
   private static final Duration DEADLINE = Duration.ofSeconds(10);
   private static final Pattern OWN_FRAME = Pattern.compile("\tat [^()]*\\(Main\\.java:\\d+\\)");
 
-  /** Compiles and runs every non-reference box of every page of every volume, applying the five rules;
-   *  returns each problem as "<box id>: <problem>", in page order. A box's own directory under
-   *  build/.work/classes/ is named after its id, with '#' turned into '_'. */
-  static List<String> check(List<Volume> volumes, Map<Page, List<Box>> allBoxes) throws BuildError {
+  /** Compiles and runs every non-reference box of every page only selects (every page, unless --only names some) of
+   *  every volume, applying the five rules; returns each problem as "<box id>: <problem>", in page order. A box's own
+   *  directory under build/.work/classes/ is named after its id, with '#' turned into '_'. */
+  static List<String> check(List<Volume> volumes, Map<Page, List<Box>> allBoxes, Predicate<Page> only) throws BuildError {
     List<String> problems = new ArrayList<>();
     for (Volume v : volumes) {
       for (Page p : v.pages()) {
+        if (!only.test(p)) continue;
         for (Box box : allBoxes.get(p)) {
           if (box.decl().reference()) continue;
           problems.addAll(checkBox(box));

@@ -160,4 +160,73 @@ final class AuditTest {
       T.check(r.out().contains(b.expect()), "message \"" + b.expect() + "\" in: " + r.out());
     }
   }
+  // --only is the authoring loop: every gate on the pages it names and their chapter's quiz, nothing else. Chapter 1's
+  // first box is broken here, so --only ch02 passes only if chapter 1 is truly left out, and --only ch01 fails only if it
+  // is truly checked. "ch02" names chapter 2's page and its practice page alike.
+  static void testTheOnlyFlagChecksTheNamedChaptersPagesAndQuizAlone() throws Exception {
+    Path p = Fixtures.project("only");
+    Path ch1 = p.resolve("volumes/vol-fixture/content/ch01-first-programs.md");
+    Files.writeString(ch1, Files.readString(ch1).replace("Hello, <world> & café 😀\n```", "Hello, <world> & cafe 😀\n```"));
+    var two = Fixtures.build(p, "--check", "--no-fork-gate-for-tests", "--only", "ch02");
+    T.eq(0, two.exit(), "--only ch02 leaves chapter 1's broken box alone: " + two.out());
+    // The fixture as Tasks 5 and 6 leave it: chapter 2's page has #1 to #5, none a reference box (5), and its practice
+    // page #1 and #3, #2 being one (2): 5 + 2 = 7 checked. Compared outputs: #1 and #5 (#2 is compileError, #3 varies,
+    // #4 states none): 2.
+    T.check(two.out().contains("  ch02-types-and-input: 5 boxes checked") && two.out().contains("  ch02-types-and-input-practice: 2 boxes checked"),
+        "chapter 2's page and its practice page are checked: " + two.out());
+    T.check(!two.out().contains("ch01-first-programs"), "chapter 1's page is not: " + two.out());
+    T.check(two.out().contains("  quizzes: 0 questions run"), "nor chapter 1's quiz: " + two.out());
+    T.check(two.out().contains("7 boxes checked, 2 stated outputs compared, 0 problem(s)"), "the totals count the named pages alone: " + two.out());
+    var one = Fixtures.build(p, "--check", "--no-fork-gate-for-tests", "--only", "ch01");
+    T.eq(1, one.exit(), "--only ch01 checks the broken box: " + one.out());
+    T.check(one.out().contains("ch01-first-programs#1: states an output the code does not print"), one.out());
+    T.check(one.out().contains("  quizzes: 2 questions run"), "and chapter 1's quiz: " + one.out());
+  }
+  // A page checked alone is still held to what the chapters before it taught: every earlier chapter's vocabulary is derived
+  // from its boxes though none of them is checked. int[] is taught by chapter 1 alone (ch01-first-programs#2), so chapter
+  // 2's practice step may use it under --only ch02. Math.max is taught by no chapter, so the same step with it fails,
+  // which proves the vocabulary gate ran on the named page at all.
+  static void testTheOnlyFlagStillHoldsAPageToTheChaptersBeforeIt() throws Exception {
+    Path p = Fixtures.project("only-vocab");
+    Path f = p.resolve("volumes/vol-fixture/practice/ch02-types-and-input-practice.md");
+    String clean = Files.readString(f);
+    Files.writeString(f, clean.replace("IO.println(n * 2);", "IO.println(Math.max(n, 2));"));
+    var r = Fixtures.build(p, "--check", "--no-fork-gate-for-tests", "--only", "ch02");
+    T.eq(1, r.exit(), "Math.max is shown by no chapter: " + r.out());
+    T.check(r.out().contains("member java.lang.Math#max"), r.out());
+    Files.writeString(f, clean.replace("IO.println(n * 2);", "int[] a = new int[] {n}; IO.println(a[0] * 2);"));
+    r = Fixtures.build(p, "--check", "--no-fork-gate-for-tests", "--only", "ch02");
+    T.eq(0, r.exit(), "int[], taught by chapter 1 alone, is known on chapter 2's practice page under --only ch02: " + r.out());
+  }
+  // --only narrows the gates, so it means nothing without --check; and a name no page has must fail, never check nothing
+  // and pass.
+  static void testTheOnlyFlagNeedsCheckAndAPageItNames() throws Exception {
+    Path p = Fixtures.project("only-misuse");
+    var r = Fixtures.build(p, "--only", "ch02");
+    T.eq(2, r.exit(), "--only without --check is misuse: " + r.out());
+    T.check(r.out().contains("--only works only with --check"), "and says why: " + r.out());
+    r = Fixtures.build(p, "--check", "--only");
+    T.eq(2, r.exit(), "a bare --only is misuse: " + r.out());
+    T.check(r.out().contains("usage: java build/Build.java"), "with the usage line: " + r.out());
+    r = Fixtures.build(p, "--check", "--no-fork-gate-for-tests", "--only", "ch09");
+    T.eq(1, r.exit(), "a name no page has fails: " + r.out());
+    T.check(r.out().contains("--only ch09: no page is named ch09 or starts ch09-"), r.out());
+  }
+  // The Pages job has 30 minutes for its setup and every gate (.github/workflows/pages.yml), so --check ends with each
+  // gate's time and their sum, for the plan to watch as chapters arrive: on a failing run as on a passing one.
+  static void testCheckEndsWithEachGatesTime() throws Exception {
+    // Under --no-fork-gate-for-tests neither the fork gate nor the proof runs, so neither is timed (the proof gate's count
+    // rule runs nothing and is timed with the vocabulary gate); ForkGateTest's --only test reads the line with both.
+    var times = java.util.regex.Pattern.compile(
+        "(?m)^gate times: audit \\d+\\.\\d s, vocabulary \\d+\\.\\d s, quizzes \\d+\\.\\d s; all gates \\d+\\.\\d s$");
+    Path p = Fixtures.project("gate-times");
+    var r = Fixtures.build(p, "--check", "--no-fork-gate-for-tests");
+    T.eq(0, r.exit(), r.out());
+    T.check(times.matcher(r.out()).find(), "each gate's time and their sum: " + r.out());
+    Path ch1 = p.resolve("volumes/vol-fixture/content/ch01-first-programs.md");
+    Files.writeString(ch1, Files.readString(ch1).replace("Hello, <world> & café 😀\n```", "Hello, <world> & cafe 😀\n```"));
+    r = Fixtures.build(p, "--check", "--no-fork-gate-for-tests");
+    T.eq(1, r.exit(), r.out());
+    T.check(times.matcher(r.out()).find(), "printed when a gate fails too: " + r.out());
+  }
 }

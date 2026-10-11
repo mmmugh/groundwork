@@ -106,7 +106,7 @@ final class VocabularyTest {
     Volume v = Volume.loadAll(p.resolve("volumes")).get(0);
     Map<Page, List<Box>> boxes = new LinkedHashMap<>();
     for (Page page : v.pages()) boxes.put(page, Boxes.of(v, page));
-    List<String> problems = Vocabulary.check(v, boxes);
+    List<String> problems = Vocabulary.check(v, boxes, page -> true);
     T.check(problems.stream().noneMatch(s -> s.contains("ch02-types-and-input-practice#2") || s.contains("ch02-types-and-input-practice#3")),
         "the practice page's reference and compileError boxes are skipped: " + problems);
   }
@@ -167,7 +167,7 @@ final class VocabularyTest {
     Volume v = Volume.loadAll(p.resolve("volumes")).get(0);
     Map<Page, List<Box>> boxes = new LinkedHashMap<>();
     for (Page page : v.pages()) boxes.put(page, Boxes.of(v, page));
-    List<String> problems = Vocabulary.check(v, boxes);
+    List<String> problems = Vocabulary.check(v, boxes, page -> true);
     T.check(problems.size() == 1
         && problems.get(0).startsWith("ch01-first-programs#4 (mistake): uses what the course has not shown by chapter 1: ")
         && problems.get(0).contains("member java.lang.Integer#parseInt"),
@@ -199,7 +199,7 @@ final class VocabularyTest {
     Volume v = Volume.loadAll(p.resolve("volumes")).get(0);
     Map<Page, List<Box>> boxes = new LinkedHashMap<>();
     for (Page page : v.pages()) boxes.put(page, Boxes.of(v, page));
-    return Vocabulary.check(v, boxes);
+    return Vocabulary.check(v, boxes, page -> true);
   }
   static void testAQuizQuestionMayNotUseWhatOnlyALaterChapterTeaches() throws Exception {
     // DESIGN section 4 holds a quiz to its chapter as it holds a solution, forward: chapter 1's quiz may not use

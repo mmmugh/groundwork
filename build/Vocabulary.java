@@ -24,6 +24,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
+import java.util.function.Predicate;
 import java.util.regex.Matcher;
 
 /** D4: refuses a worked solution, practice step, check starter or quiz question that uses something the chapters have
@@ -36,17 +37,21 @@ final class Vocabulary {
   private Vocabulary() {}
 
   /** Every problem this volume's practice steps, worked solutions, mistakes that compile, check starters and quiz
-   *  questions raise against the vocabulary its chapters have actually taught by then. */
-  static List<String> check(Volume v, Map<Page, List<Box>> boxes) throws BuildError {
+   *  questions raise against the vocabulary its chapters have actually taught by then, for the pages only selects
+   *  (every page, unless --only names some): a practice page's boxes, the solutions, mistakes and starters keyed to a
+   *  box on a selected page, and the quiz of a chapter whose content page is selected. */
+  static List<String> check(Volume v, Map<Page, List<Box>> boxes, Predicate<Page> only) throws BuildError {
     Map<String, Page> pageOf = new HashMap<>();
     for (var e : boxes.entrySet()) for (Box b : e.getValue()) pageOf.put(b.id(), e.getKey());
 
+    // Every chapter's vocabulary comes from all of its boxes, whatever only selects: a page checked alone is still held
+    // to what the chapters before it taught.
     Map<Integer, Vocab> knownByChapter = knownByChapter(v, boxes);
 
     List<String> problems = new ArrayList<>();
     for (var e : boxes.entrySet()) {
       Page p = e.getKey();
-      if (!p.practice()) continue;
+      if (!p.practice() || !only.test(p)) continue;
       Vocab known = knownByChapter.get(p.chapter());
       for (Box b : e.getValue()) {
         // A reference box never runs, and a compileError box is meant not to compile: Audit already proves
@@ -63,6 +68,7 @@ final class Vocabulary {
         String id = s.getKey();
         Page p = pageOf.get(id);
         if (p == null) throw new BuildError(v.solutions() + ": " + id + ": no such box");
+        if (!only.test(p)) continue;
         Vocab known = knownFor(knownByChapter, p, v.solutions() + ": " + id, "a solution");
         for (String fence : s.getValue().worked()) check(problems, id, "solution", fence, p.chapter(), known);
         // A mistake is held to its chapter too: one a reader at this point could not have written proves nothing about
@@ -80,6 +86,7 @@ final class Vocabulary {
       String id = e.getKey();
       Page p = pageOf.get(id);
       if (p == null) throw new BuildError("_checks.json: " + id + ": no such box");
+      if (!only.test(p)) continue;
       Vocab known = knownFor(knownByChapter, p, "_checks.json: " + id, "a starter");
       check(problems, id, "starter", starter, p.chapter(), known);
     }
@@ -92,7 +99,7 @@ final class Vocabulary {
       if (!m.matches()) continue;
       int chapter = Integer.parseInt(m.group(1));
       Vocab known = knownByChapter.get(chapter);
-      if (known == null) continue;
+      if (known == null || !only.test(Quizzes.chapterPage(v, chapter))) continue;
       String where = "quizzes/" + quiz.getFileName();
       for (Quizzes.Question q : Quizzes.printQuestions(where, Quizzes.text(quiz), new ArrayList<>()).values())
         check(problems, where + " question " + q.number(), "quiz", Quizzes.program(q.code()), chapter, known);

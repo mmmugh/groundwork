@@ -181,4 +181,21 @@ final class ForkGateTest {
     T.check(caughtProblems.size() == 1 && caughtProblems.get(0).startsWith("s#1: the browser runtime and the JDK disagree"),
         "a program that catches the overflow still disagrees: " + caughtProblems);
   }
+  // --only hands the fork gate the named pages' examples alone, and the proof gate their checks alone. As Tasks 5 and 6
+  // leave the fixture, chapter 2's page and its practice page hold seven of its ten non-reference boxes (5 + 2; chapter
+  // 1 has the other 3), each one example, and one of its two checks, ch02-types-and-input#4, with 3 answers (2 worked
+  // solutions and 1 mistake; chapter 1's check has 2 and 2). Pages with none to run (the front matter) skip the gate and
+  // say so, where a plain --check with none fails (testAnEmptyExampleListIsAFailure): a page with nothing to run is not
+  // a pass of the course.
+  static void testTheOnlyFlagGivesTheForkGateTheNamedPagesExamplesAlone() throws Exception {
+    var r = Fixtures.build(Fixtures.project("fork-only"), "--check", "--runtime", DIST.toString(), "--only", "ch02");
+    T.eq(0, r.exit(), r.out());
+    T.check(r.out().contains("7 examples, 0 differing"), "chapter 2's seven examples, not the fixture's ten: " + r.out());
+    T.check(r.out().contains("1 checks, 3 answers judged, 0 wrong verdict(s)"), "and its one check, not the fixture's two: " + r.out());
+    T.check(java.util.regex.Pattern.compile("fork gate \\d+\\.\\d s, proofs \\d+\\.\\d s; all gates").matcher(r.out()).find(),
+        "and the fork gate's and the proof's times: " + r.out());
+    r = Fixtures.build(Fixtures.project("fork-only-none"), "--check", "--runtime", DIST.toString(), "--only", "00-front-matter");
+    T.eq(0, r.exit(), r.out());
+    T.check(r.out().contains("  fork gate: no example on the page(s) --only 00-front-matter selects"), r.out());
+  }
 }

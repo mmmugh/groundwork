@@ -17,6 +17,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Predicate;
 
 /** DESIGN section 3: every check is tested three ways before it ships. For each checked box, the answers its
  *  _solutions.md section gives (Vocabulary.solutions): every worked solution is right and must pass, every java fence
@@ -31,14 +32,16 @@ final class Proofs {
   /** A box with no section in _solutions.md. */
   private static final Vocabulary.Section NONE = new Vocabulary.Section(List.of(), List.of(), List.of(), List.of(), List.of());
 
-  /** v's checked boxes, in page order, as proofs.json entries {id, check, answers: [{label, source, right}]}, check
-   *  being exactly what the box's data-check carries (Checks.published). Each checked box without the answers its
-   *  proof needs adds a problem saying which are missing. */
-  static List<Object> of(Volume v, Map<Page, List<Box>> boxes, List<String> problems) throws BuildError {
+  /** v's checked boxes on the pages only selects (every page, unless --only names some), in page order, as proofs.json
+   *  entries {id, check, answers: [{label, source, right}]}, check being exactly what the box's data-check carries
+   *  (Checks.published). Each such box without the answers its proof needs adds a problem saying which are missing; a
+   *  box on a page only leaves out is neither held to its answers nor proved. */
+  static List<Object> of(Volume v, Map<Page, List<Box>> boxes, List<String> problems, Predicate<Page> only) throws BuildError {
     Map<String, Vocabulary.Section> sections = v.solutions() == null ? Map.of() : Vocabulary.solutions(v.solutions());
     List<Object> proofs = new ArrayList<>();
-    for (List<Box> list : boxes.values()) {
-      for (Box b : list) {
+    for (var e : boxes.entrySet()) {
+      if (!only.test(e.getKey())) continue;
+      for (Box b : e.getValue()) {
         Checks.Check c = Checks.of(v, b);
         if (c == null) continue;
         Vocabulary.Section s = sections.getOrDefault(b.id(), NONE);

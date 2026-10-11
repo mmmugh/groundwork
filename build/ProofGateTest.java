@@ -150,7 +150,7 @@ final class ProofGateTest {
     Map<Page, List<Box>> boxes = new LinkedHashMap<>();
     for (Page page : v.pages()) boxes.put(page, Boxes.of(v, page));
     List<String> problems = new ArrayList<>();
-    List<Object> proofs = Proofs.of(v, boxes, problems);
+    List<Object> proofs = Proofs.of(v, boxes, problems, page -> true);
     T.eq(List.of(), problems, "every checked box has its answers");
     T.eq(3, proofs.size(), "three checks: " + proofs);
     Map<?, ?> first = (Map<?, ?>) proofs.get(0);
@@ -256,5 +256,25 @@ final class ProofGateTest {
   }
   static void testAnEmptyProofListIsAFailure() throws Exception {
     T.check(!prove("proof-empty").isEmpty(), "zero proofs is not a pass (Build.java never sends an empty list)");
+  }
+  // --only holds the named pages' checks alone to the answers a proof needs (and proves them alone, which
+  // ForkGateTest's --only test counts). Chapter 1's check keeps one worked solution and no mistake here, so --only ch02
+  // passes only if chapter 1's check is truly left out, and --only ch01 fails only if it is truly held. The rule needs
+  // no runtime, as in testACheckedBoxWithoutItsAnswersFailsSayingWhichIsMissing.
+  static void testTheOnlyFlagHoldsTheNamedPagesChecksAlone() throws Exception {
+    Path p = Fixtures.project("proof-only");
+    Path f = p.resolve("volumes/vol-fixture/content/_solutions.md");
+    String s = Files.readString(f);
+    int ch2 = s.indexOf("## ch02-types-and-input#4\n");
+    T.check(s.startsWith("## ch01-first-programs#4\n") && ch2 > 0, "the fixture's chapter 1 section comes first, then chapter 2's: " + s);
+    Files.writeString(f, "## ch01-first-programs#4\n\n```java\nvoid main() {\n    IO.println(\"Ada\");\n}\n```\n\n" + s.substring(ch2));
+    var two = Fixtures.build(p, "--check", "--no-fork-gate-for-tests", "--only", "ch02");
+    T.eq(0, two.exit(), "--only ch02 leaves chapter 1's check alone: " + two.out());
+    var one = Fixtures.build(p, "--check", "--no-fork-gate-for-tests", "--only", "ch01");
+    T.eq(1, one.exit(), "--only ch01 holds chapter 1's check: " + one.out());
+    for (String line : List.of(
+        "ch01-first-programs#4: its check needs two worked solutions in _solutions.md, the second in another style; it has 1",
+        "ch01-first-programs#4: its check needs a realistic mistake: a java fence under \"### mistake\" in _solutions.md"))
+      T.check(one.out().contains("  !! " + line + "\n"), "says what is missing: " + line + " in: " + one.out());
   }
 }

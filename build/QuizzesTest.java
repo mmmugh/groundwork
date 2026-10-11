@@ -24,7 +24,7 @@ final class QuizzesTest {
 
   /** The quiz gate alone on a fixture project's volume: no site is built and no other gate runs. */
   static Quizzes.Checked check(Path p) throws Exception {
-    return Quizzes.check(Volume.loadAll(p.resolve("volumes")).get(0));
+    return Quizzes.check(Volume.loadAll(p.resolve("volumes")).get(0), page -> true);
   }
 
   // A key carries a program's output, so it must give back exactly what was printed: the rest of the "ANSWER: " line with
@@ -185,5 +185,24 @@ final class QuizzesTest {
     r = Fixtures.build(p, "--check", "--no-fork-gate-for-tests");
     T.eq(1, r.exit(), "a wrong answer fails --check: " + r.out());
     T.check(r.out().contains("  !! quizzes/ch01-quiz.txt question 3: its key's answer is not what the code prints"), r.out());
+  }
+  // A quiz and its key belong to their chapter's page: --only ch01 leaves chapter 2's orphan key alone and --only ch02
+  // reports it. A key for a chapter the volume lacks belongs to no page --only could name, so a plain --check reports it.
+  static void testTheOnlyFlagReportsTheNamedChaptersQuizAndKeyAlone() throws Exception {
+    Path p = Fixtures.project("quiz-only");
+    Path keys = p.resolve("volumes/vol-fixture/answer-keys");
+    Files.writeString(keys.resolve("ch02-answers.txt"), "ANSWER KEY\n");
+    Files.writeString(keys.resolve("ch05-answers.txt"), "ANSWER KEY\n");
+    var one = Fixtures.build(p, "--check", "--no-fork-gate-for-tests", "--only", "ch01");
+    T.eq(0, one.exit(), "--only ch01 leaves chapter 2's and chapter 5's keys alone: " + one.out());
+    T.check(one.out().contains("  quizzes: 2 questions run"), "and runs chapter 1's quiz: " + one.out());
+    var two = Fixtures.build(p, "--check", "--no-fork-gate-for-tests", "--only", "ch02");
+    T.eq(1, two.exit(), two.out());
+    T.check(two.out().contains("answer-keys/ch02-answers.txt: has no quiz") && !two.out().contains("ch05-answers"),
+        "--only ch02 reports chapter 2's key alone: " + two.out());
+    var all = Fixtures.build(p, "--check", "--no-fork-gate-for-tests");
+    T.eq(1, all.exit(), all.out());
+    T.check(all.out().contains("answer-keys/ch02-answers.txt: has no quiz") && all.out().contains("answer-keys/ch05-answers.txt: has no quiz"),
+        "a plain --check reports both: " + all.out());
   }
 }

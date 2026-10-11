@@ -25,6 +25,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.function.Predicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -70,23 +71,29 @@ final class Quizzes {
   /** What check found: how many questions it ran, and every problem. */
   record Checked(int questions, List<String> problems) {}
 
-  /** Every quiz of v paired with its key, every key with its quiz, and every "What does this print?" question run; how
-   *  many questions ran, and each problem as "<file> question N: <problem>" or "<file>: <problem>", in file order. */
-  static Checked check(Volume v) throws BuildError {
+  /** Every quiz of v paired with its key, every key with its quiz, and every "What does this print?" question run, for the
+   *  chapters whose content page only selects (every page, unless --only names some); how many questions ran, and each
+   *  problem as "<file> question N: <problem>" or "<file>: <problem>", in file order. A quiz or key that belongs to no
+   *  page (misnamed, or for a chapter v lacks) is reported only when only selects every page, a plain --check: --only
+   *  cannot name a page it belongs to. */
+  static Checked check(Volume v, Predicate<Page> only) throws BuildError {
+    boolean everything = v.pages().stream().allMatch(only);
     List<String> problems = new ArrayList<>();
     int ran = 0;
     for (Path quiz : v.quizzes()) {
       String name = quiz.getFileName().toString(), where = "quizzes/" + name;
       Matcher m = QUIZ_NAME.matcher(name);
       if (!m.matches()) {
-        problems.add(where + ": a quiz is named chNN-quiz.txt, NN being its chapter's number as the chapter's file writes it");
+        if (everything) problems.add(where + ": a quiz is named chNN-quiz.txt, NN being its chapter's number as the chapter's file writes it");
         continue;
       }
       int chapter = Integer.parseInt(m.group(1));
-      if (chapterPage(v, chapter) == null) {
-        problems.add(where + ": there is no chapter " + chapter + " for it to belong to");
+      Page page = chapterPage(v, chapter);
+      if (page == null) {
+        if (everything) problems.add(where + ": there is no chapter " + chapter + " for it to belong to");
         continue;
       }
+      if (!only.test(page)) continue;
       String keyWhere = "answer-keys/ch" + m.group(1) + "-answers.txt";
       Path key = v.dir().resolve(keyWhere);
       if (!Files.isRegularFile(key)) {
@@ -138,7 +145,9 @@ final class Quizzes {
       }
       for (Path k : files) {
         Matcher m = KEY_NAME.matcher(k.getFileName().toString());
-        if (m.matches() && !Files.isRegularFile(v.dir().resolve("quizzes/ch" + m.group(1) + "-quiz.txt")))
+        if (!m.matches() || Files.isRegularFile(v.dir().resolve("quizzes/ch" + m.group(1) + "-quiz.txt"))) continue;
+        Page page = chapterPage(v, Integer.parseInt(m.group(1)));
+        if (everything || page != null && only.test(page))
           problems.add("answer-keys/" + k.getFileName() + ": has no quiz quizzes/ch" + m.group(1) + "-quiz.txt");
       }
     }
