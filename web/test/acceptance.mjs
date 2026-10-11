@@ -15,7 +15,8 @@
  */
 // The acceptance: every page of a chapter of the real course, as a reader uses it, in Chromium, WebKit and Firefox at
 // 390 px, through the page's own controls and nothing else (no call into the page's code). It builds the volume as the
-// course is built (harness buildSite), then on each of the chapter's pages, the chapter and its practice page:
+// course is built (harness buildSite), then on each page it is given (a chapter's: its page and its practice page; the
+// front matter's; the appendices'), each of the page's boxes, if it has any:
 // - Check, three ways (DESIGN section 3): each worked solution in _solutions.md, typed into its box, must pass and each
 //   mistake must fail; a box whose check has a starter is held to two answers more, as build/Proofs.java holds it, with
 //   the same labels: its own fence in the page's Markdown, the author's answer, must pass ("the box's own fence"), and
@@ -30,11 +31,15 @@
 //   "at" lines under it, D42); a compileError box shows javac's error; every other box, a varies box or a starter
 //   included, runs to its end with no status line, no compile error and no exception it does not declare.
 // - Nothing scrolls sideways at 390 px, no request leaves the page's origin, and no page error happens.
+// - The page shows one box for each java fence in its Markdown, as the build published them: none on a page with none.
 // It saves a screenshot of each page and of each box, and what it saw (results.json), under
-// build/.work/acceptance/<chNN>/<engine>/ (build/.work/acceptance-<slug>/... for another volume), and prints how long
+// build/.work/acceptance/<name>/<engine>/ (build/.work/acceptance-<slug>/... for another volume), and prints how long
 // each page took. It never opens the scratchpad (web/test/scratchpad.mjs holds that, D115), and it runs after the
 // build's own gates (Build.java --check), which it does not repeat.
-//   node web/test/acceptance.mjs [--volume <dir>] <chNN|all> [chromium|webkit|firefox]
+//   node web/test/acceptance.mjs [--volume <dir>] <name|all> [chromium|webkit|firefox]
+// name picks pages as Build.java's --only does: each page whose name is <name> or starts <name>- (ch03: chapter 3's page
+// and its practice page; 00: the front matter; 99: the appendices). all is every page, a group at a time by the part
+// of its name before its first "-": the front matter, each chapter, then the appendices.
 // The course is volumes/vol1; while no volume exists it says "no volumes" and passes, as Build.java --check does. Its
 // fixture, web/test/vol-accept, holds a box of every kind it drives.
 import fs from "node:fs";
@@ -43,7 +48,7 @@ import { REPO, ENGINES, check, done, buildSite, open } from "./harness.mjs";
 import { tidy, statedStderr } from "../page/transcript.js";
 import { FATAL } from "../page/support.js";
 
-const USAGE = "usage: node web/test/acceptance.mjs [--volume <dir>] <chNN|all> [chromium|webkit|firefox]";
+const USAGE = "usage: node web/test/acceptance.mjs [--volume <dir>] <name|all> [chromium|webkit|firefox]";
 const COURSE = path.join(REPO, "volumes/vol1");
 // What a box shows when its run went wrong in a way no stated output allows (web/page/box.js's STATUS): the fatal
 // error, a run worker that died, and a replay that printed something else the second time. A compileError box must show
@@ -83,7 +88,7 @@ if (args[0] === "--volume") {
   args.splice(0, 2);
 }
 const [which, only] = args;
-if (args.length < 1 || args.length > 2 || !/^(ch\d+|all)$/.test(which) || (only && !Object.hasOwn(ENGINES, only))) {
+if (args.length < 1 || args.length > 2 || !/^[A-Za-z0-9][\w-]*$/.test(which) || (only && !Object.hasOwn(ENGINES, only))) {
   console.log(USAGE);
   process.exit(2);
 }
@@ -97,17 +102,23 @@ if (!fs.existsSync(path.join(volumeDir, "volume.json"))) {
   process.exit(2);
 }
 const slug = path.basename(volumeDir);
-const mdIn = (d) => (fs.existsSync(d) ? fs.readdirSync(d).filter((f) => f.endsWith(".md")).sort() : []);
+// A page is a .md file in content/ or practice/ (an underscore-prefixed file, such as _solutions.md, is data).
+const mdIn = (d) => (fs.existsSync(d) ? fs.readdirSync(d).filter((f) => f.endsWith(".md") && !f.startsWith("_")).sort() : []);
 const pageFiles = [...mdIn(path.join(volumeDir, "content")), ...mdIn(path.join(volumeDir, "practice"))];
 const pageFile = (f) => path.join(volumeDir, fs.existsSync(path.join(volumeDir, "content", f)) ? "content" : "practice", f);
-const chapters = [...new Set(pageFiles.map((f) => /^(ch\d+)-/.exec(f)?.[1]).filter(Boolean))].sort();
-if (!chapters.length) { console.log(`${path.relative(REPO, volumeDir)} has no chapter: nothing was accepted`); process.exit(1); }
-if (which !== "all" && !chapters.includes(which)) {
-  console.log(`no chapter ${which} in ${path.relative(REPO, volumeDir)}; it has ${chapters.join(", ")}`);
+// The pages by the part of their name before its first "-" (00, chNN, 99): the front matter, each chapter (its page,
+// then its practice page), then the appendices.
+const slugs = pageFiles.map((f) => f.slice(0, -3));
+const groupOf = (p) => /^([^-]+)-/.exec(p)?.[1] ?? p;
+const rank = (g) => (/^ch\d+$/.test(g) ? 1 : g < "50" ? 0 : 2);
+const groups = [...new Set(slugs.map(groupOf))].sort((a, b) => rank(a) - rank(b) || a.localeCompare(b));
+if (!groups.length) { console.log(`${path.relative(REPO, volumeDir)} has no page: nothing was accepted`); process.exit(1); }
+// The pages a name picks, as Build.java's --only picks them: the slugs the build publishes them under.
+const pagesOf = (name) => slugs.filter((p) => p === name || p.startsWith(`${name}-`));
+if (which !== "all" && !pagesOf(which).length) {
+  console.log(`no page ${which} in ${path.relative(REPO, volumeDir)}, nor one starting ${which}-; it has ${groups.join(", ")}`);
   process.exit(2);
 }
-// The chapter's page, then its practice page: the slugs the build publishes them under.
-const pagesOf = (ch) => pageFiles.filter((f) => f.startsWith(`${ch}-`)).map((f) => f.slice(0, -3));
 const json = (f) => (fs.existsSync(f) ? JSON.parse(fs.readFileSync(f, "utf8")) : {});
 const DECL = json(path.join(volumeDir, "content/_boxes.json"));
 const CHECKS = json(path.join(volumeDir, "content/_checks.json"));
@@ -278,7 +289,9 @@ async function reveal(t, e, r, expect, wide, engine) {
 }
 
 // Run, as a reader runs the box: each question answered in place with the next declared answer, and End input past
-// the last one, as the build's stdin ends there (web/test/replay.mjs).
+// the last one, as the build's stdin ends there (web/test/replay.mjs). A starter box declares no stdin (it publishes
+// nothing of its author's fence), so a starter for an input check is answered as its Check would answer it, with its
+// check's first run's answers, then End input if it still asks; it need not ask them all (a starter may ask nothing).
 async function runBox(t, e, r, expect, engine) {
   const box = boxOf(t, e.id);
   if (e.raises === "java.lang.OutOfMemoryError" && LOSES_THE_PAGE.includes(engine)) {
@@ -286,11 +299,13 @@ async function runBox(t, e, r, expect, engine) {
     console.log(`  skip  ${engine}: ${e.id}: ${r.skipped}`);
     return;
   }
+  const starterAnswers = r.starter && e.check?.kind === "input" ? JSON.parse(await box.getAttribute("data-check")).runs[0].typed : null;
+  const answers = starterAnswers ?? e.stdin;
   const t0 = Date.now();
   await box.getByRole("button", { name: "Run", exact: true }).click();
   await settled(t, e.id);
-  const typed = [...e.stdin];
-  for (let i = 0; i <= e.stdin.length && await stateOf(t, e.id) === "waiting"; i++) {
+  const typed = [...answers];
+  for (let i = 0; i <= answers.length && await stateOf(t, e.id) === "waiting"; i++) {
     if (typed.length) {
       await box.locator("input.answer").fill(typed.shift());
       await box.locator("input.answer").press("Enter");
@@ -303,7 +318,7 @@ async function runBox(t, e, r, expect, engine) {
   // What the box showed, javac's error included: a box meant to run that did not compile shows that alone.
   const shown = r.kind === "compile-error" ? got.javac : got.javac + got.out + statedStderr(got.err);
   r.run = { shown, status: got.status, ms, ok: false };
-  let ok = !waiting && typed.length === 0 && !got.status.some((s) => BROKEN.some((b) => s.startsWith(b))), label;
+  let ok = !waiting && (starterAnswers != null || typed.length === 0) && !got.status.some((s) => BROKEN.some((b) => s.startsWith(b))), label;
   if (r.kind === "compile-error") {
     const first = got.javac.split("\n")[0];
     ok = ok && /^Main\.java:\d+: error: /.test(first) && first.includes(e.compileError);
@@ -323,7 +338,8 @@ async function runBox(t, e, r, expect, engine) {
       label = `Run shows its stated output${e.stdin.length ? `, its ${e.stdin.length} answer(s) typed in place` : ""}` +
         (e.raises ? `, ending in ${e.raises}${NO_FRAMES.includes(engine) ? " without its at lines (D42)" : ""}` : "");
     } else label = e.varies ? "Run runs to its end (varies: its output is compared with nothing)"
-      : `Run runs${r.starter ? " its starter" : ""}, and the box shows nothing broken`;
+      : `Run runs${r.starter ? " its starter" : ""}${starterAnswers ? `, its questions answered with its check's first run (${
+        starterAnswers.length} answer(s))` : ""}, and the box shows nothing broken`;
   }
   r.run.ok = ok;
   expect(`${e.id}: ${label}`, ok, { shown, status: got.status, waiting, unused: typed });
@@ -343,9 +359,10 @@ async function acceptPage(engine, pageSlug, dir, report) {
   try {
     await ready(t);
     expect("the page can run Java", await t.page.evaluate(() => document.documentElement.dataset.java) === "ready", null);
-    const onPage = await t.page.locator(".box").count();
-    expect(`it shows the ${entries.length} boxes the build published, and each is driven below`,
-      entries.length > 0 && onPage === entries.length, { onPage, published: entries.length });
+    // A page with no box (the front matter) is held to the rest; one whose boxes went missing is not: its Markdown says.
+    const onPage = await t.page.locator(".box").count(), fences = javaFences(pageFile(`${pageSlug}.md`)).length;
+    expect(`it shows the ${entries.length} boxes the build published, one for each java fence in its Markdown, and each is driven below`,
+      onPage === entries.length && entries.length === fences, { onPage, published: entries.length, fences });
     revealsAtLoad(entries, await t.page.evaluate(REVEALS_AT_LOAD), expect);
     for (const e of entries) {
       const r = { id: e.id, kind: null, check: e.check?.kind ?? null, noCheck: DECL[e.id]?.noCheck ?? null, varies: e.varies,
@@ -411,17 +428,23 @@ function covered(engine, report) {
 
 for (const engine of only ? [only] : Object.keys(ENGINES)) {
   console.log(engine);
-  for (const ch of which === "all" ? chapters : [which]) {
+  const driven = [];
+  for (const ch of which === "all" ? groups : [which]) {
     const dir = path.join(OUT, ch, engine);
     fs.rmSync(dir, { recursive: true, force: true });
     fs.mkdirSync(path.join(dir, "boxes"), { recursive: true });
     const report = { volume: slug, chapter: ch, engine, platform: process.platform, seconds: null, checks: 0, failed: 0, pages: [] };
     const t0 = Date.now();
-    for (const p of pagesOf(ch)) report.pages.push(await acceptPage(engine, p, dir, report));
-    if (slug === "vol-accept") covered(engine, report);
+    for (const p of pagesOf(ch)) { report.pages.push(await acceptPage(engine, p, dir, report)); driven.push(p); }
+    // The fixture's chapter holds a box of every kind; its front matter and appendices add none.
+    if (slug === "vol-accept" && /^ch\d+$/.test(ch)) covered(engine, report);
     report.seconds = Math.round((Date.now() - t0) / 1000);
     fs.writeFileSync(path.join(dir, "results.json"), JSON.stringify(report, null, 1) + "\n");
     console.log(`  ${engine}: ${ch}: ${report.checks} check(s), ${report.failed} failed, ${report.seconds} s`);
   }
+  // all is the whole volume: the front matter and the appendices as well as the chapters, each page once.
+  if (which === "all")
+    check(`${engine}: all accepted each of the volume's ${slugs.length} pages once`,
+      driven.length === slugs.length && slugs.every((p) => driven.includes(p)), driven);
 }
 done();

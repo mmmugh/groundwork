@@ -83,13 +83,13 @@ Hi
 ```java
 void main() {
     int n = Integer.parseInt(IO.readln("Number: "));
-    IO.println(n);
+    IO.println(n * 2);
 }
 ```
 
 ```output
 Number: 5
-5
+10
 ```
 
 4. What does this print?
