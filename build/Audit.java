@@ -129,7 +129,7 @@ final class Audit {
       // the vocabulary gate never ran. Caught here and reported like any other problem instead, so one
       // malformed transcript no longer silences everything else.
       try {
-        String want = stdoutFromTranscript(box.expected(), decl.stdin());
+        String want = statedStdout(box.expected(), decl.stdin());
         String got = tidy(stated(run)) + "\n";
         if (!want.equals(got))
           problems.add(box.id() + ": states an output the code does not print\n      expected: " + show(want) + "\n      actual:   " + show(got));
@@ -216,6 +216,14 @@ final class Audit {
       pos = at;
     }
     return t;
+  }
+
+  /** What a stated output says the program printed, for comparison with tidy(stated(run)) + "\n": its transcript with
+   *  each typed answer's line removed (stdoutFromTranscript), then tidied like the run, as web/test/replay.mjs does.
+   *  Removing an answer can leave its prompt's trailing space at the end of a line (a prompt, then an empty line), which
+   *  the tidied run no longer has. */
+  static String statedStdout(String transcript, List<String> typed) throws BuildError {
+    return tidy(stdoutFromTranscript(transcript, typed)) + "\n";
   }
 
   /** CRLF to LF, trailing whitespace per line removed, blank lines at either end removed. */

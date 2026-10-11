@@ -22,6 +22,16 @@ final class AuditTest {
     T.eq("Name:\nAge:\nAda is 36\n", Audit.stdoutFromTranscript("Name:\nAda\nAge:\n36\nAda is 36\n", List.of("Ada", "36")), "answers on their own lines");
     T.fails("does not show the typed answer \"7\"", () -> Audit.stdoutFromTranscript("How many? 21\n42\n", List.of("7")), "missing answer");
   }
+  static void testABlankLineRightAfterAnAnswerMatchesTheRun() throws Exception {
+    // A program that prints an empty line straight after reading an answer (chapter 2's receipt: a prompt, then
+    // IO.println()) writes "Customer name: \n" to stdout, which tidy makes "Customer name:". Its terminal transcript,
+    // "Customer name: Ada" then a blank line, must recover the same text once the answer is removed, or no transcript
+    // can state such a run: tidy applies to both sides, as volumes/README.md says and web/test/replay.mjs does.
+    String run = "Customer name: \n===== CORNER STORE =====\n";
+    T.eq(Audit.tidy(run) + "\n", Audit.statedStdout("Customer name: Ada\n\n===== CORNER STORE =====\n", List.of("Ada")),
+        "a blank line right after an answer");
+    T.eq("How many? 42\n", Audit.statedStdout("How many? 21\n42\n", List.of("21")), "an answer then more output on its line");
+  }
   static void testTheFixturePassesCheck() throws Exception {
     var r = Fixtures.build(Fixtures.project("audit"), "--check", "--no-fork-gate-for-tests");
     T.eq(0, r.exit(), "check passes on the fixture: " + r.out());
