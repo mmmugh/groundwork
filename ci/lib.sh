@@ -113,6 +113,8 @@ browser_steps() { # browser_steps <engine>
   step "web-acceptance-fixture-$e" node web/test/acceptance.mjs --volume web/test/vol-accept all "$e"
   step "web-acceptance-logs-$e" node web/test/acceptance-logs.mjs "$e"
   step "web-acceptance-$e" node web/test/acceptance.mjs all "$e"
+  # The author's review copy (Plan 5): built from the acceptance fixture and served from its own folder, in Chromium.
+  if [ "$e" = chromium ]; then step web-review node web/test/review.mjs; fi
   step "jshell-check-$e" node runtime/jshell/test/check.mjs --browser "$e"
   user_prefs_step "jshell-check-$e-no-user-prefs"
 }
