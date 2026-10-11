@@ -13,7 +13,7 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  */
-// The acceptance: every page of a chapter of the real course, as a reader uses it, in Chromium, WebKit and Firefox at
+// The acceptance: every page of the real course, as a reader uses it, in Chromium, WebKit and Firefox at
 // 390 px, through the page's own controls and nothing else (no call into the page's code). It builds the volume as the
 // course is built (harness buildSite), then on each page it is given (a chapter's: its page and its practice page; the
 // front matter's; the appendices'), each of the page's boxes, if it has any:
@@ -26,15 +26,16 @@
 // - Each box is of the kind the build published for it in boxes.json, so none is left unrun by being shown as another.
 // - Show a solution: a box with a worked solution offers it, shut as the page loads, and no other box does; opening
 //   it shows that box's own first worked solution, and every other box's stays shut.
-// - On a fresh load, Run on every box that runs, each question answered in place with the box's declared stdin, as a
-//   reader types it: the box must show its stated output; a raises box ends in its exception's line (in WebKit with no
-//   "at" lines under it, D42); a compileError box shows javac's error; every other box, a varies box or a starter
-//   included, runs to its end with no status line, no compile error and no exception it does not declare.
+// - On a fresh load, Run on every box that runs, each question answered in place with the box's declared stdin (a
+//   starter for an input check: its check's first run's answers), as a reader types it: the box must show its stated
+//   output; a raises box ends in its exception's line (in WebKit with no "at" lines under it, D42); a compileError box
+//   shows javac's error; every other box, a varies box or a starter included, runs to its end with no status line, no
+//   compile error and no exception it does not declare.
 // - Nothing scrolls sideways at 390 px, no request leaves the page's origin, and no page error happens.
+// - The page shows one box for each java fence in its Markdown, as the build published them: none on a page with none.
 // A check that fails prints its label and what the page said (Check's verdict, Run's output), never what was typed into
 // a box: the weekly job's log is public, and worked solutions and mistakes are not (M5, DESIGN section 4; web/test/
 // acceptance-logs.mjs proves it). What was typed is kept in results.json, under build/.work/, which CI never uploads.
-// - The page shows one box for each java fence in its Markdown, as the build published them: none on a page with none.
 // It saves a screenshot of each page and of each box, and what it saw (results.json), under
 // build/.work/acceptance/<name>/<engine>/ (build/.work/acceptance-<slug>/... for another volume), and prints how long
 // each page took. It never opens the scratchpad (web/test/scratchpad.mjs holds that, D115), and it runs after the
