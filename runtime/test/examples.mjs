@@ -72,7 +72,9 @@ for (const ex of examples) {
   } else if (ex.solution && !ended(jdk)) {
     differing++;
     console.log(`  !! ${ex.id}: does not run to its end${ex.raises ? ` or end in ${ex.raises}` : ""}: on both runtimes, ` +
-      `${finished(jdk).status === "did-not-finish" ? "it did not finish" : jdk.stderrHead || jdk.status}`);
+      `${finished(jdk).status === "did-not-finish" ? "it did not finish" : jdk.stderrHead || jdk.status}` +
+      (finished(jdk).status === "compile-error" ? " (the first worked solution is what Show a solution reveals and the " +
+        "reader runs: a whole program, with its void main, even for a method check)" : ""));
   }
 }
 await runner.close();

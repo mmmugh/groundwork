@@ -212,6 +212,18 @@ final class ForkGateTest {
         "a solution that runs to its end passes");
   }
 
+  /** A method check passes Check with a bare method, because check.js stubs main; but the reveal and the reader's run
+   *  have no stub, so the fork gate must say why such a solution is refused. */
+  static void testABareMethodAsTheRevealedSolutionIsRefusedWithTheReasonItIsAWholeProgram() throws Exception {
+    var bare = ForkGate.run(Fixtures.TOOLS, solutionExample("fork-solution-bare", "int twice(int n) {\n    return n * 2;\n}\n", null), DIST);
+    T.check(bare.size() == 1 && bare.get(0).startsWith("s#1 (worked solution): does not run to its end: on both runtimes, compile-error")
+        && bare.get(0).contains("(the first worked solution is what Show a solution reveals and the reader runs: a whole program, "
+            + "with its void main, even for a method check)"), "a bare method fails, saying a whole program is meant: " + bare);
+    var thrown = ForkGate.run(Fixtures.TOOLS, solutionExample("fork-solution-hint-throws",
+        "void main() {\n    int[] a = new int[2];\n    IO.println(a[2]);\n}\n", null), DIST);
+    T.check(thrown.size() == 1 && !thrown.get(0).contains("whole program"), "the hint is for a compile error alone: " + thrown);
+  }
+
   static void testAWorkedSolutionThatThrowsFailsCheckThoughNoCheckRunsIt() throws Exception {
     // I1: chapter 1's first box has no check, so the proof never runs its worked solution, and the audit runs only the
     // box's own fence; yet the page reveals the solution, which throws.
