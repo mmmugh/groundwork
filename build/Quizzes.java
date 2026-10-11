@@ -209,7 +209,7 @@ final class Quizzes {
           if (!fine && !reported) {
             problems.add(where + " question " + n + ": line " + j + " is not what follows "
                 + (afterCode ? "the code (the place to write, 4 spaces and 36 underscores, or an ANSWER: line; the code ends at the first line not indented 8 spaces)"
-                             : "the answer (a new question or a section heading)") + ": " + line.strip());
+                             : "the answer (a new question or a section heading)"));
             reported = true;
           }
           afterCode = false;

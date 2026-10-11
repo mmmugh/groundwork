@@ -146,6 +146,23 @@ final class QuizzesTest {
     }
   }
 
+  // DESIGN.md section 4: a key's answers are private and the build's log is public (CI), so a problem names a stray line
+  // by its number and never prints its text, which in a key is a mis-indented answer.
+  static void testAStrayLineInAKeyIsNamedByNumberAndNeverPrinted() throws Exception {
+    String marker = "KEY-ANSWER-MARKER-5c1e";
+    Path p = Fixtures.project("quiz-stray-line");
+    Path key = p.resolve(KEY);
+    String s = Files.readString(key), at = "          there\n";
+    T.check(s.contains(at), "the fixture's key has the answer to question 2: " + s);
+    Files.writeString(key, s.replace(at, at + "        IO.println(\"" + marker + "\");\n"));
+    T.check(check(p).problems().stream().anyMatch(x -> x.contains("question 2: line 27 is not what follows the answer")),
+        "the stray line is named: " + check(p).problems());
+    var r = Fixtures.build(p, "--check", "--runtime", Fixtures.DIST.toString());
+    T.eq(1, r.exit(), "the build fails: " + r.out());
+    T.check(r.out().contains("question 2: line 27 is not what follows the answer"), "the build's output names the line: " + r.out());
+    T.check(!r.out().contains(marker), "and never prints the key's text: " + r.out());
+  }
+
   // An address such as a@b.c is hex-looking after an "@" but is not an identity hash; flagging it would fail a right quiz.
   static void testAnAddressIsNotTakenForAnIdentityHash() throws Exception {
     Path p = Fixtures.project("quiz-address");
