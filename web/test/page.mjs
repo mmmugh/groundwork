@@ -700,6 +700,17 @@ for (const engine of only ? [only] : Object.keys(ENGINES)) {
   await ready(t);
   const needsNoScroll = (n) => box(n).locator("textarea.code").evaluate((el) => ({ scrollH: el.scrollHeight, clientH: el.clientHeight,
     ok: el.scrollHeight <= el.clientHeight + 1, lines: el.value.split("\n").length }));
+  // The build's rows and the height the page settles on agree, so nothing moves when the script runs: take the fitted
+  // height off, let rows decide, and it is the same height (a box with a line wider than the phone is left out: its
+  // scrollbar is the fit's, not the rows').
+  const moved = await t.page.evaluate(() => [...document.querySelectorAll(".box textarea.code")]
+    .filter((el) => el.scrollWidth <= el.clientWidth).map((el) => {
+      const fitted = el.clientHeight;
+      el.style.height = "";
+      const rows = el.clientHeight;
+      return { fitted, rows, box: el.closest(".box").dataset.box };
+    }).filter((m) => Math.abs(m.fitted - m.rows) > 1));
+  check(`${engine}: a box's height from the build's rows is the height the page fits it to`, moved.length === 0, moved);
   const fitTall = await needsNoScroll(17);
   check(`${engine}: a long editor (10 lines or more) needs no vertical scrolling`, fitTall.lines >= 10 && fitTall.ok, fitTall);
   const fitWide = await needsNoScroll(11);

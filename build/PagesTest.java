@@ -92,12 +92,12 @@ final class PagesTest {
     while (m.find()) {
       seen++;
       String text = m.group(2);
-      int lines = text.endsWith("\n") ? text.split("\n", -1).length - 1 : text.split("\n", -1).length;
+      int lines = text.split("\n", -1).length; // the empty line after a final newline is a row the editor shows
       longest = Math.max(longest, lines);
       T.check(m.group(1).contains(" rows=\"" + lines + "\""), "a box of " + lines + " lines has rows=" + lines + ": " + m.group(1));
     }
     T.check(seen >= 2, "the page has runnable boxes: " + seen);
-    T.check(longest == 5, "the box with a starter is sized by its published code, the starter's five lines: " + longest);
+    T.check(longest == 6, "the box with a starter is sized by its published code, the starter's five lines and the empty one after them: " + longest);
   }
   static void testARemovedVolumeIsGoneAfterTheNextBuild() throws Exception {
     Path p = Fixtures.project("prune");

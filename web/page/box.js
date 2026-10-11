@@ -124,6 +124,10 @@ function fingerprint(text) {
   return (h >>> 0).toString(16).padStart(8, "0");
 }
 
+// A width change can add or take away the scrollbar under a long line: one listener for the page refits every box.
+const fitters = new Set();
+addEventListener("resize", () => fitters.forEach((fit) => fit()));
+
 // runner(): the page's one BrowserRunner, created on first use.
 export function wireBox(box, runner) {
   const code = box.querySelector("textarea.code");
@@ -167,8 +171,7 @@ export function wireBox(box, runner) {
   fitCode();
   setState("idle");
   code.addEventListener("input", () => { writeKept(key, code.value, original); edited(); fitCode(); });
-  // A width change can add or take away the scrollbar under a long line.
-  addEventListener("resize", fitCode);
+  fitters.add(fitCode);
 
   function stop() {
     if (current) current.abort.abort(); // a run that ends canceled shows nothing

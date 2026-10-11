@@ -249,10 +249,11 @@ final class Pages {
     return new Rendered(pageTitle, part, body.toString());
   }
 
-  /** The lines of a published source: a final newline ends its last line and starts no line of its own; at least 1. */
+  /** The rows a published source fills in a textarea: one for each line, and the empty one after a final newline, which
+   *  is the height web/page/box.js settles on, so nothing moves when the script runs. */
   private static int lineCount(String source) {
     int n = 1;
-    for (int i = 0; i < source.length() - 1; i++) if (source.charAt(i) == '\n') n++;
+    for (int i = 0; i < source.length(); i++) if (source.charAt(i) == '\n') n++;
     return n;
   }
 
