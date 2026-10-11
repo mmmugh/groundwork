@@ -42,8 +42,9 @@ const helpers = (mark) => [
   "void jf$report(int i, Object got, Object want) {",
   '  jf$say(i + (jf$same(got, want) ? " ok" : " fail " + jf$show(got)));',
   "}",
-  // A double or float is right within 1e-9 × max(1, |expected|) when the expected value is finite, so a reader who is
-  // right never fails on the last bit: (0.1 + 0.2) / 2 is 0.15000000000000002, one unit in the last place above 0.15. An
+  // A double is right within 1e-9 × max(1, |expected|) when the expected value is finite, so a reader who is right
+  // never fails on the last bit: (0.1 + 0.2) / 2 is 0.15000000000000002, one unit in the last place above 0.15. A float
+  // is compared within the same tolerance, which is finer than one float step (the course never teaches float). An
   // expected infinity or NaN is met by itself alone (Double.compare: NaN equals NaN), since for an infinity the tolerance
   // would be infinite too and pass any answer but NaN. Anything else, a double[] included, is compared as before.
   "boolean jf$same(Object got, Object want) {",
