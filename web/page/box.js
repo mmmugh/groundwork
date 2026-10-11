@@ -33,10 +33,17 @@ const STATUS = {
     "so the output above may be mixed up.",
 };
 
+// javac at a terminal names a type as a reader writes it ("String", "ArrayList<Integer>"), where the diagnostics the
+// fork hands the page through a DiagnosticListener name it in full ("java.lang.String", as javax.tools does:
+// build/Audit.java's humanErrorMessage). So a javac message loses each type's package: a run of names that start in
+// lowercase, each with its dot, before a capital. "location: package java.util" has no capital after a dot and stays.
+const shortTypeNames = (text) => text.replace(/\b(?:[a-z_$][\w$]*\.)+(?=[A-Z])/g, "");
+
 // A compile error as javac prints it at a terminal: "Main.java:<line>: error: <the message's first line>", the source
 // line, a caret under the column, the message's other lines, then the count. Only javac's own diagnostics name a line
-// of the reader's file. TeaVM's carry line numbers from TeaVM's class library, and the "main" stage has none, so
-// those print as javac prints an error with no position ("error: <message>"), once for each distinct message.
+// of the reader's file, and only their message's lines take short type names (above), never the copied source line.
+// TeaVM's carry line numbers from TeaVM's class library, and the "main" stage has none, so those print as javac prints
+// an error with no position ("error: <message>"), once for each distinct message.
 export function javacText(diagnostics, source) {
   const lines = source.split("\n");
   const seen = new Set();
@@ -47,9 +54,10 @@ export function javacText(diagnostics, source) {
     return !seen.has(text) && seen.add(text);
   });
   const text = shown.map((d) => {
-    const [first, ...rest] = String(d.message).split("\n");
+    const javac = !d.phase || d.phase === "javac";
+    const [first, ...rest] = (javac ? shortTypeNames(String(d.message)) : String(d.message)).split("\n");
     const more = rest.map((l) => l + "\n").join("");
-    if (d.line == null || (d.phase && d.phase !== "javac")) return `error: ${first}\n${more}`;
+    if (d.line == null || !javac) return `error: ${first}\n${more}`;
     const caret = d.column != null ? " ".repeat(Math.max(0, d.column - 1)) + "^\n" : "";
     return `Main.java:${d.line}: error: ${first}\n${lines[d.line - 1] ?? ""}\n${caret}${more}`;
   });

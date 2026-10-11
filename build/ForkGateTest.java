@@ -282,6 +282,29 @@ final class ForkGateTest {
         + Build.examplesOf(Map.of(v, boxes), page -> page.slug().startsWith("ch02-types-and-input-practice")));
   }
 
+  /** X1, chapter 2's review: a box that does not compile shows javac's message as web/page/box.js's javacText formats
+   *  the fork's diagnostics, which name a type in full ("java.lang.String": the fork hands them to the page through a
+   *  DiagnosticListener, as javax.tools does, Audit.java's humanErrorMessage), where `java Main.java` prints the name a
+   *  reader writes ("String"). The fork gate compares the two texts: the page agrees, and a copy of the tools whose
+   *  box.js keeps the full names (the shortening made an identity) is caught, naming the box and showing both texts. */
+  static void testACompileErrorShowsTheTypeNamesJavaMainJavaPrints() throws Exception {
+    Path f = example("fork-javac-text", "void main() {\n    int count = \"three\";\n}\n", null);
+    T.eq(List.of(), ForkGate.run(Fixtures.TOOLS, f, DIST), "the page shows `String cannot be converted to int`, as java Main.java does");
+    Path tools = Fixtures.TOOLS.resolve("build/.work/tests/fork-javac-text-tools");
+    Fixtures.deleteTree(tools);
+    for (String dir : List.of("runtime/test", "runtime/runner", "web/page")) Fixtures.copyTree(Fixtures.TOOLS.resolve(dir), tools.resolve(dir));
+    Files.copy(Fixtures.TOOLS.resolve("runtime/jdk-home.mjs"), tools.resolve("runtime/jdk-home.mjs"));
+    Path box = tools.resolve("web/page/box.js");
+    String js = Files.readString(box), full = js.replaceFirst("const shortTypeNames = \\(text\\) => [^\\n]*;", "const shortTypeNames = (text) => text;");
+    T.check(!full.equals(js), "box.js shortens javac's type names in shortTypeNames, which the copy makes an identity");
+    Files.writeString(box, full);
+    var probs = ForkGate.run(tools, f, DIST);
+    T.check(probs.size() == 1 && probs.get(0).startsWith("s#1: the page shows another compile error than `java Main.java` prints")
+        && probs.get(0).contains("Main.java:2: error: incompatible types: java.lang.String cannot be converted to int")
+        && probs.get(0).contains("Main.java:2: error: incompatible types: String cannot be converted to int"),
+        "a page that shows javax.tools's full names differs, naming the box and showing both texts: " + probs);
+  }
+
   // --only hands the fork gate the named pages' examples alone, and the proof gate their checks alone. As Tasks 5 and 6
   // leave the fixture, chapter 2's page and its practice page hold seven of its ten non-reference boxes (5 + 2; chapter
   // 1 has the other 3), each one example, and one of its two worked solutions' sections, ch02-types-and-input#4's,

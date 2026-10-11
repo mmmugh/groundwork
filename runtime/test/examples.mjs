@@ -18,7 +18,8 @@
 // differences: a page may not show a program the reader's browser runs differently. The one exemption is declared by
 // the box itself: a runaway recursion's frames, which the browser cannot print (below). A box's revealed worked
 // solution, marked "solution" (Build.java's examplesOf), must also run to its end, or end in the exception its box
-// declares: no other gate runs it, and agreeing is not enough when both runtimes throw.
+// declares: no other gate runs it, and agreeing is not enough when both runtimes throw. A box that compiles on neither
+// must show what `java Main.java` prints (below).
 //   node runtime/test/examples.mjs <examples.json>    (JF_DIST: the runtime to test; JF_JAVA_HOME: the JDK)
 import fs from "node:fs";
 import path from "node:path";
@@ -27,6 +28,8 @@ import { NodeRunner } from "../runner/node-runner.mjs";
 import { STACK_OVERFLOW } from "../runner/java-line.js";
 import { checkJdk, runJdk } from "./jdk.mjs";
 import { outcome, jdkOutcome, same } from "./compare.mjs";
+import { javacText } from "../../web/page/box.js";
+import { tidy } from "../../web/page/transcript.js";
 
 const RUNTIME = path.resolve(fileURLToPath(new URL("..", import.meta.url)));
 const file = process.argv[2];
@@ -38,8 +41,9 @@ const runner = new NodeRunner(process.env.JF_DIST || path.join(RUNTIME, "dist", 
 const work = path.join(RUNTIME, ".work", "examples");
 let differing = 0;
 for (const ex of examples) {
-  const fork = outcome(await runner.compileAndRun(ex.src, { stdin: ex.stdin ?? "", deadlineMs: 10000 }));
-  const jdk = jdkOutcome(runJdk(ex.src, ex.stdin ?? "", path.join(work, ex.id.replace(/[^\w-]/g, "_"))));
+  const forkRun = await runner.compileAndRun(ex.src, { stdin: ex.stdin ?? "", deadlineMs: 10000 });
+  const jdkRun = runJdk(ex.src, ex.stdin ?? "", path.join(work, ex.id.replace(/[^\w-]/g, "_")));
+  const fork = outcome(forkRun), jdk = jdkOutcome(jdkRun);
   // The fork's NodeRunner and jdk.mjs's runJdk kill a hung or flooding program in different, independently
   // shaped ways (the fork: an explicit 10 s deadline and output cap, reporting "timeout"/"output-limit";
   // jdk.mjs: spawnSync's built-in 30 s timeout and default maxBuffer, reporting "killed-<signal>" or an
@@ -66,9 +70,20 @@ for (const ex of examples) {
   const thrown = `Exception in thread "main" ${ex.raises}`;
   const ended = (o) => o.status === "ok" || (ex.raises != null && o.status === "uncaught"
     && (o.stderrHead === thrown || o.stderrHead.startsWith(`${thrown}: `)));
+  // A program that compiles on neither shows javac's message: on the page, as web/page/box.js's javacText formats the
+  // fork's diagnostics; at a terminal, as `java Main.java` prints it to stderr, less the launcher's closing "error:
+  // compilation failed" line. Both are tidied as a stated output is (web/page/transcript.js), and any other difference
+  // differs: the message, a type's name, the caret's column, the order, the count.
+  const page = fork.status === "compile-error" ? tidy(javacText(forkRun.compile.diagnostics, ex.src)) : null;
+  const terminal = jdk.status === "compile-error" ? tidy(jdkRun.stderr.replace(/(^|\n)error: compilation failed\s*$/, "$1")) : null;
+  const indented = (t) => t.split("\n").map((l) => `      ${l}`).join("\n");
   if (!same(key(fork), key(jdk))) {
     differing++;
     console.log(`  !! ${ex.id}: the browser runtime and the JDK disagree\n    fork ${JSON.stringify(fork)}\n    jdk  ${JSON.stringify(jdk)}`);
+  } else if (page !== terminal) {
+    differing++;
+    console.log(`  !! ${ex.id}: the page shows another compile error than \`java Main.java\` prints\n    the page:\n${indented(page)}\n` +
+      `    java Main.java:\n${indented(terminal)}`);
   } else if (ex.solution && !ended(jdk)) {
     differing++;
     console.log(`  !! ${ex.id}: does not run to its end${ex.raises ? ` or end in ${ex.raises}` : ""}: on both runtimes, ` +
