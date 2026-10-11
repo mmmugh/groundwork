@@ -75,8 +75,9 @@ scripts end in `.js` and its two WebAssembly files load as bytes, so a server th
 `.js`, `.json` and `.txt`, serves a course that works.
 
 `node web/review.mjs ch01` writes the author's private review copy of a chapter to `build/.work/review/ch01/`: the
-chapter's page and its practice page as one page that runs its boxes, with the scripts and the boxes' runtime beside it,
-and `files.json`, the file map the claude.ai Artifact tool publishes it from. The scratchpad is not in it.
+chapter's page and its practice page as one page that runs its boxes, then the chapter's quiz and its answer key
+(folded; the site never publishes the key), with the scripts and the boxes' runtime beside it, and `files.json`, the
+file map the claude.ai Artifact tool publishes it from. The scratchpad is not in it.
 
 ## Host it yourself
 

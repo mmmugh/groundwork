@@ -14,9 +14,10 @@
  *  limitations under the License.
  */
 // The author's review copy of one chapter (DESIGN section 6, D119), for a private claude.ai Artifact: the chapter's page
-// and its practice page as built, joined into one page whose boxes run, check and reveal as on the site, with each file
-// that page loads beside it at the same relative path: the page's scripts, the runner, and the boxes' runtime with its
-// notices. The scratchpad stays behind: its jdk.zip (22 MB) is more than an Artifact takes in one file (15 MB), so its
+// and its practice page as built, joined into one page whose boxes run, check and reveal as on the site, then its quiz
+// and the quiz's answer key (folded; the site never publishes it), with a line of links to each at the top, and with
+// each file that page loads beside it at the same relative path: the page's scripts, the runner, and the boxes' runtime
+// with its notices. The scratchpad stays behind: its jdk.zip (22 MB) is more than an Artifact takes in one file (15 MB), so its
 // tab is hidden and a note says where it is. It refuses to write a file over an Artifact's limits.
 // Writes build/.work/review/<chNN>/ (build/.work/review/<slug>-<chNN>/ for another volume): index.html, the files beside
 // it, and files.json, which holds what the Artifact tool's publish takes: file_path and the files map, with absolute
@@ -71,20 +72,41 @@ const mainOf = (html) => {
   return html.slice(a + "<main>\n".length, b);
 };
 const n = Number(ch.slice(2));
-const NOTE = `<p class="note">A review copy of chapter ${n}${pages.length > 1 ? " and its practice page" : ""}, as built. ` +
-  "Run, Check and Show a solution work here as on the site. The scratchpad is not here: one of the files it downloads " +
-  "is 22 MB, more than this copy can hold in one file. It is on the live site, https://mmmugh.github.io/groundwork/, " +
-  "once the chapter is published.</p>\n";
+// The chapter's quiz, which the site links as a plain-text file, and its answer key, which the site never publishes:
+// both go at the end of the copy, the key folded, so the review covers everything the chapter ships.
+const text = (d, f) => { const file = path.join(volumeDir, d, f); return fs.existsSync(file) ? fs.readFileSync(file, "utf8") : null; };
+const quiz = text("quizzes", `${ch}-quiz.txt`), key = text("answer-keys", `${ch}-answers.txt`);
+const esc = (s) => s.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
+const KEY_NOTE = key === null ? "" : " Its answer key is never published; it is folded below, for the review.";
+const QUIZ = quiz === null ? "" : `<h1 id="review-quiz">Chapter ${n} quiz</h1>\n<p class="note">On the site, the chapter ` +
+  `links this quiz as a plain-text file to fill in and print.${KEY_NOTE}</p>\n<pre class="review-text">${esc(quiz)}</pre>\n` +
+  (key === null ? "" : `<details class="review-key"><summary>Answer key</summary>\n<pre class="review-text">${esc(key)}</pre>\n</details>\n`);
+// A line of links at the top, to each page joined here and the quiz, because the copy is one long page.
+const h1 = (p) => {
+  const id = built(p).match(/<h1 id="([^"]+)"/)?.[1];
+  if (!id) throw new Error(`review: no <h1 id> in ${p}`);
+  return id;
+};
+const parts = [[h1(pages[0]), `Chapter ${n}`], ...pages.slice(1).map((p) => [h1(p), "Practice"]),
+  ...(quiz === null ? [] : [["review-quiz", "Quiz"]])];
+const NOTE = `<p class="note">A review copy of chapter ${n}` +
+  `${[pages.length > 1 && "its practice page", quiz !== null && "its quiz"].filter(Boolean).map((w, i) => (i ? " and " : ", with ") + w).join("")}, ` +
+  "as built. Run, Check and Show a solution work here as on the site. The scratchpad is not here: one of the files it " +
+  "downloads is 22 MB, more than this copy can hold in one file. It is on the live site, https://mmmugh.github.io/groundwork/, " +
+  "once the chapter is published.</p>\n" +
+  `<p class="note">On this page: ${parts.map(([id, label]) => `<a href="#${id}">${label}</a>`).join(", ")}.</p>\n`;
 let html = built(pages[0]);
 html = once(html, '<link rel="stylesheet" href="../app.css">',
-  '<link rel="stylesheet" href="app.css">\n<style>.scratch-tab { display: none !important; }</style>');
+  '<link rel="stylesheet" href="app.css">\n<style>.scratch-tab { display: none !important; }</style>\n' +
+  // The quiz's blanks are long runs of underscores: wrap them too, so a phone never scrolls a block of text sideways.
+  '<style>pre.review-text { overflow-wrap: anywhere; }</style>');
 html = once(html, '<script type="module" src="../app.js"></script>', '<script type="module" src="app.js"></script>');
 html = once(html, html.match(/<title>[^<]*<\/title>/)?.[0] ?? "<title>", `<title>Chapter ${n} review</title>`);
 html = cut(html, '<header class="top">', "</header>\n"); // its home link leads off the copy
 html = cut(html, '<nav class="pager">', "</nav>\n"); // so do Previous and Next; the practice page follows below
 html = once(html, "<main>\n", `<main>\n${NOTE}`);
-html = once(html, "\n</main>", `\n${pages.slice(1).map((p) => mainOf(built(p))).join("\n")}\n</main>`);
-// Task 4's quiz and code links point at files this copy does not carry: the copy has none.
+html = once(html, "\n</main>", `\n${pages.slice(1).map((p) => mainOf(built(p))).join("\n")}\n${QUIZ}</main>`);
+// Task 4's quiz and code links point at files this copy does not carry: the quiz is shown in full at the end instead.
 html = html.replace(/<ul class="chapter-links">[\s\S]*?<\/ul>\n?/g, "");
 fs.writeFileSync(path.join(out, "index.html"), html);
 
