@@ -194,4 +194,37 @@ final class VocabularyTest {
     T.eq(List.of("E\n"), s.get("b#1").rightText(), "a section may hold predictions alone");
     T.eq(List.of(), s.get("b#1").worked(), "and then it has no worked solution");
   }
+  /** The vocabulary gate alone on a fixture project's volume. */
+  private static List<String> problems(Path p) throws Exception {
+    Volume v = Volume.loadAll(p.resolve("volumes")).get(0);
+    Map<Page, List<Box>> boxes = new LinkedHashMap<>();
+    for (Page page : v.pages()) boxes.put(page, Boxes.of(v, page));
+    return Vocabulary.check(v, boxes);
+  }
+  static void testAQuizQuestionMayNotUseWhatOnlyALaterChapterTeaches() throws Exception {
+    // DESIGN section 4 holds a quiz to its chapter as it holds a solution, forward: chapter 1's quiz may not use
+    // Integer.parseInt, which the fixture first teaches in chapter 2 (ch02-types-and-input#1). The question's code is
+    // a statement snippet, so this also proves the gate reads the code as it runs, wrapped in main.
+    Path p = Fixtures.project("vocab-quiz-forward");
+    Path quiz = p.resolve("volumes/vol-fixture/quizzes/ch01-quiz.txt");
+    Files.writeString(quiz, Files.readString(quiz).replace("IO.println(\"there\");", "IO.println(Integer.parseInt(\"1\"));"));
+    List<String> problems = problems(p);
+    T.check(problems.stream().anyMatch(s -> s.startsWith("quizzes/ch01-quiz.txt question 2 (quiz): uses what the course has not shown by chapter 1")
+        && s.contains("member java.lang.Integer#parseInt")), "names the quiz, the question and the item: " + problems);
+  }
+  static void testAChapterTwoQuizMayUseWhatChapterOneTaught() throws Exception {
+    // Backward: chapter 2's quiz is held to chapters 1 and 2 together. int[] is taught in chapter 1 alone
+    // (ch01-first-programs#2). The same quiz first uses Math.max, which no chapter teaches, and must fail, so a quiz the
+    // gate never read cannot pass this test. Vocabulary reads only the quiz, so this chapter 2 quiz needs no key here.
+    Path p = Fixtures.project("vocab-quiz-backward");
+    Path quiz = p.resolve("volumes/vol-fixture/quizzes/ch02-quiz.txt");
+    String body = " 1. What does this print?\n\n        int[] a = new int[] {Integer.parseInt(\"4\")};\n        IO.println(%s);\n";
+    Files.writeString(quiz, body.formatted("Math.max(a[0], 2)"));
+    List<String> problems = problems(p);
+    T.check(problems.stream().anyMatch(s -> s.startsWith("quizzes/ch02-quiz.txt question 1 (quiz)") && s.contains("member java.lang.Math#max")),
+        "the gate read chapter 2's quiz: " + problems);
+    Files.writeString(quiz, body.formatted("a[0] * 2"));
+    problems = problems(p);
+    T.check(problems.stream().noneMatch(s -> s.contains("ch02-quiz")), "int[] from chapter 1 is known to chapter 2's quiz: " + problems);
+  }
 }

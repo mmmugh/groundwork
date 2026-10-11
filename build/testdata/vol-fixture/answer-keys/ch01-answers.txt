@@ -1,2 +1,36 @@
-ANSWER KEY: chapter 1
-1. Hi
+GROUNDWORK
+Chapter 1 - First programs
+
+ANSWER KEY
+
+
+VOCABULARY
+----------
+
+ 1. The ____ method shows a line of text and ends the line.
+
+      ANSWER: IO.println
+
+
+READING CODE
+------------
+
+ 2. What does this print?
+
+        IO.println("Hi");
+        IO.println();
+        IO.println("there");
+
+      ANSWER: Hi
+
+          there
+
+ 3. What does this print?
+
+        void main() {
+            int[] a = new int[3];
+
+            IO.println(a[0]);
+        }
+
+      ANSWER: 0

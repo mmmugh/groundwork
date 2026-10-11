@@ -15,8 +15,8 @@
 # pages.yml: build the site from a fresh checkout and deploy it to GitHub Pages at https://mmmugh.github.io/groundwork/
 # (D82, D103). Runs on every push to main and by hand (workflow_dispatch), each push on the
 # author's go (D121). A fresh checkout has no site/ (it is git-ignored), so what is deployed is exactly what this build
-# wrote. `--check` runs the publishing guard now, and every gate (the audit, the vocabulary gate, the fork gate) once a
-# volume exists.
+# wrote. `--check` runs the publishing guard now, and every gate (the audit, the vocabulary gate, the quiz gate, the
+# fork gate) once a volume exists.
 name: pages
 on:
   # Every push to main deploys (D121); each push is made only on the author's go.

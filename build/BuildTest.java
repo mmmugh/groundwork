@@ -18,7 +18,7 @@ import java.util.*;
 
 /** Runs the build's tests: $J build/BuildTest.java [filter]. Exits 1 on any failure, and when nothing ran. */
 public class BuildTest {
-  static final Class<?>[] SUITES = { JsonTest.class, VolumeTest.class, MarkdownTest.class, BoxesTest.class, PagesTest.class, PublishTest.class, RuntimeFilesTest.class, LegalFilesTest.class, ScratchpadFilesTest.class, JdkTest.class, AuditTest.class, VocabularyTest.class, ForkGateTest.class, ProofGateTest.class, BundleTest.class, SiteZipTest.class, ChecksTest.class, NameTest.class, DecisionsTest.class, BuildMainTest.class };
+  static final Class<?>[] SUITES = { JsonTest.class, VolumeTest.class, MarkdownTest.class, BoxesTest.class, PagesTest.class, PublishTest.class, RuntimeFilesTest.class, LegalFilesTest.class, ScratchpadFilesTest.class, JdkTest.class, AuditTest.class, VocabularyTest.class, QuizzesTest.class, ForkGateTest.class, ProofGateTest.class, BundleTest.class, SiteZipTest.class, ChecksTest.class, NameTest.class, DecisionsTest.class, BuildMainTest.class };
   public static void main(String[] args) {
     System.setProperty("jf.test", "1"); // lets tests pass --no-fork-gate-for-tests (Task 6); users cannot
     String filter = args.length > 0 ? args[0] : "";

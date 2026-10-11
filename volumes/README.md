@@ -20,12 +20,12 @@ volumes/<slug>/
   practice/
     ch01-<slug>-practice.md   practice pages, one per chapter that has one
   quizzes/
-    ch01-quiz.txt              published as-is and linked from its chapter's page, one per chapter that has one
+    ch01-quiz.txt              published as-is and linked from its chapter's page, one per chapter that has one (see Quizzes below)
   answer-keys/
-    ...                        anything here, at any depth, is never published
+    ch01-answers.txt           each quiz's key (see Quizzes below); anything here, at any depth, is never published
 ```
 
-`practice/`, `quizzes/`, `answer-keys/` and `content/_solutions.md` are all optional: a volume with
+`practice/`, `quizzes/`, `answer-keys/` and `content/_solutions.md` are all optional (a quiz and its key come together): a volume with
 none of them still builds and still runs every gate, including the private-content scan. A practice
 page's file name must start with its chapter's own `chNN-` prefix (the same digits as the chapter
 file, e.g. `ch02-...`) so the build can place it on that chapter's shelf; anything else in `content/`
@@ -175,10 +175,62 @@ it says so and names the minimum versions, Chrome 119, Firefox 120 and Safari 18
 iOS 18.2). Support is found by feature, never by the browser's name. The limits of Chromium and Safari are
 in DESIGN.md section 2.
 
+## Quizzes
+
+`quizzes/chNN-quiz.txt` is chapter NN's quiz, published as it is, and `answer-keys/chNN-answers.txt` is its key, never
+published; NN is written as the chapter's own file writes it (`ch01`). Every quiz needs its key, every key its quiz, and a
+quiz needs its chapter. Both are plain text in the Python course's layout: `GROUNDWORK`, `Chapter N - <title>`, then the
+quiz's `Name:` and `Date:` blanks or the key's line `ANSWER KEY` (the words the publishing guard refuses to publish, so a
+key that reached `site/` by mistake would stop the build); then the sections `VOCABULARY`, `READING CODE`, `WRITING CODE`
+and `WHY IT WORKS`, each underlined with hyphens. A question starts at the margin with its number right-aligned in two
+columns (` 5. `, `12. `), its further lines are indented four spaces, and lines wrap at 74 columns. In the key, each blank's
+answer follows its question on its own line, `      ANSWER: <answer>` (six spaces). A quiz is plain ASCII, because a
+`.txt` cannot say its encoding and a phone may garble anything else: `-` for a dash, `'` and `"` for curly quotes, `...`
+for an ellipsis. A quiz never holds an `ANSWER:` line.
+
+**"What does this print?"** A question whose line is exactly ` N. What does this print?` is run. Its code is the lines
+under it indented eight spaces (a blank line inside the code is kept), and in the quiz the place to write follows, four
+spaces and 36 underscores. In the key the same question and the same code are followed by one `ANSWER:` line holding what
+the program prints: the output's first line after `ANSWER: ` (one space; any further leading spaces are the program's
+own), each further line under it indented ten spaces, and a blank line of output as a blank line:
+
+```text
+ 6. What does this print?
+
+        IO.println("A");
+        IO.println();
+        IO.println("B");
+
+    ____________________________________
+```
+
+```text
+ 6. What does this print?
+
+        IO.println("A");
+        IO.println();
+        IO.println("B");
+
+      ANSWER: A
+
+          B
+```
+
+Code like this, statements, runs as `main`'s body (`void main() {`, the code indented four spaces, `}`). When a line of the
+code starts `void main(` at the code's own margin, the code is a whole compact source file and runs as written; code that
+needs a method or an import beside `main` is written that way. `--check` compiles each such question on the pinned JDK,
+runs it five times with no input, and requires it to run to its end, print the same every time, print no identity hash,
+and print exactly the key's
+answer, both tidied as a stated output is (above). The key must show the quiz's code, so the two cannot drift apart
+unnoticed, and a question that asks "does this print" in any other words is reported rather than skipped. The code is
+also held to the vocabulary gate (below). Every other question (a term, code with a blank in it, a reason) is neither run
+nor held to the vocabulary gate: the review reads it.
+
 ## The vocabulary gate
 
-A worked solution, a practice step, a check's `starter`, or a mistake that compiles may not use
-anything the chapters have not taught by that point. "Taught by chapter N" is the union, over chapters 1 to N, of every teaching box's
+A worked solution, a practice step, a check's `starter`, a mistake that compiles, or the code of a quiz's "What does
+this print?" question may not use anything the chapters have not taught by that point (a quiz for chapter N may use
+what chapters 1 to N teach). "Taught by chapter N" is the union, over chapters 1 to N, of every teaching box's
 vocabulary on that chapter's own content page—a box marked `reference` or `compileError` teaches
 nothing. Vocabulary is derived from `javac`'s own syntax tree, not a word list: syntax kinds, library
 members by their owning type, library types, and keywords. A fence exempted with `compileError` still

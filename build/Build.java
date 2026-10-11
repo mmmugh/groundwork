@@ -138,6 +138,12 @@ public class Build {
         // runtime; the proof itself runs below, after the fork gate.
         List<Object> proofs = new ArrayList<>();
         for (Volume v : volumes) proofs.addAll(Proofs.of(v, boxesByVolume.get(v), problems));
+        int quizQuestions = 0;
+        for (Volume v : volumes) {
+          Quizzes.Checked quizzes = Quizzes.check(v);
+          quizQuestions += quizzes.questions();
+          problems.addAll(quizzes.problems());
+        }
         long checked = 0, stated = 0;
         for (Volume v : volumes) {
           for (Page p : v.pages()) {
@@ -147,6 +153,7 @@ public class Build {
             stated += allBoxes.get(p).stream().filter(Audit::statesComparedOutput).count();
           }
         }
+        out.println("  quizzes: " + quizQuestions + " questions run");
         int exampleCount = 0, differing = 0, wrongVerdicts = 0;
         if (!noForkGate) {
           List<Object> examples = examplesOf(allBoxes);

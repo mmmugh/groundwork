@@ -1,2 +1,36 @@
-Quiz: chapter 1
-1. What does IO.println("Hi") print?
+GROUNDWORK
+Chapter 1 - First programs
+
+Name: ________________________________     Date: ______________
+
+Fill in every blank. Where a term is asked for, write the word the course
+uses. Where code is asked for, write exact Java. Where output is asked
+for, write what the program prints, one line per line.
+
+
+VOCABULARY
+----------
+
+ 1. The __________________ method shows a line of text and ends the line.
+
+
+READING CODE
+------------
+
+ 2. What does this print?
+
+        IO.println("Hi");
+        IO.println();
+        IO.println("there");
+
+    ____________________________________
+
+ 3. What does this print?
+
+        void main() {
+            int[] a = new int[3];
+
+            IO.println(a[0]);
+        }
+
+    ____________________________________

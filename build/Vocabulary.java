@@ -24,17 +24,19 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
+import java.util.regex.Matcher;
 
-/** D4: refuses a worked solution, practice step or check starter that uses something the chapters have not
- *  shown yet. The known vocabulary at chapter N is the union, over chapters 1 to N, of every teaching box's
+/** D4: refuses a worked solution, practice step, check starter or quiz question that uses something the chapters have
+ *  not shown yet. The known vocabulary at chapter N is the union, over chapters 1 to N, of every teaching box's
  *  Vocab (a chapter's own content page, its non-reference, non-compileError boxes); a practice page's boxes,
- *  every worked solution in _solutions.md, every mistake there that compiles, and every starter in _checks.json
- *  are held to their own chapter's known vocabulary. */
+ *  every worked solution in _solutions.md, every mistake there that compiles, every starter in _checks.json and the
+ *  code of every "What does this print?" question in quizzes/chNN-quiz.txt (as Quizzes.program runs it) are held to
+ *  their own chapter's known vocabulary. */
 final class Vocabulary {
   private Vocabulary() {}
 
-  /** Every problem this volume's practice steps, worked solutions, mistakes that compile and check starters raise
-   *  against the vocabulary its chapters have actually taught by then. */
+  /** Every problem this volume's practice steps, worked solutions, mistakes that compile, check starters and quiz
+   *  questions raise against the vocabulary its chapters have actually taught by then. */
   static List<String> check(Volume v, Map<Page, List<Box>> boxes) throws BuildError {
     Map<String, Page> pageOf = new HashMap<>();
     for (var e : boxes.entrySet()) for (Box b : e.getValue()) pageOf.put(b.id(), e.getKey());
@@ -80,6 +82,20 @@ final class Vocabulary {
       if (p == null) throw new BuildError("_checks.json: " + id + ": no such box");
       Vocab known = knownFor(knownByChapter, p, "_checks.json: " + id, "a starter");
       check(problems, id, "starter", starter, p.chapter(), known);
+    }
+    // DESIGN section 4: a quiz is held to its chapter as a solution is. Chapter N's quiz may use what chapters 1 to N
+    // teach; its "What does this print?" code is the only code in it the build can read (the rest has blanks in it). A
+    // misnamed quiz, one for a chapter the volume lacks, and a malformed question are Quizzes.check's to report, so
+    // printQuestions' own problems are dropped here rather than reported twice.
+    for (Path quiz : v.quizzes()) {
+      Matcher m = Quizzes.QUIZ_NAME.matcher(quiz.getFileName().toString());
+      if (!m.matches()) continue;
+      int chapter = Integer.parseInt(m.group(1));
+      Vocab known = knownByChapter.get(chapter);
+      if (known == null) continue;
+      String where = "quizzes/" + quiz.getFileName();
+      for (Quizzes.Question q : Quizzes.printQuestions(where, Quizzes.text(quiz), new ArrayList<>()).values())
+        check(problems, where + " question " + q.number(), "quiz", Quizzes.program(q.code()), chapter, known);
     }
     return problems;
   }
