@@ -5955,3 +5955,1140 @@ void main() {
     IO.println(byLength(titles, seconds));
 }
 ```
+
+## ch08-strings-as-data#20
+
+Try It 1: a word forward, backward, in uppercase, and its length.
+
+```java
+// A word forward, backward, in uppercase, and its length.
+
+void main() {
+    String word = IO.readln("Enter a word: ").strip();
+
+    String reversed = "";
+    for (int i = word.length() - 1; i >= 0; i--) {
+        reversed += word.charAt(i);
+    }
+
+    IO.println(word);
+    IO.println(reversed);
+    IO.println(word.toUpperCase());
+    IO.println(word.length());
+}
+```
+
+The backward loop is the one from the start of the chapter: from the last position, `length() - 1`, down to 0, adding each character to the end of a new string. `toUpperCase()` gives back a new string, so its result is printed straight away; called on a line of its own, it would be lost.
+
+```java
+void main() {
+    String word = IO.readln("Word: ").strip();
+
+    String reversed = "";
+    for (int i = 0; i < word.length(); i++) {
+        reversed = word.charAt(i) + reversed;
+    }
+
+    String upper = word.toUpperCase();
+    IO.println(word);
+    IO.println(reversed);
+    IO.println(upper);
+    IO.println(word.length());
+}
+```
+
+The second answer walks forward and puts each character in front of the ones before it, so the last one ends up first, and stores the uppercase word before printing it.
+
+### mistake
+
+Calling `toUpperCase()` without storing what it gives back: `word` is unchanged, so the third line is still lowercase.
+
+```java
+void main() {
+    String word = IO.readln("Enter a word: ").strip();
+
+    String reversed = "";
+    for (int i = word.length() - 1; i >= 0; i--) {
+        reversed += word.charAt(i);
+    }
+
+    IO.println(word);
+    IO.println(reversed);
+    word.toUpperCase();
+    IO.println(word);
+    IO.println(word.length());
+}
+```
+
+`i > 0` stops before position 0, so the backward word loses its last letter, the word's first:
+
+```java
+void main() {
+    String word = IO.readln("Enter a word: ").strip();
+
+    String reversed = "";
+    for (int i = word.length() - 1; i > 0; i--) {
+        reversed += word.charAt(i);
+    }
+
+    IO.println(word);
+    IO.println(reversed);
+    IO.println(word.toUpperCase());
+    IO.println(word.length());
+}
+```
+
+## ch08-strings-as-data#21
+
+Try It 2: `countLetter`.
+
+```java
+int countLetter(String text, String letter) {
+    String lowerText = text.toLowerCase();
+    char target = letter.toLowerCase().charAt(0);
+    int count = 0;
+    for (int i = 0; i < lowerText.length(); i++) {
+        if (lowerText.charAt(i) == target) {
+            count++;
+        }
+    }
+    return count;
+}
+
+void main() {
+    IO.println(countLetter("Hello World", "l"));
+}
+```
+
+Lowercase both the text and the letter, so neither one's case matters, then count with Chapter 5's loop. `charAt(0)` takes the letter's one character as a `char`, which compares with `==`.
+
+```java
+int countLetter(String text, String letter) {
+    String lower = text.toLowerCase();
+    String without = lower.replace(letter.toLowerCase(), "");
+    return lower.length() - without.length();
+}
+
+void main() {
+    IO.println(countLetter("Banana", "A"));
+}
+```
+
+The second answer removes every copy of the letter with `replace` and counts how many characters went missing.
+
+### mistake
+
+No lowercasing at all: an uppercase `A` never matches the lowercase letters of `Banana`.
+
+```java
+int countLetter(String text, String letter) {
+    int count = 0;
+    for (int i = 0; i < text.length(); i++) {
+        if (text.charAt(i) == letter.charAt(0)) {
+            count++;
+        }
+    }
+    return count;
+}
+
+void main() {
+    IO.println(countLetter("Banana", "A"));
+}
+```
+
+Lowercasing the letter but not the text misses the capital at the start of `Anna`:
+
+```java
+int countLetter(String text, String letter) {
+    char target = letter.toLowerCase().charAt(0);
+    int count = 0;
+    for (int i = 0; i < text.length(); i++) {
+        if (text.charAt(i) == target) {
+            count++;
+        }
+    }
+    return count;
+}
+
+void main() {
+    IO.println(countLetter("Anna", "a"));
+}
+```
+
+Comparing one-letter strings with `==` asks whether they are the same object, and `substring` makes a new one every time, so nothing ever matches:
+
+```java
+int countLetter(String text, String letter) {
+    String lowerText = text.toLowerCase();
+    String target = letter.toLowerCase();
+    int count = 0;
+    for (int i = 0; i < lowerText.length(); i++) {
+        if (lowerText.substring(i, i + 1) == target) {
+            count++;
+        }
+    }
+    return count;
+}
+
+void main() {
+    IO.println(countLetter("Hello World", "l"));
+}
+```
+
+## ch08-strings-as-data#22
+
+Try It 3: initials.
+
+```java
+// Prints the initials of a full name.
+
+void main() {
+    String fullName = IO.readln("Enter your full name: ");
+    String[] words = fullName.strip().split("\\s+");
+
+    String initials = "";
+    for (String word : words) {
+        initials += word.substring(0, 1).toUpperCase();
+    }
+
+    IO.println(initials);
+}
+```
+
+`strip().split("\\s+")` cuts the name into words however many spaces were typed. Each word's first letter is its `substring(0, 1)`, a one-letter `String`, which `toUpperCase()` turns into a capital, and `+=` joins the initials into one string.
+
+```java
+void main() {
+    String name = IO.readln("Full name: ").strip().toUpperCase();
+
+    String initials = "" + name.charAt(0);
+    for (int i = 1; i < name.length(); i++) {
+        if (name.charAt(i - 1) == ' ' && name.charAt(i) != ' ') {
+            initials += name.charAt(i);
+        }
+    }
+
+    IO.println(initials);
+}
+```
+
+The second answer uppercases the whole name first, then walks it a character at a time: a character that is not a space, right after a space, starts a word. `"" + name.charAt(0)` starts the initials as text, so a `char` can be joined on.
+
+### mistake
+
+`split(" ")` gives an empty piece wherever two spaces meet, and an empty string has no first letter, so the program stops with an exception:
+
+```java
+void main() {
+    String fullName = IO.readln("Enter your full name: ");
+    String[] words = fullName.strip().split(" ");
+
+    String initials = "";
+    for (String word : words) {
+        initials += word.substring(0, 1).toUpperCase();
+    }
+
+    IO.println(initials);
+}
+```
+
+No `toUpperCase()`: a name typed in lowercase gives lowercase initials.
+
+```java
+void main() {
+    String fullName = IO.readln("Enter your full name: ");
+    String[] words = fullName.strip().split("\\s+");
+
+    String initials = "";
+    for (String word : words) {
+        initials += word.substring(0, 1);
+    }
+
+    IO.println(initials);
+}
+```
+
+## ch08-strings-as-data#23
+
+Try It 4: `titleCase`.
+
+```java
+String titleCase(String sentence) {
+    ArrayList<String> words = new ArrayList<>();
+    for (String word : sentence.split(" ")) {
+        words.add(word.substring(0, 1).toUpperCase() + word.substring(1));
+    }
+    return String.join(" ", words);
+}
+
+void main() {
+    IO.println(titleCase("the quick brown fox"));
+}
+```
+
+Split at the spaces, capitalize each word's first letter with `substring(0, 1).toUpperCase()`, keep the rest with `substring(1)`, and `String.join` puts the spaces back between the words, with none left over at the end.
+
+```java
+String titleCase(String sentence) {
+    String result = "";
+    boolean startOfWord = true;
+    for (int i = 0; i < sentence.length(); i++) {
+        if (startOfWord) {
+            result += sentence.substring(i, i + 1).toUpperCase();
+        } else {
+            result += sentence.charAt(i);
+        }
+        startOfWord = sentence.charAt(i) == ' ';
+    }
+    return result;
+}
+
+void main() {
+    IO.println(titleCase("hello world"));
+}
+```
+
+The second answer walks the sentence a character at a time and capitalizes each one that starts a word: the first, and every one after a space.
+
+### mistake
+
+Adding a space after every word leaves one dangling at the end: `"Hello World "`.
+
+```java
+String titleCase(String sentence) {
+    String result = "";
+    for (String word : sentence.split(" ")) {
+        result += word.substring(0, 1).toUpperCase() + word.substring(1) + " ";
+    }
+    return result;
+}
+
+void main() {
+    IO.println(titleCase("hello world"));
+}
+```
+
+Capitalizing only the sentence's first letter:
+
+```java
+String titleCase(String sentence) {
+    return sentence.substring(0, 1).toUpperCase() + sentence.substring(1);
+}
+
+void main() {
+    IO.println(titleCase("hello world"));
+}
+```
+
+## ch08-strings-as-data#24
+
+Try It 5: counting words.
+
+```java
+// Counts the words in a sentence.
+
+void main() {
+    String sentence = IO.readln("Enter a sentence: ").strip();
+
+    if (sentence.isEmpty()) {
+        IO.println("Words: 0");
+    } else {
+        String[] words = sentence.split("\\s+");
+        IO.println("Words: " + words.length);
+    }
+}
+```
+
+`strip()` and then `split("\\s+")` give exactly one piece per word, however many spaces surround them, so the array's `length` is the count. An empty sentence would still split into one empty piece, which is why it is checked first.
+
+```java
+void main() {
+    String sentence = IO.readln("Sentence: ");
+
+    int words = 0;
+    boolean inWord = false;
+    for (int i = 0; i < sentence.length(); i++) {
+        if (sentence.charAt(i) == ' ') {
+            inWord = false;
+        } else if (!inWord) {
+            inWord = true;
+            words++;
+        }
+    }
+
+    IO.println(words + " words");
+}
+```
+
+The second answer walks the sentence and counts each character that starts a word: one that is not a space, where the character before was a space or there was none.
+
+### mistake
+
+`split(" ")` counts an empty piece wherever two spaces meet:
+
+```java
+void main() {
+    String sentence = IO.readln("Enter a sentence: ").strip();
+    IO.println("Words: " + sentence.split(" ").length);
+}
+```
+
+No `strip()`: spaces at the start give an empty first piece, and it is counted as a word.
+
+```java
+void main() {
+    String sentence = IO.readln("Enter a sentence: ");
+    IO.println("Words: " + sentence.split("\\s+").length);
+}
+```
+
+## ch08-strings-as-data#25
+
+Try It 6: `caesarShift`.
+
+```java
+String caesarShift(String text, int n) {
+    String result = "";
+    for (int i = 0; i < text.length(); i++) {
+        char c = text.charAt(i);
+        if (c >= 'a' && c <= 'z') {
+            result += (char) ('a' + (c - 'a' + n) % 26);
+        } else {
+            result += c;
+        }
+    }
+    return result;
+}
+
+void main() {
+    IO.println(caesarShift("hello world", 3));
+}
+```
+
+For a lowercase letter, `c - 'a'` is its place in the alphabet, from 0 to 25. Adding `n` and taking the remainder after dividing by 26 wraps anything past `z` back to the start, and `'a'` plus that place, cast to `char`, is the shifted letter. Anything else, such as the space, is added unchanged.
+
+```java
+String caesarShift(String text, int n) {
+    String alphabet = "abcdefghijklmnopqrstuvwxyz";
+    String result = "";
+    for (int i = 0; i < text.length(); i++) {
+        int place = alphabet.indexOf(text.charAt(i));
+        if (place == -1) {
+            result += text.charAt(i);
+        } else {
+            result += alphabet.charAt((place + n) % 26);
+        }
+    }
+    return result;
+}
+
+void main() {
+    IO.println(caesarShift("xyz", 3));
+}
+```
+
+The second answer does no arithmetic on characters: it finds each letter's place in a string of the alphabet with `indexOf`, and the shifted letter with `charAt`.
+
+### mistake
+
+No wrapping: `x` shifted 3 places runs past `z` into the characters after it.
+
+```java
+String caesarShift(String text, int n) {
+    String result = "";
+    for (int i = 0; i < text.length(); i++) {
+        char c = text.charAt(i);
+        if (c >= 'a' && c <= 'z') {
+            result += (char) (c + n);
+        } else {
+            result += c;
+        }
+    }
+    return result;
+}
+
+void main() {
+    IO.println(caesarShift("xyz", 3));
+}
+```
+
+Shifting every character, the space included:
+
+```java
+String caesarShift(String text, int n) {
+    String result = "";
+    for (int i = 0; i < text.length(); i++) {
+        char c = text.charAt(i);
+        result += (char) ('a' + (c - 'a' + n) % 26);
+    }
+    return result;
+}
+
+void main() {
+    IO.println(caesarShift("hello world", 1));
+}
+```
+
+## ch08-strings-as-data#26
+
+Try It 7: names and scores.
+
+```java
+// Prints each name and score from lines of comma-separated text.
+
+void main() {
+    String data = "Ada,88\nGrace,92\nAlan,45";
+    String[] lines = data.split("\n");
+
+    for (String line : lines) {
+        String[] parts = line.split(",");
+        IO.println(parts[0] + ": " + parts[1]);
+    }
+}
+```
+
+`split("\n")` cuts the text into its three lines, and each line splits at its comma into a name and a score, taken from the array by index.
+
+```java
+void main() {
+    String data = "Ada,88\nGrace,92\nAlan,45";
+
+    for (String line : data.split("\n")) {
+        int comma = line.indexOf(",");
+        IO.println(line.substring(0, comma) + ": " + line.substring(comma + 1));
+    }
+}
+```
+
+The second answer finds each line's comma with `indexOf` and keeps what comes before it and after it with `substring`.
+
+### mistake
+
+A space where the colon belongs:
+
+```java
+void main() {
+    String data = "Ada,88\nGrace,92\nAlan,45";
+    String[] lines = data.split("\n");
+
+    for (String line : lines) {
+        String[] parts = line.split(",");
+        IO.println(parts[0] + " " + parts[1]);
+    }
+}
+```
+
+Splitting the whole text at its commas: the line breaks stay inside the pieces, so names and scores come out on lines of their own.
+
+```java
+void main() {
+    String data = "Ada,88\nGrace,92\nAlan,45";
+    String[] parts = data.split(",");
+
+    for (String part : parts) {
+        IO.println(part);
+    }
+}
+```
+
+## ch08-strings-as-data-practice#1
+
+```java
+String levelOf(String line) {
+    return line.split("\\|")[0];
+}
+
+void main() {
+    IO.println(levelOf("WARN|14:03|Disk usage at 91 percent"));
+}
+```
+
+Split on the separator the format actually uses, and the level is the first piece, index 0. `|` is special in a pattern, so it is written `"\\|"`. Counting characters would work for `WARN` and `INFO` and break on `ERROR`.
+
+```java
+String levelOf(String line) {
+    return line.substring(0, line.indexOf("|"));
+}
+
+void main() {
+    IO.println(levelOf("ERROR|00:01|Down"));
+}
+```
+
+The second answer cuts the line at its first `|`. `indexOf` looks for plain text, not a pattern, so its `|` needs no backslash.
+
+### mistake
+
+`split("|")` cuts the line apart at every character, so its first piece is not the level:
+
+```java
+String levelOf(String line) {
+    return line.split("|")[0];
+}
+
+void main() {
+    IO.println(levelOf("WARN|14:03|Disk usage at 91 percent"));
+}
+```
+
+Counting characters: four is right for `WARN` and `INFO`, and cuts `ERROR` short.
+
+```java
+String levelOf(String line) {
+    return line.substring(0, 4);
+}
+
+void main() {
+    IO.println(levelOf("ERROR|00:01|Down"));
+}
+```
+
+## ch08-strings-as-data-practice#2
+
+```java
+String timeOf(String line) {
+    return line.split("\\|")[1];
+}
+
+void main() {
+    IO.println(timeOf("WARN|14:03|Disk usage at 91 percent"));
+}
+```
+
+The time is the second field, so it is at index 1. Counting from 0 is the whole of this step.
+
+```java
+String timeOf(String line) {
+    String afterLevel = line.substring(line.indexOf("|") + 1);
+    return afterLevel.substring(0, afterLevel.indexOf("|"));
+}
+
+void main() {
+    IO.println(timeOf("ERROR|00:01|Down"));
+}
+```
+
+The second answer cuts off the level and its `|`, then keeps what comes before the next `|`.
+
+### mistake
+
+Index 2 is the third field, the message:
+
+```java
+String timeOf(String line) {
+    return line.split("\\|")[2];
+}
+
+void main() {
+    IO.println(timeOf("WARN|14:03|Disk usage at 91 percent"));
+}
+```
+
+Counting characters works while every level has four letters, and slips by one on `ERROR`:
+
+```java
+String timeOf(String line) {
+    return line.substring(5, 10);
+}
+
+void main() {
+    IO.println(timeOf("ERROR|00:01|Down"));
+}
+```
+
+## ch08-strings-as-data-practice#3
+
+```java
+String messageOf(String line) {
+    return line.split("\\|")[2];
+}
+
+void main() {
+    IO.println(messageOf("WARN|14:03|Disk usage at 91 percent"));
+}
+```
+
+The message is the third and last field, at index 2.
+
+```java
+String messageOf(String line) {
+    String[] fields = line.split("\\|");
+    return fields[fields.length - 1];
+}
+
+void main() {
+    IO.println(messageOf("ERROR|00:01|Down"));
+}
+```
+
+The second answer takes the last field with `length - 1`, which finds it however many fields come before.
+
+### mistake
+
+Index 1 is the time:
+
+```java
+String messageOf(String line) {
+    return line.split("\\|")[1];
+}
+
+void main() {
+    IO.println(messageOf("WARN|14:03|Disk usage at 91 percent"));
+}
+```
+
+Counting characters works for four-letter levels and keeps a `|` for `ERROR`:
+
+```java
+String messageOf(String line) {
+    return line.substring(11);
+}
+
+void main() {
+    IO.println(messageOf("ERROR|00:01|Down"));
+}
+```
+
+## ch08-strings-as-data-practice#4
+
+```java
+boolean isWarning(String line) {
+    String level = line.split("\\|")[0];
+    return level.toUpperCase().equals("WARN");
+}
+
+void main() {
+    IO.println(isWarning("WARN|14:03|Disk usage at 91 percent"));
+    IO.println(isWarning("warn|08:00|  Fan speed low  "));
+    IO.println(isWarning("INFO|09:15|Backup finished"));
+}
+```
+
+Put the level in one case before comparing, and compare text with `.equals`. Without `toUpperCase()`, half the services are never warned about.
+
+```java
+boolean isWarning(String line) {
+    return line.toUpperCase().startsWith("WARN|");
+}
+
+void main() {
+    IO.println(isWarning("warn|08:00|  Fan speed low  "));
+}
+```
+
+The second answer uppercases the whole line and asks whether it starts with the level and its separator; the `|` keeps a level such as `WARNING` from counting.
+
+### mistake
+
+No `toUpperCase()`: the lowercase `warn` is missed.
+
+```java
+boolean isWarning(String line) {
+    return line.split("\\|")[0].equals("WARN");
+}
+
+void main() {
+    IO.println(isWarning("warn|08:00|  Fan speed low  "));
+}
+```
+
+`==` asks whether two `String`s are the same object, and `split` makes new ones, so even `WARN` is not a warning:
+
+```java
+boolean isWarning(String line) {
+    return line.split("\\|")[0].toUpperCase() == "WARN";
+}
+
+void main() {
+    IO.println(isWarning("WARN|14:03|Disk usage at 91 percent"));
+}
+```
+
+`contains` looks at the whole line, message included, so an `INFO` line that mentions a warning counts:
+
+```java
+boolean isWarning(String line) {
+    return line.toUpperCase().contains("WARN");
+}
+
+void main() {
+    IO.println(isWarning("INFO|10:00|Warning cleared"));
+}
+```
+
+## ch08-strings-as-data-practice#5
+
+```java
+String tidy(String line) {
+    String[] fields = line.split("\\|");
+    fields[0] = fields[0].toUpperCase();
+    fields[2] = fields[2].strip();
+    return String.join("|", fields);
+}
+
+void main() {
+    IO.println(tidy("warn|08:00|  Fan speed low  "));
+}
+```
+
+An array's items can be replaced, so the level and the message are swapped for their tidied versions, and `String.join` puts the separator back between the pieces. `String.join` takes plain text, not a pattern, so its `|` needs no backslash. A line that was already tidy comes back unchanged.
+
+```java
+String tidy(String line) {
+    String[] fields = line.split("\\|");
+    return fields[0].toUpperCase() + "|" + fields[1] + "|" + fields[2].strip();
+}
+
+void main() {
+    IO.println(tidy("WARN|14:03|Disk usage at 91 percent"));
+}
+```
+
+The second answer joins the three pieces with `+` and writes each separator itself.
+
+### mistake
+
+Calling `toUpperCase()` and `strip()` without storing what they give back: the fields are unchanged, and so is the line.
+
+```java
+String tidy(String line) {
+    String[] fields = line.split("\\|");
+    fields[0].toUpperCase();
+    fields[2].strip();
+    return String.join("|", fields);
+}
+
+void main() {
+    IO.println(tidy("warn|08:00|  Fan speed low  "));
+}
+```
+
+Uppercasing the whole line shouts the message too:
+
+```java
+String tidy(String line) {
+    String[] fields = line.toUpperCase().split("\\|");
+    fields[2] = fields[2].strip();
+    return String.join("|", fields);
+}
+
+void main() {
+    IO.println(tidy("warn|08:00|  Fan speed low  "));
+}
+```
+
+## ch08-strings-as-data-practice#6
+
+```java
+ArrayList<String> wordsIn(String message) {
+    ArrayList<String> words = new ArrayList<>();
+    for (String word : message.strip().split("\\s+")) {
+        boolean allLetters = true;
+        for (int i = 0; i < word.length(); i++) {
+            if (!Character.isLetter(word.charAt(i))) {
+                allLetters = false;
+            }
+        }
+        if (allLetters) {
+            words.add(word);
+        }
+    }
+    return words;
+}
+
+void main() {
+    IO.println(wordsIn("Disk usage at 91 percent"));
+}
+```
+
+`strip().split("\\s+")` gives the words however the spaces fall. A word is kept only if every one of its characters is a letter: the flag starts `true` for each word, and any character that is not a letter turns it `false`, which is how `91` and `sda1` drop out.
+
+```java
+ArrayList<String> wordsIn(String message) {
+    ArrayList<String> words = new ArrayList<>();
+    for (String word : message.strip().split("\\s+")) {
+        int letters = 0;
+        for (int i = 0; i < word.length(); i++) {
+            if (Character.isLetter(word.charAt(i))) {
+                letters++;
+            }
+        }
+        if (letters > 0 && letters == word.length()) {
+            words.add(word);
+        }
+    }
+    return words;
+}
+
+void main() {
+    IO.println(wordsIn("  Fan speed low  "));
+}
+```
+
+The second answer counts each word's letters and keeps the word when every character was one.
+
+### mistake
+
+`split(" ")` with no `strip()`: the spaces at the start of the message leave empty pieces, and an empty piece has no character that is not a letter, so it is kept.
+
+```java
+ArrayList<String> wordsIn(String message) {
+    ArrayList<String> words = new ArrayList<>();
+    for (String word : message.split(" ")) {
+        boolean allLetters = true;
+        for (int i = 0; i < word.length(); i++) {
+            if (!Character.isLetter(word.charAt(i))) {
+                allLetters = false;
+            }
+        }
+        if (allLetters) {
+            words.add(word);
+        }
+    }
+    return words;
+}
+
+void main() {
+    IO.println(wordsIn("  Fan speed low  "));
+}
+```
+
+Testing only the first character lets `sda1` through:
+
+```java
+ArrayList<String> wordsIn(String message) {
+    ArrayList<String> words = new ArrayList<>();
+    for (String word : message.strip().split("\\s+")) {
+        if (Character.isLetter(word.charAt(0))) {
+            words.add(word);
+        }
+    }
+    return words;
+}
+
+void main() {
+    IO.println(wordsIn("Disk sda1 at 91 percent"));
+}
+```
+
+A flag set up once, before the loop over the words: after `91`, it stays `false`, and every later word is left out.
+
+```java
+ArrayList<String> wordsIn(String message) {
+    ArrayList<String> words = new ArrayList<>();
+    boolean allLetters = true;
+    for (String word : message.strip().split("\\s+")) {
+        for (int i = 0; i < word.length(); i++) {
+            if (!Character.isLetter(word.charAt(i))) {
+                allLetters = false;
+            }
+        }
+        if (allLetters) {
+            words.add(word);
+        }
+    }
+    return words;
+}
+
+void main() {
+    IO.println(wordsIn("Disk usage at 91 percent"));
+}
+```
+
+## ch08-strings-as-data-practice#7
+
+```java
+String redact(String line, String word) {
+    return line.replace(word, "****");
+}
+
+void main() {
+    IO.println(redact("WARN|14:03|Disk usage at 91 percent", "91"));
+}
+```
+
+`replace` changes every appearance, not just the first, and gives back the line unchanged when the word is not there.
+
+```java
+String redact(String line, String word) {
+    String result = "";
+    String rest = line;
+    int at = rest.indexOf(word);
+    while (at >= 0) {
+        result += rest.substring(0, at) + "****";
+        rest = rest.substring(at + word.length());
+        at = rest.indexOf(word);
+    }
+    return result + rest;
+}
+
+void main() {
+    IO.println(redact("a b a", "a"));
+}
+```
+
+The second answer does `replace`'s work by hand: while the word is still in what is left, it keeps the text before it, adds the stars, and carries on after it.
+
+### mistake
+
+`replace` gives back a new string, and this throws it away, returning the line as it was:
+
+```java
+String redact(String line, String word) {
+    line.replace(word, "****");
+    return line;
+}
+
+void main() {
+    IO.println(redact("WARN|14:03|Disk usage at 91 percent", "91"));
+}
+```
+
+One star per character, where the step asks for `****` every time:
+
+```java
+String redact(String line, String word) {
+    return line.replace(word, "*".repeat(word.length()));
+}
+
+void main() {
+    IO.println(redact("WARN|14:03|Disk usage at 91 percent", "91"));
+}
+```
+
+## ch08-strings-as-data-practice#8
+
+```java
+ArrayList<String> warningMessages(ArrayList<String> lines) {
+    ArrayList<String> messages = new ArrayList<>();
+    for (String line : lines) {
+        String[] fields = line.split("\\|");
+        if (fields[0].toUpperCase().equals("WARN")) {
+            messages.add(fields[2].strip());
+        }
+    }
+    return messages;
+}
+
+void main() {
+    ArrayList<String> lines = new ArrayList<>();
+    lines.add("WARN|14:03|Disk usage at 91 percent");
+    lines.add("INFO|09:15|Backup finished");
+    lines.add("warn|08:00|  Fan speed low  ");
+    IO.println(warningMessages(lines));
+}
+```
+
+The messages, not the lines: each warning's third field, stripped. The lowercase line has to be caught and its message tidied, which is why the level is uppercased before the comparison.
+
+```java
+boolean isWarning(String line) {
+    return line.split("\\|")[0].toUpperCase().equals("WARN");
+}
+
+String messageOf(String line) {
+    return line.split("\\|")[2];
+}
+
+ArrayList<String> warningMessages(ArrayList<String> lines) {
+    ArrayList<String> messages = new ArrayList<>();
+    for (String line : lines) {
+        if (isWarning(line)) {
+            messages.add(messageOf(line).strip());
+        }
+    }
+    return messages;
+}
+
+void main() {
+    ArrayList<String> lines = new ArrayList<>();
+    lines.add("warn|08:00|  Fan speed low  ");
+    IO.println(warningMessages(lines));
+}
+```
+
+The second answer reuses steps 3 and 4, which is why they were worth writing separately.
+
+### mistake
+
+The whole lines, not the messages:
+
+```java
+ArrayList<String> warningMessages(ArrayList<String> lines) {
+    ArrayList<String> messages = new ArrayList<>();
+    for (String line : lines) {
+        if (line.split("\\|")[0].toUpperCase().equals("WARN")) {
+            messages.add(line);
+        }
+    }
+    return messages;
+}
+
+void main() {
+    ArrayList<String> lines = new ArrayList<>();
+    lines.add("WARN|14:03|Disk usage at 91 percent");
+    IO.println(warningMessages(lines));
+}
+```
+
+The message kept with its spaces:
+
+```java
+ArrayList<String> warningMessages(ArrayList<String> lines) {
+    ArrayList<String> messages = new ArrayList<>();
+    for (String line : lines) {
+        String[] fields = line.split("\\|");
+        if (fields[0].toUpperCase().equals("WARN")) {
+            messages.add(fields[2]);
+        }
+    }
+    return messages;
+}
+
+void main() {
+    ArrayList<String> lines = new ArrayList<>();
+    lines.add("warn|08:00|  Fan speed low  ");
+    IO.println(warningMessages(lines));
+}
+```
+
+No `toUpperCase()`: the lowercase warning is missed.
+
+```java
+ArrayList<String> warningMessages(ArrayList<String> lines) {
+    ArrayList<String> messages = new ArrayList<>();
+    for (String line : lines) {
+        String[] fields = line.split("\\|");
+        if (fields[0].equals("WARN")) {
+            messages.add(fields[2].strip());
+        }
+    }
+    return messages;
+}
+
+void main() {
+    ArrayList<String> lines = new ArrayList<>();
+    lines.add("warn|08:00|  Fan speed low  ");
+    IO.println(warningMessages(lines));
+}
+```
+
+`contains` looks at the whole line, message included, so an `INFO` line that mentions a warning is let in:
+
+```java
+ArrayList<String> warningMessages(ArrayList<String> lines) {
+    ArrayList<String> messages = new ArrayList<>();
+    for (String line : lines) {
+        if (line.toUpperCase().contains("WARN")) {
+            messages.add(line.split("\\|")[2].strip());
+        }
+    }
+    return messages;
+}
+
+void main() {
+    ArrayList<String> lines = new ArrayList<>();
+    lines.add("INFO|10:00|Warning cleared");
+    IO.println(warningMessages(lines));
+}
+```

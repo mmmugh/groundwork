@@ -2054,5 +2054,366 @@
       ]
     ],
     "starter": "ArrayList<String> byLength(ArrayList<String> titles, ArrayList<Integer> seconds) {\n    return new ArrayList<>();\n}\n\nvoid main() {\n    ArrayList<String> titles = new ArrayList<>(List.of(\"Ghost Town\", \"Ribbons\", \"Anvil\"));\n    ArrayList<Integer> seconds = new ArrayList<>(List.of(210, 185, 240));\n    IO.println(byLength(titles, seconds));\n}\n"
+  },
+  "ch08-strings-as-data#20": {
+    "kind": "input",
+    "runs": [
+      {
+        "typed": [
+          "java"
+        ],
+        "words": [
+          "java",
+          "avaj"
+        ],
+        "contains": "JAVA",
+        "numbers": [
+          "4"
+        ]
+      },
+      {
+        "typed": [
+          "stressed"
+        ],
+        "words": [
+          "stressed",
+          "desserts"
+        ],
+        "contains": "STRESSED",
+        "numbers": [
+          "8"
+        ]
+      }
+    ],
+    "starter": "void main() {\n    // Forward, backward, uppercase, length.\n}\n"
+  },
+  "ch08-strings-as-data#21": {
+    "kind": "method",
+    "name": "countLetter",
+    "returns": "int",
+    "params": [
+      "String",
+      "String"
+    ],
+    "cases": [
+      [
+        "\"Hello World\", \"l\"",
+        "3"
+      ],
+      [
+        "\"Banana\", \"A\"",
+        "3"
+      ],
+      [
+        "\"xyz\", \"q\"",
+        "0"
+      ],
+      [
+        "\"Anna\", \"a\"",
+        "2"
+      ]
+    ],
+    "starter": "int countLetter(String text, String letter) {\n    return 0;\n}\n\nvoid main() {\n    IO.println(countLetter(\"Hello World\", \"l\"));\n}\n"
+  },
+  "ch08-strings-as-data#22": {
+    "kind": "input",
+    "runs": [
+      {
+        "typed": [
+          "Ada Lovelace"
+        ],
+        "contains": "AL"
+      },
+      {
+        "typed": [
+          "  grace brewster   hopper "
+        ],
+        "contains": "GBH"
+      }
+    ],
+    "starter": "void main() {\n    // Ask for a full name; print its initials.\n}\n"
+  },
+  "ch08-strings-as-data#23": {
+    "kind": "method",
+    "name": "titleCase",
+    "returns": "String",
+    "params": [
+      "String"
+    ],
+    "cases": [
+      [
+        "\"hello world\"",
+        "\"Hello World\""
+      ],
+      [
+        "\"java\"",
+        "\"Java\""
+      ],
+      [
+        "\"the quick brown fox\"",
+        "\"The Quick Brown Fox\""
+      ]
+    ],
+    "starter": "String titleCase(String sentence) {\n    return \"\";\n}\n\nvoid main() {\n    IO.println(titleCase(\"the quick brown fox\"));\n}\n"
+  },
+  "ch08-strings-as-data#24": {
+    "kind": "input",
+    "runs": [
+      {
+        "typed": [
+          "the quick brown fox"
+        ],
+        "numbers": [
+          "4"
+        ]
+      },
+      {
+        "typed": [
+          "  Java   is fun "
+        ],
+        "numbers": [
+          "3"
+        ]
+      }
+    ],
+    "starter": "void main() {\n    // Ask for a sentence; print how many words.\n}\n"
+  },
+  "ch08-strings-as-data#25": {
+    "kind": "method",
+    "name": "caesarShift",
+    "returns": "String",
+    "params": [
+      "String",
+      "int"
+    ],
+    "cases": [
+      [
+        "\"abc\", 1",
+        "\"bcd\""
+      ],
+      [
+        "\"xyz\", 3",
+        "\"abc\""
+      ],
+      [
+        "\"hello\", 0",
+        "\"hello\""
+      ],
+      [
+        "\"hello world\", 1",
+        "\"ifmmp xpsme\""
+      ]
+    ],
+    "starter": "String caesarShift(String text, int n) {\n    return \"\";\n}\n\nvoid main() {\n    IO.println(caesarShift(\"hello world\", 3));\n}\n"
+  },
+  "ch08-strings-as-data#26": {
+    "kind": "output",
+    "expected": "Ada: 88\nGrace: 92\nAlan: 45",
+    "starter": "void main() {\n    String data = \"Ada,88\\nGrace,92\\nAlan,45\";\n    // Print each as Ada: 88.\n}\n"
+  },
+  "ch08-strings-as-data-practice#1": {
+    "kind": "method",
+    "name": "levelOf",
+    "returns": "String",
+    "params": [
+      "String"
+    ],
+    "cases": [
+      [
+        "\"WARN|14:03|Disk usage at 91 percent\"",
+        "\"WARN\""
+      ],
+      [
+        "\"INFO|09:15|Backup finished\"",
+        "\"INFO\""
+      ],
+      [
+        "\"ERROR|00:01|Down\"",
+        "\"ERROR\""
+      ]
+    ],
+    "starter": "String levelOf(String line) {\n    return \"\";\n}\n\nvoid main() {\n    IO.println(levelOf(\"WARN|14:03|Disk usage at 91 percent\"));\n}\n"
+  },
+  "ch08-strings-as-data-practice#2": {
+    "kind": "method",
+    "name": "timeOf",
+    "returns": "String",
+    "params": [
+      "String"
+    ],
+    "cases": [
+      [
+        "\"WARN|14:03|Disk usage at 91 percent\"",
+        "\"14:03\""
+      ],
+      [
+        "\"INFO|09:15|Backup finished\"",
+        "\"09:15\""
+      ],
+      [
+        "\"ERROR|00:01|Down\"",
+        "\"00:01\""
+      ]
+    ],
+    "starter": "String timeOf(String line) {\n    return \"\";\n}\n\nvoid main() {\n    IO.println(timeOf(\"WARN|14:03|Disk usage at 91 percent\"));\n}\n"
+  },
+  "ch08-strings-as-data-practice#3": {
+    "kind": "method",
+    "name": "messageOf",
+    "returns": "String",
+    "params": [
+      "String"
+    ],
+    "cases": [
+      [
+        "\"WARN|14:03|Disk usage at 91 percent\"",
+        "\"Disk usage at 91 percent\""
+      ],
+      [
+        "\"INFO|09:15|Backup finished\"",
+        "\"Backup finished\""
+      ],
+      [
+        "\"ERROR|00:01|Down\"",
+        "\"Down\""
+      ]
+    ],
+    "starter": "String messageOf(String line) {\n    return \"\";\n}\n\nvoid main() {\n    IO.println(messageOf(\"WARN|14:03|Disk usage at 91 percent\"));\n}\n"
+  },
+  "ch08-strings-as-data-practice#4": {
+    "kind": "method",
+    "name": "isWarning",
+    "returns": "boolean",
+    "params": [
+      "String"
+    ],
+    "cases": [
+      [
+        "\"WARN|14:03|Disk usage at 91 percent\"",
+        "true"
+      ],
+      [
+        "\"INFO|09:15|Backup finished\"",
+        "false"
+      ],
+      [
+        "\"warn|08:00|  Fan speed low  \"",
+        "true"
+      ],
+      [
+        "\"ERROR|00:01|Down\"",
+        "false"
+      ],
+      [
+        "\"INFO|10:00|Warning cleared\"",
+        "false"
+      ]
+    ],
+    "starter": "boolean isWarning(String line) {\n    return false;\n}\n\nvoid main() {\n    IO.println(isWarning(\"WARN|14:03|Disk usage at 91 percent\"));\n    IO.println(isWarning(\"warn|08:00|  Fan speed low  \"));\n    IO.println(isWarning(\"INFO|09:15|Backup finished\"));\n}\n"
+  },
+  "ch08-strings-as-data-practice#5": {
+    "kind": "method",
+    "name": "tidy",
+    "returns": "String",
+    "params": [
+      "String"
+    ],
+    "cases": [
+      [
+        "\"warn|08:00|  Fan speed low  \"",
+        "\"WARN|08:00|Fan speed low\""
+      ],
+      [
+        "\"WARN|14:03|Disk usage at 91 percent\"",
+        "\"WARN|14:03|Disk usage at 91 percent\""
+      ],
+      [
+        "\"INFO|09:15|Backup finished\"",
+        "\"INFO|09:15|Backup finished\""
+      ]
+    ],
+    "starter": "String tidy(String line) {\n    return \"\";\n}\n\nvoid main() {\n    IO.println(tidy(\"warn|08:00|  Fan speed low  \"));\n}\n"
+  },
+  "ch08-strings-as-data-practice#6": {
+    "kind": "method",
+    "name": "wordsIn",
+    "returns": "ArrayList<String>",
+    "params": [
+      "String"
+    ],
+    "cases": [
+      [
+        "\"Disk usage at 91 percent\"",
+        "new ArrayList<>(List.of(\"Disk\", \"usage\", \"at\", \"percent\"))"
+      ],
+      [
+        "\"Backup finished\"",
+        "new ArrayList<>(List.of(\"Backup\", \"finished\"))"
+      ],
+      [
+        "\"91 42\"",
+        "new ArrayList<>()"
+      ],
+      [
+        "\"  Fan speed low  \"",
+        "new ArrayList<>(List.of(\"Fan\", \"speed\", \"low\"))"
+      ],
+      [
+        "\"Disk sda1 at 91 percent\"",
+        "new ArrayList<>(List.of(\"Disk\", \"at\", \"percent\"))"
+      ]
+    ],
+    "starter": "ArrayList<String> wordsIn(String message) {\n    return new ArrayList<>();\n}\n\nvoid main() {\n    IO.println(wordsIn(\"Disk usage at 91 percent\"));\n}\n"
+  },
+  "ch08-strings-as-data-practice#7": {
+    "kind": "method",
+    "name": "redact",
+    "returns": "String",
+    "params": [
+      "String",
+      "String"
+    ],
+    "cases": [
+      [
+        "\"WARN|14:03|Disk usage at 91 percent\", \"91\"",
+        "\"WARN|14:03|Disk usage at **** percent\""
+      ],
+      [
+        "\"a b a\", \"a\"",
+        "\"**** b ****\""
+      ],
+      [
+        "\"INFO|09:15|Backup finished\", \"nothing\"",
+        "\"INFO|09:15|Backup finished\""
+      ]
+    ],
+    "starter": "String redact(String line, String word) {\n    return \"\";\n}\n\nvoid main() {\n    IO.println(redact(\"WARN|14:03|Disk usage at 91 percent\", \"91\"));\n}\n"
+  },
+  "ch08-strings-as-data-practice#8": {
+    "kind": "method",
+    "name": "warningMessages",
+    "returns": "ArrayList<String>",
+    "params": [
+      "ArrayList<String>"
+    ],
+    "cases": [
+      [
+        "new ArrayList<>(List.of(\"WARN|14:03|Disk usage at 91 percent\", \"INFO|09:15|Backup finished\", \"warn|08:00|  Fan speed low  \"))",
+        "new ArrayList<>(List.of(\"Disk usage at 91 percent\", \"Fan speed low\"))"
+      ],
+      [
+        "new ArrayList<>(List.of(\"INFO|09:15|Backup finished\"))",
+        "new ArrayList<>()"
+      ],
+      [
+        "new ArrayList<>()",
+        "new ArrayList<>()"
+      ],
+      [
+        "new ArrayList<>(List.of(\"INFO|10:00|Warning cleared\", \"warn|08:00|  Fan speed low  \"))",
+        "new ArrayList<>(List.of(\"Fan speed low\"))"
+      ]
+    ],
+    "starter": "ArrayList<String> warningMessages(ArrayList<String> lines) {\n    return new ArrayList<>();\n}\n\nvoid main() {\n    ArrayList<String> lines = new ArrayList<>();\n    lines.add(\"WARN|14:03|Disk usage at 91 percent\");\n    lines.add(\"INFO|09:15|Backup finished\");\n    lines.add(\"warn|08:00|  Fan speed low  \");\n    IO.println(warningMessages(lines));\n}\n"
   }
 }

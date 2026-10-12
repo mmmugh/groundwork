@@ -410,5 +410,24 @@
       "date",
       "cherry"
     ]
+  },
+  "ch08-strings-as-data#2": {
+    "compileError": "unexpected type",
+    "why": "One character of a String is assigned to, which javac refuses: a String cannot be changed. The error message is the lesson."
+  },
+  "ch08-strings-as-data#20": {
+    "stdin": [
+      "java"
+    ]
+  },
+  "ch08-strings-as-data#22": {
+    "stdin": [
+      "Ada Lovelace"
+    ]
+  },
+  "ch08-strings-as-data#24": {
+    "stdin": [
+      "the quick brown fox"
+    ]
   }
 }

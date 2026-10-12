@@ -1,0 +1,149 @@
+GROUNDWORK
+Chapter 8 - Strings as Data
+
+ANSWER KEY
+
+
+VOCABULARY
+----------
+
+ 1. A String is a ____ of characters, so charAt and substring count its
+    positions from zero, as an array's indexes do.
+
+      ANSWER: sequence
+
+ 2. Unlike an array, a String is ____: it cannot be changed after it is
+    created, so every String method that seems to change it gives back a
+    new String instead.
+
+      ANSWER: immutable
+
+ 3. The String method ____ gives back true when another String appears
+    anywhere inside it, and false when it does not.
+
+      ANSWER: contains
+
+ 4. Sequences like \n and \t, which stand for characters that can't be
+    typed directly into a string, are called ____ sequences.
+
+      ANSWER: escape
+
+
+READING CODE
+------------
+
+ 5. What does this print?
+
+        String word = "Java";
+        IO.println(word.substring(0, 3));
+        String reversed = "";
+        for (int i = word.length() - 1; i >= 0; i--) {
+            reversed += word.charAt(i);
+        }
+        IO.println(reversed);
+
+      ANSWER: Jav
+          avaJ
+
+ 6. What does this print?
+
+        String messy = "   Ada LOVELACE  ";
+        String clean = messy.strip().toLowerCase();
+        IO.println("[" + clean + "]");
+
+      ANSWER: [ada lovelace]
+
+ 7. What does this print?
+
+        String answer = " Yes ";
+        IO.println(answer.equals("yes"));
+        IO.println(answer.strip().toLowerCase().equals("yes"));
+
+      ANSWER: false
+          true
+
+ 8. What does this print?
+
+        String row = "Ada,88,A";
+        String[] fields = row.split(",");
+        String name = fields[0];
+        String score = fields[1];
+        String grade = fields[2];
+        IO.println(name + " scored " + score + " for a " + grade);
+
+      ANSWER: Ada scored 88 for a A
+
+ 9. What does this print?
+
+        String word = "java";
+        word.toUpperCase();
+        IO.println(word);
+
+      ANSWER: java
+
+10. What does this print?
+
+        int countVowels(String text) {
+            String lower = text.toLowerCase();
+            int count = 0;
+            for (int i = 0; i < lower.length(); i++) {
+                char letter = lower.charAt(i);
+                if ("aeiou".indexOf(letter) >= 0) {
+                    count++;
+                }
+            }
+            return count;
+        }
+
+        void main() {
+            IO.println(countVowels("Hello World"));
+        }
+
+      ANSWER: 3
+
+
+WRITING CODE
+------------
+
+11. Complete the line so that it prints the word in capitals:
+    String word = "hello";
+    IO.println(word.____()); // HELLO
+
+      ANSWER: toUpperCase
+
+12. Complete the line so that it splits the sentence into an array of its
+    words:
+    String sentence = "the quick brown fox";
+    String[] words = sentence.____(" ");
+    IO.println(words.length); // 4
+
+      ANSWER: split
+
+13. Complete the line so that it glues the words together with a space
+    between each one:
+    String[] words = {"the", "quick", "brown"};
+    IO.println(String.____(" ", words)); // the quick brown
+
+      ANSWER: join
+
+
+WHY IT WORKS
+------------
+
+14. word.toUpperCase() by itself does not change word, because a String
+    is ____; every String method that seems to change it gives back a
+    ____ String rather than changing the original.
+
+        String word = "java";
+        word.toUpperCase();
+        IO.println(word);
+
+      ANSWER: immutable
+      ANSWER: new
+
+15. indexOf(x) gives back ____ when x does not appear in the String at
+    all; a result of ____ means the match starts at the very first
+    character.
+
+      ANSWER: -1
+      ANSWER: 0
