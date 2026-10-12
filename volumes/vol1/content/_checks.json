@@ -1053,5 +1053,336 @@
       }
     ],
     "starter": "void main() {\n    // Four readings, four status lines, the verdict.\n}\n"
+  },
+  "ch05-repetition#15": {
+    "kind": "output",
+    "expected": "1\n4\n9\n16\n25\n36\n49\n64\n81\n100\n121\n144\n169\n196\n225\n256\n289\n324\n361\n400",
+    "starter": "void main() {\n    // The first 20 square numbers, one per line.\n}\n"
+  },
+  "ch05-repetition#16": {
+    "kind": "input",
+    "runs": [
+      {
+        "typed": [
+          "5"
+        ],
+        "numbers": [
+          "5",
+          "10",
+          "15",
+          "20",
+          "25",
+          "30",
+          "35",
+          "40",
+          "45",
+          "50",
+          "55",
+          "60"
+        ]
+      },
+      {
+        "typed": [
+          "7"
+        ],
+        "numbers": [
+          "7",
+          "14",
+          "21",
+          "28",
+          "35",
+          "42",
+          "49",
+          "56",
+          "63",
+          "70",
+          "77",
+          "84"
+        ]
+      }
+    ],
+    "starter": "void main() {\n    // Ask for a number; print its table, 1 to 12.\n}\n"
+  },
+  "ch05-repetition#17": {
+    "kind": "input",
+    "runs": [
+      {
+        "typed": [
+          "5",
+          "10",
+          "0"
+        ],
+        "numbers": [
+          "15"
+        ]
+      },
+      {
+        "typed": [
+          "3",
+          "4",
+          "0",
+          "5"
+        ],
+        "numbers": [
+          "7"
+        ]
+      }
+    ],
+    "starter": "void main() {\n    // Add up numbers until a 0 is typed.\n}\n"
+  },
+  "ch05-repetition#18": {
+    "kind": "output",
+    "expected": "*\n**\n***\n****\n*****\n******",
+    "starter": "void main() {\n    // A right triangle of stars, 6 rows tall.\n}\n"
+  },
+  "ch05-repetition#19": {
+    "kind": "input",
+    "runs": [
+      {
+        "typed": [
+          "education"
+        ],
+        "numbers": [
+          "5"
+        ]
+      },
+      {
+        "typed": [
+          "Apple"
+        ],
+        "numbers": [
+          "2"
+        ]
+      }
+    ],
+    "starter": "void main() {\n    // Ask for a word; count its vowels.\n}\n"
+  },
+  "ch05-repetition#20": {
+    "kind": "input",
+    "runs": [
+      {
+        "typed": [
+          "50",
+          "30",
+          "42"
+        ],
+        "words": [
+          "high",
+          "low",
+          "got"
+        ]
+      },
+      {
+        "typed": [
+          "10",
+          "99",
+          "42"
+        ],
+        "words": [
+          "low",
+          "high",
+          "got"
+        ]
+      }
+    ],
+    "starter": "void main() {\n    // The secret number is 42.\n}\n"
+  },
+  "ch05-repetition#21": {
+    "kind": "predict"
+  },
+  "ch05-repetition-practice#1": {
+    "kind": "output",
+    "expected": "Week 1\nWeek 2\nWeek 3\nWeek 4\nWeek 5\nWeek 6\nWeek 7\nWeek 8",
+    "starter": "void main() {\n    // Week 1 to Week 8, one per line.\n}\n"
+  },
+  "ch05-repetition-practice#2": {
+    "kind": "input",
+    "runs": [
+      {
+        "typed": [
+          "15"
+        ],
+        "numbers": [
+          "15",
+          "30",
+          "45",
+          "60",
+          "75",
+          "90",
+          "105",
+          "120"
+        ]
+      },
+      {
+        "typed": [
+          "12.5"
+        ],
+        "numbers": [
+          "12.5",
+          "25",
+          "37.5",
+          "50",
+          "62.5",
+          "75",
+          "87.5",
+          "100"
+        ]
+      }
+    ],
+    "starter": "void main() {\n    // Ask the weekly amount; print eight running totals.\n}\n"
+  },
+  "ch05-repetition-practice#3": {
+    "kind": "input",
+    "runs": [
+      {
+        "typed": [
+          "15"
+        ],
+        "numbers": [
+          "16"
+        ]
+      },
+      {
+        "typed": [
+          "18"
+        ],
+        "numbers": [
+          "14"
+        ]
+      }
+    ],
+    "starter": "void main() {\n    double weekly = Double.parseDouble(IO.readln(\"Saving how much a week? \").strip());\n    // Then a while loop, up to 240.\n}\n"
+  },
+  "ch05-repetition-practice#4": {
+    "kind": "input",
+    "runs": [
+      {
+        "typed": [
+          "15"
+        ],
+        "numbers": [
+          "16"
+        ]
+      },
+      {
+        "typed": [
+          "3"
+        ],
+        "contains": "Not this year"
+      },
+      {
+        "typed": [
+          "4.62"
+        ],
+        "numbers": [
+          "52"
+        ]
+      }
+    ],
+    "starter": "void main() {\n    double weekly = Double.parseDouble(IO.readln(\"Saving how much a week? \").strip());\n    // Then a for loop over 52 weeks.\n}\n"
+  },
+  "ch05-repetition-practice#5": {
+    "kind": "input",
+    "runs": [
+      {
+        "typed": [
+          "15"
+        ],
+        "numbers": [
+          "19"
+        ]
+      },
+      {
+        "typed": [
+          "18"
+        ],
+        "numbers": [
+          "17"
+        ]
+      }
+    ],
+    "starter": "void main() {\n    double weekly = Double.parseDouble(IO.readln(\"Saving how much a week? \").strip());\n    // Skip every 5th week.\n}\n"
+  },
+  "ch05-repetition-practice#6": {
+    "kind": "input",
+    "runs": [
+      {
+        "typed": [
+          "15"
+        ],
+        "numbers": [
+          "14"
+        ]
+      },
+      {
+        "typed": [
+          "9"
+        ],
+        "numbers": [
+          "22"
+        ]
+      }
+    ],
+    "starter": "void main() {\n    double weekly = Double.parseDouble(IO.readln(\"Saving how much a week? \").strip());\n    // A 10 bonus every 4th week.\n}\n"
+  },
+  "ch05-repetition-practice#7": {
+    "kind": "input",
+    "runs": [
+      {
+        "typed": [
+          "18"
+        ],
+        "numbers": [
+          "13"
+        ]
+      },
+      {
+        "typed": [
+          "3"
+        ],
+        "numbers": [
+          "59"
+        ]
+      }
+    ],
+    "starter": "void main() {\n    double weekly = Double.parseDouble(IO.readln(\"Saving how much a week? \").strip());\n    // 1% interest after each deposit.\n}\n"
+  },
+  "ch05-repetition-practice#8": {
+    "kind": "input",
+    "runs": [
+      {
+        "typed": [
+          "15"
+        ],
+        "numbers": [
+          "15",
+          "30",
+          "45",
+          "60",
+          "75",
+          "90",
+          "105",
+          "120",
+          "17"
+        ]
+      },
+      {
+        "typed": [
+          "18"
+        ],
+        "numbers": [
+          "18",
+          "36",
+          "54",
+          "72",
+          "90",
+          "108",
+          "126",
+          "144",
+          "14"
+        ]
+      }
+    ],
+    "starter": "void main() {\n    // Eight balances, then the goal week.\n}\n"
   }
 }

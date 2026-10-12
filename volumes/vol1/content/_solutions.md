@@ -2492,3 +2492,1036 @@ void main() {
     }
 }
 ```
+
+## ch05-repetition#15
+
+Try It 1: the first 20 square numbers.
+
+```java
+// Prints the first 20 square numbers, one per line.
+
+void main() {
+    for (int i = 1; i <= 20; i++) {
+        IO.println(i * i);
+    }
+}
+```
+
+Counting from 1 with `<=` gives the twenty values 1 to 20, and each pass prints its number times itself. Counting from 0 instead would print 0 first and stop at 361.
+
+```java
+void main() {
+    int n = 1;
+    while (n <= 20) {
+        IO.println(n * n);
+        n++;
+    }
+}
+```
+
+The second answer counts with a `while` loop, its three parts on three lines.
+
+### mistake
+
+`i < 20` stops before 20, so the list ends at 361, one square short:
+
+```java
+void main() {
+    for (int i = 1; i < 20; i++) {
+        IO.println(i * i);
+    }
+}
+```
+
+Doubling instead of squaring:
+
+```java
+void main() {
+    for (int i = 1; i <= 20; i++) {
+        IO.println(i * 2);
+    }
+}
+```
+
+## ch05-repetition#16
+
+Try It 2: a multiplication table.
+
+```java
+// Prints the multiplication table, 1 to 12, for a number.
+
+void main() {
+    int number = Integer.parseInt(IO.readln("Enter a number: ").strip());
+
+    for (int multiplier = 1; multiplier <= 12; multiplier++) {
+        IO.println(number + " x " + multiplier + " = " + (number * multiplier));
+    }
+}
+```
+
+The question is asked once, before the loop, and the loop prints the twelve lines. The multiplication is in parentheses because it shares a line with text (Chapter 1).
+
+```java
+void main() {
+    int table = Integer.parseInt(IO.readln("Which table? ").strip());
+    int times = 1;
+
+    while (times <= 12) {
+        IO.println(times + " times " + table + " is " + (times * table));
+        times++;
+    }
+}
+```
+
+The second answer counts with a `while` loop and words each line its own way.
+
+### mistake
+
+Stopping at 10, the way many tables are printed, leaves out 11 and 12:
+
+```java
+void main() {
+    int number = Integer.parseInt(IO.readln("Enter a number: ").strip());
+
+    for (int multiplier = 1; multiplier <= 10; multiplier++) {
+        IO.println(number + " x " + multiplier + " = " + (number * multiplier));
+    }
+}
+```
+
+Starting at 0 with `< 12` gives twelve lines, but from 0 to 11:
+
+```java
+void main() {
+    int number = Integer.parseInt(IO.readln("Enter a number: ").strip());
+
+    for (int multiplier = 0; multiplier < 12; multiplier++) {
+        IO.println(number + " x " + multiplier + " = " + (number * multiplier));
+    }
+}
+```
+
+The table of 5 whatever is typed, which looks right until someone types 7:
+
+```java
+void main() {
+    IO.readln("Enter a number: ");
+
+    for (int multiplier = 1; multiplier <= 12; multiplier++) {
+        IO.println("5 x " + multiplier + " = " + (5 * multiplier));
+    }
+}
+```
+
+## ch05-repetition#17
+
+Try It 3: a running sum that stops at 0.
+
+```java
+// Adds up numbers until the user enters 0.
+
+void main() {
+    int total = 0;
+
+    while (true) {
+        String answer = IO.readln("Enter a number (0 to stop): ");
+        if (answer == null) {
+            break;
+        }
+        int number = Integer.parseInt(answer.strip());
+        if (number == 0) {
+            break;
+        }
+        total += number;
+    }
+
+    IO.println("The total is " + total + ".");
+}
+```
+
+`while (true)` with two ways out: the end of input, as in every loop that reads, and the 0 that means stop. The 0 is tested before it is added; adding it would do no harm, but the loop must end there.
+
+```java
+void main() {
+    int total = 0;
+    boolean done = false;
+
+    while (!done) {
+        String answer = IO.readln("Number: ");
+        if (answer == null) {
+            break;
+        }
+        int number = Integer.parseInt(answer.strip());
+        if (number == 0) {
+            done = true;
+        } else {
+            total += number;
+        }
+    }
+
+    IO.println("Total: " + total);
+}
+```
+
+The second answer keeps a flag, as the chapter's first re-prompt loop does, and lets the condition end the loop.
+
+### mistake
+
+The 0 is never tested, so the loop ends only when input runs out, and a number typed after the 0 is added too:
+
+```java
+void main() {
+    int total = 0;
+
+    while (true) {
+        String answer = IO.readln("Enter a number (0 to stop): ");
+        if (answer == null) {
+            break;
+        }
+        total += Integer.parseInt(answer.strip());
+    }
+
+    IO.println("The total is " + total + ".");
+}
+```
+
+`=` where `+=` belongs: each number replaces the total instead of adding to it, so the last one before the 0 is all that is left:
+
+```java
+void main() {
+    int total = 0;
+
+    while (true) {
+        String answer = IO.readln("Enter a number (0 to stop): ");
+        if (answer == null) {
+            break;
+        }
+        int number = Integer.parseInt(answer.strip());
+        if (number == 0) {
+            break;
+        }
+        total = number;
+    }
+
+    IO.println("The total is " + total + ".");
+}
+```
+
+## ch05-repetition#18
+
+Try It 4: a right triangle of stars.
+
+```java
+// Prints a right triangle of stars, 6 rows tall.
+
+void main() {
+    for (int row = 1; row <= 6; row++) {
+        for (int star = 1; star <= row; star++) {
+            IO.print("*");
+        }
+        IO.println();
+    }
+}
+```
+
+The inner loop's length depends on the outer loop's current row, which is what makes it a nested loop rather than two separate ones. `IO.print` keeps a row's stars on one line, and `IO.println()` ends the row.
+
+```java
+void main() {
+    for (int row = 1; row <= 6; row++) {
+        String line = "";
+        for (int star = 0; star < row; star++) {
+            line += "*";
+        }
+        IO.println(line);
+    }
+}
+```
+
+The second answer builds each row as a `String` first, the accumulator pattern for text, then prints it whole.
+
+### mistake
+
+`IO.println` in the inner loop puts every star on a line of its own:
+
+```java
+void main() {
+    for (int row = 1; row <= 6; row++) {
+        for (int star = 1; star <= row; star++) {
+            IO.println("*");
+        }
+    }
+}
+```
+
+`star < row` prints one star too few on every row, so the first row is empty and the longest has five:
+
+```java
+void main() {
+    for (int row = 1; row <= 6; row++) {
+        for (int star = 1; star < row; star++) {
+            IO.print("*");
+        }
+        IO.println();
+    }
+}
+```
+
+## ch05-repetition#19
+
+Try It 5: counting vowels.
+
+```java
+// Counts the vowels in a word.
+
+void main() {
+    String word = IO.readln("Enter a word: ").strip().toLowerCase();
+    int vowels = 0;
+
+    for (int i = 0; i < word.length(); i++) {
+        char letter = word.charAt(i);
+        if (letter == 'a' || letter == 'e' || letter == 'i'
+                || letter == 'o' || letter == 'u') {
+            vowels++;
+        }
+    }
+
+    IO.println("Vowels: " + vowels);
+}
+```
+
+`toLowerCase()` turns a capital `A` into `a` before the loop starts, so five tests catch every vowel, whatever its case. The condition is long enough to split over two lines; Java reads on to its closing parenthesis.
+
+```java
+void main() {
+    String word = IO.readln("Word? ").strip();
+    int count = 0;
+
+    for (int i = 0; i < word.length(); i++) {
+        char c = word.charAt(i);
+        if (c == 'a' || c == 'A') {
+            count++;
+        } else if (c == 'e' || c == 'E') {
+            count++;
+        } else if (c == 'i' || c == 'I') {
+            count++;
+        } else if (c == 'o' || c == 'O') {
+            count++;
+        } else if (c == 'u' || c == 'U') {
+            count++;
+        }
+    }
+
+    IO.println(word + " has " + count + " vowels");
+}
+```
+
+The second answer leaves the word as it was typed and tests each vowel in both cases, one `else if` per vowel.
+
+### mistake
+
+No `toLowerCase()`: a capital vowel is missed, so `Apple` has 1:
+
+```java
+void main() {
+    String word = IO.readln("Enter a word: ").strip();
+    int vowels = 0;
+
+    for (int i = 0; i < word.length(); i++) {
+        char letter = word.charAt(i);
+        if (letter == 'a' || letter == 'e' || letter == 'i'
+                || letter == 'o' || letter == 'u') {
+            vowels++;
+        }
+    }
+
+    IO.println("Vowels: " + vowels);
+}
+```
+
+`<=` runs one position past the end, where `charAt` throws a `StringIndexOutOfBoundsException`:
+
+```java
+void main() {
+    String word = IO.readln("Enter a word: ").strip().toLowerCase();
+    int vowels = 0;
+
+    for (int i = 0; i <= word.length(); i++) {
+        char letter = word.charAt(i);
+        if (letter == 'a' || letter == 'e' || letter == 'i'
+                || letter == 'o' || letter == 'u') {
+            vowels++;
+        }
+    }
+
+    IO.println("Vowels: " + vowels);
+}
+```
+
+## ch05-repetition#20
+
+Try It 6: a guessing game.
+
+```java
+// A guessing game with the secret number in the code.
+
+void main() {
+    int secret = 42;
+
+    while (true) {
+        String answer = IO.readln("Guess a number: ");
+        if (answer == null) {
+            break;
+        }
+        int guess = Integer.parseInt(answer.strip());
+
+        if (guess == secret) {
+            IO.println("You got it!");
+            break;
+        } else if (guess < secret) {
+            IO.println("Too low.");
+        } else {
+            IO.println("Too high.");
+        }
+    }
+}
+```
+
+The secret number is written into the code, not chosen at random: random numbers arrive in the chapter project, right after this exercise. A right guess ends the loop with `break`, and so does the end of input.
+
+```java
+void main() {
+    int secret = 42;
+    String answer = IO.readln("Your guess: ");
+
+    while (answer != null) {
+        int guess = Integer.parseInt(answer.strip());
+        if (guess == secret) {
+            IO.println("You got it!");
+            break;
+        }
+        if (guess > secret) {
+            IO.println("Too high, try again.");
+        } else {
+            IO.println("Too low, try again.");
+        }
+        answer = IO.readln("Your guess: ");
+    }
+}
+```
+
+The second answer asks once before the loop and again at the bottom of each pass, and lets `answer != null` end the loop when input runs out.
+
+### mistake
+
+The two messages the wrong way around, so a guess of 50 is called too low:
+
+```java
+void main() {
+    int secret = 42;
+
+    while (true) {
+        String answer = IO.readln("Guess a number: ");
+        if (answer == null) {
+            break;
+        }
+        int guess = Integer.parseInt(answer.strip());
+
+        if (guess == secret) {
+            IO.println("You got it!");
+            break;
+        } else if (guess < secret) {
+            IO.println("Too high.");
+        } else {
+            IO.println("Too low.");
+        }
+    }
+}
+```
+
+No loop: one guess, one answer, and the game is over:
+
+```java
+void main() {
+    int secret = 42;
+    int guess = Integer.parseInt(IO.readln("Guess a number: ").strip());
+
+    if (guess == secret) {
+        IO.println("You got it!");
+    } else if (guess < secret) {
+        IO.println("Too low.");
+    } else {
+        IO.println("Too high.");
+    }
+}
+```
+
+## ch05-repetition#21
+
+Try It 7: a right prediction written another way (spaces at the end of the line and a blank line after it, which Check ignores).
+
+```text
+12   
+
+```
+
+### mistake
+
+Forgetting what `continue` skips: 3 is added along with the rest.
+
+```text
+15
+```
+
+`continue` read as `break`: the loop stops at 3, after adding 1 and 2.
+
+```text
+3
+```
+
+## ch05-repetition-practice#1
+
+```java
+void main() {
+    for (int week = 1; week <= 8; week++) {
+        IO.println("Week " + week);
+    }
+}
+```
+
+`week = 1` and `week <= 8` give the eight weeks 1 to 8, from one `IO.println`. Starting at 0 would label the first week zero.
+
+```java
+void main() {
+    int week = 0;
+    while (week < 8) {
+        week++;
+        IO.println("Week " + week);
+    }
+}
+```
+
+The second answer counts with a `while`, adding one before it prints, so the first line is week 1.
+
+### mistake
+
+Starting at 0 with `< 8`: eight lines, from Week 0 to Week 7.
+
+```java
+void main() {
+    for (int week = 0; week < 8; week++) {
+        IO.println("Week " + week);
+    }
+}
+```
+
+## ch05-repetition-practice#2
+
+```java
+void main() {
+    double weekly = Double.parseDouble(IO.readln("Saving how much a week? ").strip());
+    double total = 0;
+
+    for (int week = 1; week <= 8; week++) {
+        total += weekly;
+        IO.println("Week " + week + ": " + total);
+    }
+}
+```
+
+`total` starts at 0 outside the loop and survives each pass. Created inside the loop, it would start again at 0 every week. A `double` prints with its decimal point, so 15 a week shows as `15.0`.
+
+```java
+void main() {
+    double weekly = Double.parseDouble(IO.readln("How much each week? ").strip());
+    double saved = 0;
+    int week = 1;
+
+    while (week <= 8) {
+        saved = saved + weekly;
+        IO.println("After week " + week + " you have " + String.format("%.2f", saved));
+        week++;
+    }
+}
+```
+
+The second answer counts the weeks with a `while` and shows each total to two decimal places.
+
+### mistake
+
+`total` created inside the loop starts again at 0 every week, so each line shows one week's amount:
+
+```java
+void main() {
+    double weekly = Double.parseDouble(IO.readln("Saving how much a week? ").strip());
+
+    for (int week = 1; week <= 8; week++) {
+        double total = 0;
+        total += weekly;
+        IO.println("Week " + week + ": " + total);
+    }
+}
+```
+
+## ch05-repetition-practice#3
+
+```java
+void main() {
+    double weekly = Double.parseDouble(IO.readln("Saving how much a week? ").strip());
+    double total = 0;
+    int weeks = 0;
+
+    while (total < 240) {
+        total += weekly;
+        weeks++;
+    }
+
+    IO.println("Weeks needed: " + weeks);
+}
+```
+
+`while (total < 240)` stops the moment the goal is met. Using `<=` keeps going for one more week after it is already reached.
+
+```java
+void main() {
+    double weekly = Double.parseDouble(IO.readln("Weekly amount? ").strip());
+    double saved = 0;
+    int week = 0;
+
+    while (true) {
+        if (saved >= 240) {
+            break;
+        }
+        week++;
+        saved += weekly;
+    }
+
+    IO.println("It takes " + week + " weeks.");
+}
+```
+
+The second answer writes the goal test inside the loop, as a `break` at the top of each pass.
+
+### mistake
+
+`<=` where `<` belongs: at 15 a week the total is exactly 240 after week 16, and the loop saves one more week anyway.
+
+```java
+void main() {
+    double weekly = Double.parseDouble(IO.readln("Saving how much a week? ").strip());
+    double total = 0;
+    int weeks = 0;
+
+    while (total <= 240) {
+        total += weekly;
+        weeks++;
+    }
+
+    IO.println("Weeks needed: " + weeks);
+}
+```
+
+## ch05-repetition-practice#4
+
+```java
+void main() {
+    double weekly = Double.parseDouble(IO.readln("Saving how much a week? ").strip());
+    double total = 0;
+    int reachedIn = 0;
+
+    for (int week = 1; week <= 52; week++) {
+        total += weekly;
+        if (total >= 240) {
+            reachedIn = week;
+            break;
+        }
+    }
+
+    if (reachedIn > 0) {
+        IO.println("Reached in week " + reachedIn);
+    } else {
+        IO.println("Not this year");
+    }
+}
+```
+
+The `break` leaves the loop in the week the goal is met, and `reachedIn` keeps that week after the loop's own `week` is gone, so the report happens once, afterward. `reachedIn` stays 0 when the goal is never met, which is how the `if` after the loop tells the two endings apart.
+
+```java
+void main() {
+    double weekly = Double.parseDouble(IO.readln("Saving how much a week? ").strip());
+    double total = 0;
+    int weeks = 0;
+
+    for (int week = 1; week <= 52; week++) {
+        weeks++;
+        total += weekly;
+        if (total >= 240) {
+            break;
+        }
+    }
+
+    if (total >= 240) {
+        IO.println("Reached in week " + weeks);
+    } else {
+        IO.println("Not this year");
+    }
+}
+```
+
+The second answer counts the weeks in a variable of its own and tests the total again after the loop to see which way it ended.
+
+### mistake
+
+No `break`: every week from the goal on overwrites `reachedIn`, so the loop runs all 52 weeks and reports week 52.
+
+```java
+void main() {
+    double weekly = Double.parseDouble(IO.readln("Saving how much a week? ").strip());
+    double total = 0;
+    int reachedIn = 0;
+
+    for (int week = 1; week <= 52; week++) {
+        total += weekly;
+        if (total >= 240) {
+            reachedIn = week;
+        }
+    }
+
+    if (reachedIn > 0) {
+        IO.println("Reached in week " + reachedIn);
+    } else {
+        IO.println("Not this year");
+    }
+}
+```
+
+`week < 52` is 51 weeks, so 4.62 a week, which reaches 240 only in week 52, says `Not this year`:
+
+```java
+void main() {
+    double weekly = Double.parseDouble(IO.readln("Saving how much a week? ").strip());
+    double total = 0;
+    int reachedIn = 0;
+
+    for (int week = 1; week < 52; week++) {
+        total += weekly;
+        if (total >= 240) {
+            reachedIn = week;
+            break;
+        }
+    }
+
+    if (reachedIn > 0) {
+        IO.println("Reached in week " + reachedIn);
+    } else {
+        IO.println("Not this year");
+    }
+}
+```
+
+## ch05-repetition-practice#5
+
+```java
+void main() {
+    double weekly = Double.parseDouble(IO.readln("Saving how much a week? ").strip());
+    double total = 0;
+
+    for (int week = 1; week < 200; week++) {
+        if (week % 5 == 0) {
+            continue;
+        }
+        total += weekly;
+        if (total >= 240) {
+            IO.println("Reached in week " + week);
+            break;
+        }
+    }
+}
+```
+
+`continue` skips the rest of this pass and moves on to the next week. `break` would end the loop entirely, which here means giving up in week 5.
+
+```java
+void main() {
+    double weekly = Double.parseDouble(IO.readln("Saving how much a week? ").strip());
+    double total = 0;
+    int week = 0;
+
+    while (total < 240) {
+        week++;
+        if (week % 5 == 0) {
+            continue;
+        }
+        total += weekly;
+    }
+
+    IO.println("Reached in week " + week);
+}
+```
+
+The second answer counts the weeks itself in a `while` loop, adding one before the `continue`, so a skipped week still moves the count on.
+
+### mistake
+
+`break` where `continue` belongs: the loop ends in week 5, and nothing is printed.
+
+```java
+void main() {
+    double weekly = Double.parseDouble(IO.readln("Saving how much a week? ").strip());
+    double total = 0;
+
+    for (int week = 1; week < 200; week++) {
+        if (week % 5 == 0) {
+            break;
+        }
+        total += weekly;
+        if (total >= 240) {
+            IO.println("Reached in week " + week);
+            break;
+        }
+    }
+}
+```
+
+## ch05-repetition-practice#6
+
+```java
+void main() {
+    double weekly = Double.parseDouble(IO.readln("Saving how much a week? ").strip());
+    double total = 0;
+
+    for (int week = 1; week < 200; week++) {
+        total += weekly;
+        if (week % 4 == 0) {
+            total += 10;
+        }
+        if (total >= 240) {
+            IO.println("Reached in week " + week);
+            break;
+        }
+    }
+}
+```
+
+`week % 4 == 0` is every fourth week: 4, 8, 12. Comparing with 1 picks weeks 1, 5 and 9 instead, which pays the first bonus three weeks early.
+
+```java
+void main() {
+    double weekly = Double.parseDouble(IO.readln("Saving how much a week? ").strip());
+    double total = 0;
+    int week = 0;
+
+    while (total < 240) {
+        week++;
+        total += weekly;
+        if (week % 4 == 0) {
+            total += 10;
+        }
+    }
+
+    IO.println("Reached in week " + week);
+}
+```
+
+The second answer uses a `while` loop whose condition is the goal itself.
+
+### mistake
+
+`week % 4 == 1` pays the bonus in weeks 1, 5 and 9. At 15 a week that still lands on week 14; at 9 a week it lands on week 21, not 22.
+
+```java
+void main() {
+    double weekly = Double.parseDouble(IO.readln("Saving how much a week? ").strip());
+    double total = 0;
+
+    for (int week = 1; week < 200; week++) {
+        total += weekly;
+        if (week % 4 == 1) {
+            total += 10;
+        }
+        if (total >= 240) {
+            IO.println("Reached in week " + week);
+            break;
+        }
+    }
+}
+```
+
+## ch05-repetition-practice#7
+
+```java
+void main() {
+    double weekly = Double.parseDouble(IO.readln("Saving how much a week? ").strip());
+    double total = 0;
+
+    for (int week = 1; week < 200; week++) {
+        total += weekly;
+        total *= 1.01;
+        if (total >= 240) {
+            IO.println("Reached in week " + week);
+            break;
+        }
+    }
+}
+```
+
+The deposit goes in first, then `total *= 1.01` adds one percent of the new balance. Doing it the other way around pays nothing on the money just paid in.
+
+```java
+void main() {
+    double weekly = Double.parseDouble(IO.readln("Saving how much a week? ").strip());
+    double total = 0;
+    int week = 0;
+
+    while (total < 240) {
+        week++;
+        total = (total + weekly) * 1.01;
+    }
+
+    IO.println("Reached in week " + week);
+}
+```
+
+The second answer does the deposit and the interest in one line, the deposit inside the parentheses so it is added first.
+
+### mistake
+
+Interest before the deposit: each week's deposit earns nothing until the week after, so 3 a week takes until week 60.
+
+```java
+void main() {
+    double weekly = Double.parseDouble(IO.readln("Saving how much a week? ").strip());
+    double total = 0;
+
+    for (int week = 1; week < 200; week++) {
+        total *= 1.01;
+        total += weekly;
+        if (total >= 240) {
+            IO.println("Reached in week " + week);
+            break;
+        }
+    }
+}
+```
+
+## ch05-repetition-practice#8
+
+```java
+// The savings tracker: eight weekly balances, then the week the goal is reached.
+
+void main() {
+    double weekly = Double.parseDouble(IO.readln("Saving how much a week? ").strip());
+    double total = 0;
+
+    for (int week = 1; week <= 8; week++) {
+        total += weekly;
+        IO.println("Week " + week + ": " + total);
+    }
+
+    total = 0;
+    for (int week = 1; week < 200; week++) {
+        if (week % 5 == 0) {
+            continue;
+        }
+        total += weekly;
+        if (week % 4 == 0) {
+            total += 10;
+        }
+        if (total >= 240) {
+            IO.println("Goal reached in week " + week);
+            break;
+        }
+    }
+}
+```
+
+Nothing new, only assembly: the first loop prints the eight balances, then `total` goes back to 0 for the second, which skips every fifth week and pays the bonus every fourth. The bonus and the skipped weeks pull in opposite directions, and together they land on week 17 rather than either answer on its own.
+
+```java
+// Prints eight balances, then finds the goal week with the bonus and the skipped weeks.
+
+void main() {
+    double weekly = Double.parseDouble(IO.readln("Weekly amount? ").strip());
+
+    double balance = 0;
+    int week = 1;
+    while (week <= 8) {
+        balance += weekly;
+        IO.println("Week " + week + ": " + String.format("%.2f", balance));
+        week++;
+    }
+
+    double saved = 0;
+    int goalWeek = 0;
+    while (saved < 240) {
+        goalWeek++;
+        if (goalWeek % 5 == 0) {
+            continue;
+        }
+        saved += weekly;
+        if (goalWeek % 4 == 0) {
+            saved += 10;
+        }
+    }
+    IO.println("Goal: week " + goalWeek);
+}
+```
+
+The second answer keeps the two parts in two variables of their own, so neither has to be set back to 0, and lets the goal end its `while` loop.
+
+### mistake
+
+`total` not set back to 0: the second loop starts from week 8's balance, so the goal comes far too soon.
+
+```java
+void main() {
+    double weekly = Double.parseDouble(IO.readln("Saving how much a week? ").strip());
+    double total = 0;
+
+    for (int week = 1; week <= 8; week++) {
+        total += weekly;
+        IO.println("Week " + week + ": " + total);
+    }
+
+    for (int week = 1; week < 200; week++) {
+        if (week % 5 == 0) {
+            continue;
+        }
+        total += weekly;
+        if (week % 4 == 0) {
+            total += 10;
+        }
+        if (total >= 240) {
+            IO.println("Goal reached in week " + week);
+            break;
+        }
+    }
+}
+```
+
+The two loops without the skipped weeks: the bonus alone gets there in week 14.
+
+```java
+void main() {
+    double weekly = Double.parseDouble(IO.readln("Saving how much a week? ").strip());
+    double total = 0;
+
+    for (int week = 1; week <= 8; week++) {
+        total += weekly;
+        IO.println("Week " + week + ": " + total);
+    }
+
+    total = 0;
+    for (int week = 1; week < 200; week++) {
+        total += weekly;
+        if (week % 4 == 0) {
+            total += 10;
+        }
+        if (total >= 240) {
+            IO.println("Goal reached in week " + week);
+            break;
+        }
+    }
+}
+```

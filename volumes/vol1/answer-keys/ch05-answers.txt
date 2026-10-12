@@ -1,0 +1,173 @@
+GROUNDWORK
+Chapter 5 - Repetition
+
+ANSWER KEY
+
+
+VOCABULARY
+----------
+
+ 1. A loop that repeats as long as its condition stays true is called a
+    ____ loop.
+
+      ANSWER: while
+
+ 2. A loop whose condition never becomes false, so it repeats forever, is
+    called an ____ loop.
+
+      ANSWER: infinite
+
+ 3. The pattern of setting up a variable before a loop and updating it on
+    every pass (to build a sum, a count, or a string) is called the ____
+    pattern.
+
+      ANSWER: accumulator
+
+ 4. A boolean variable used to record how a loop ended, such as whether
+    the player won or ran out of tries, is called a ____.
+
+      ANSWER: flag
+
+
+READING CODE
+------------
+
+ 5. What does this print?
+
+        int count = 1;
+
+        while (count <= 5) {
+            IO.println("Count is " + count);
+            count += 1;
+        }
+
+        IO.println("Done.");
+
+      ANSWER: Count is 1
+          Count is 2
+          Count is 3
+          Count is 4
+          Count is 5
+          Done.
+
+ 6. What does this print?
+
+        for (int i = 2; i < 6; i++) {
+            IO.println(i);
+        }
+
+      ANSWER: 2
+          3
+          4
+          5
+
+ 7. What does this print?
+
+        for (int row = 1; row <= 2; row++) {
+            for (int col = 1; col <= 2; col++) {
+                IO.println(row + " x " + col + " = " + (row * col));
+            }
+        }
+
+      ANSWER: 1 x 1 = 1
+          1 x 2 = 2
+          2 x 1 = 2
+          2 x 2 = 4
+
+ 8. What does this print?
+
+        for (int number = 1; number <= 10; number++) {
+            if (number % 3 != 0) {
+                continue;
+            }
+            IO.println(number);
+        }
+
+      ANSWER: 3
+          6
+          9
+
+ 9. What does this print?
+
+        int total = 0;
+        for (int i = 1; i <= 5; i++) {
+            if (i == 3) {
+                continue;
+            }
+            total += i;
+        }
+        IO.println(total);
+
+      ANSWER: 12
+
+
+WRITING CODE
+------------
+
+10. Complete the condition so the loop keeps asking until a whole number
+    has been read:
+    boolean answered = false;
+    while (____) {
+        String answer = IO.readln("Enter a number: ");
+        if (answer == null) {
+            break;
+        }
+        try {
+            int number = Integer.parseInt(answer.strip());
+            IO.println("Thank you. You entered " + number + ".");
+            answered = true;
+        } catch (NumberFormatException e) {
+            IO.println("That is not a whole number.");
+        }
+    }
+
+      ANSWER: !answered
+
+11. Complete the header so the loop counts down from 5 to 1:
+    for (int i = 5; i > 0; i____) {
+        IO.println(i);
+    }
+
+      ANSWER: --
+
+12. Complete the line that moves count toward the end of the loop:
+    int count = 1;
+    while (count <= 5) {
+        IO.println("Count is " + count);
+        count ____ 1;
+    }
+
+      ANSWER: +=
+
+13. Complete the menu loop so that typing quit ends it:
+    while (true) {
+        String command = IO.readln("Enter a command (or 'quit'): ");
+        if (command == null || command.equals("quit")) {
+            ____;
+        }
+        IO.println("You said: " + command);
+    }
+
+      ANSWER: break
+
+
+WHY IT WORKS
+------------
+
+14. A while loop needs a variable set up before the loop, a condition
+    that can become false, and something inside the loop that moves
+    toward that. Deleting count += 1; means count never changes, so
+    count <= 5 stays ____ forever and the loop never ends.
+
+      ANSWER: true
+
+15. for (int i = 0; i < n; i++) runs exactly ____ times, which is why
+    i < 5 gives i the values 0 through 4 rather than 0 through 5.
+
+      ANSWER: n
+
+16. Starting largest at 0 before the loop gives the wrong answer when
+    every number entered is ____, because none of them would ever be
+    greater than 0.
+
+      ANSWER: negative

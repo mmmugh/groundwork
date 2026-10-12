@@ -279,5 +279,93 @@
       "6000",
       "98"
     ]
+  },
+  "ch05-repetition#2": {
+    "stdin": [
+      "seven",
+      "7"
+    ]
+  },
+  "ch05-repetition#11": {
+    "stdin": [
+      "12",
+      "7",
+      "31",
+      "4",
+      "18"
+    ]
+  },
+  "ch05-repetition#13": {
+    "stdin": [
+      "hello",
+      "quit"
+    ]
+  },
+  "ch05-repetition#16": {
+    "stdin": [
+      "5"
+    ]
+  },
+  "ch05-repetition#17": {
+    "stdin": [
+      "5",
+      "10",
+      "0"
+    ]
+  },
+  "ch05-repetition#19": {
+    "stdin": [
+      "education"
+    ]
+  },
+  "ch05-repetition#20": {
+    "stdin": [
+      "50",
+      "30",
+      "42"
+    ]
+  },
+  "ch05-repetition#22": {
+    "stdin": [
+      "fifty",
+      "50"
+    ],
+    "varies": true,
+    "why": "The secret number is random, so each run picks its own: your game will not match the sample run under the program."
+  },
+  "ch05-repetition-practice#2": {
+    "stdin": [
+      "15"
+    ]
+  },
+  "ch05-repetition-practice#3": {
+    "stdin": [
+      "15"
+    ]
+  },
+  "ch05-repetition-practice#4": {
+    "stdin": [
+      "15"
+    ]
+  },
+  "ch05-repetition-practice#5": {
+    "stdin": [
+      "15"
+    ]
+  },
+  "ch05-repetition-practice#6": {
+    "stdin": [
+      "15"
+    ]
+  },
+  "ch05-repetition-practice#7": {
+    "stdin": [
+      "15"
+    ]
+  },
+  "ch05-repetition-practice#8": {
+    "stdin": [
+      "15"
+    ]
   }
 }
