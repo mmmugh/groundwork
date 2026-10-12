@@ -385,5 +385,30 @@
       "79",
       "95"
     ]
+  },
+  "ch07-arrays-and-lists#2": {
+    "compileError": "incompatible types: String cannot be converted to int",
+    "why": "An int array given a String, which javac refuses. The error message is the lesson."
+  },
+  "ch07-arrays-and-lists#4": {
+    "raises": "java.lang.ArrayIndexOutOfBoundsException",
+    "why": "Java has no negative indexes, so index -1 does not exist and the program stops. The exception is the lesson."
+  },
+  "ch07-arrays-and-lists#5": {
+    "raises": "java.lang.ArrayIndexOutOfBoundsException",
+    "why": "The array has two items, so index 5 does not exist and the program stops. The exception is the lesson."
+  },
+  "ch07-arrays-and-lists#17": {
+    "compileError": "incompatible types: void cannot be converted to ArrayList<Integer>",
+    "why": "What Collections.sort gives back is stored in a variable, which javac refuses: it gives back nothing. The error message is the lesson."
+  },
+  "ch07-arrays-and-lists#24": {
+    "stdin": [
+      "pear",
+      "apple",
+      "fig",
+      "date",
+      "cherry"
+    ]
   }
 }

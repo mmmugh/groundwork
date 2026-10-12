@@ -1738,5 +1738,321 @@
     "kind": "output",
     "expected": "180 C is 356.0 F\n5 km is 3.11 miles\n2 cups is 473.2 ml",
     "starter": "// Bring in cToF, kmToMiles and cupsToMl here.\n\nvoid main() {\n    // The three lines of the table.\n}\n"
+  },
+  "ch07-arrays-and-lists#23": {
+    "kind": "input",
+    "runs": [
+      {
+        "typed": [],
+        "numbers": [
+          "808",
+          "80.8",
+          "95",
+          "60"
+        ]
+      }
+    ],
+    "starter": "void main() {\n    int[] numbers = {88, 92, 79, 95, 60, 73, 85, 91, 68, 77};\n    // Total, average, largest, smallest.\n}\n"
+  },
+  "ch07-arrays-and-lists#24": {
+    "kind": "input",
+    "runs": [
+      {
+        "typed": [
+          "pear",
+          "apple",
+          "fig",
+          "date",
+          "cherry"
+        ],
+        "words": [
+          "apple",
+          "cherry",
+          "date",
+          "fig",
+          "pear"
+        ]
+      },
+      {
+        "typed": [
+          "kiwi",
+          "banana",
+          "mango",
+          "apple",
+          "lime"
+        ],
+        "words": [
+          "apple",
+          "banana",
+          "kiwi",
+          "lime",
+          "mango"
+        ]
+      }
+    ],
+    "starter": "void main() {\n    // Ask for five words; print them in order.\n}\n"
+  },
+  "ch07-arrays-and-lists#25": {
+    "kind": "method",
+    "name": "countAbove",
+    "returns": "int",
+    "params": [
+      "int[]",
+      "int"
+    ],
+    "cases": [
+      [
+        "new int[] {1, 5, 9}, 4",
+        "2"
+      ],
+      [
+        "new int[] {}, 0",
+        "0"
+      ],
+      [
+        "new int[] {3, 3, 3}, 3",
+        "0"
+      ],
+      [
+        "new int[] {-5, 0, 5}, -1",
+        "2"
+      ],
+      [
+        "new int[] {10, 2, 3}, 5",
+        "1"
+      ]
+    ],
+    "starter": "int countAbove(int[] numbers, int threshold) {\n    return 0;\n}\n\nvoid main() {\n    int[] scores = {88, 92, 45, 95, 58, 71};\n    IO.println(countAbove(scores, 80));\n}\n"
+  },
+  "ch07-arrays-and-lists#26": {
+    "kind": "output",
+    "expected": "[8, 22, 56, 10]",
+    "starter": "void main() {\n    int[] numbers = {3, 8, 15, 22, 41, 56, 7, 10};\n    // A new list of the even ones, printed.\n}\n"
+  },
+  "ch07-arrays-and-lists#27": {
+    "kind": "output",
+    "expected": "[5, 4, 3, 2, 1]",
+    "starter": "void main() {\n    int[] original = {1, 2, 3, 4, 5};\n    // A reversed list, printed.\n}\n"
+  },
+  "ch07-arrays-and-lists#28": {
+    "kind": "method",
+    "name": "secondLargest",
+    "returns": "int",
+    "params": [
+      "int[]"
+    ],
+    "cases": [
+      [
+        "new int[] {3, 1, 4, 1, 5}",
+        "4"
+      ],
+      [
+        "new int[] {10, 20}",
+        "10"
+      ],
+      [
+        "new int[] {7, 2, 9, 4}",
+        "7"
+      ],
+      [
+        "new int[] {5, 9, 7}",
+        "7"
+      ],
+      [
+        "new int[] {9, 5, 7}",
+        "7"
+      ],
+      [
+        "new int[] {-3, -1, -7}",
+        "-3"
+      ]
+    ],
+    "starter": "int secondLargest(int[] numbers) {\n    return 0;\n}\n\nvoid main() {\n    IO.println(secondLargest(new int[] {3, 1, 4, 1, 5}));\n}\n"
+  },
+  "ch07-arrays-and-lists#29": {
+    "kind": "output",
+    "expected": "0 0 0\n0 5 0\n0 0 0",
+    "starter": "void main() {\n    // A 3-by-3 grid of zeros, a 5 in the center.\n}\n"
+  },
+  "ch07-arrays-and-lists-practice#1": {
+    "kind": "method",
+    "name": "totalSeconds",
+    "returns": "int",
+    "params": [
+      "ArrayList<Integer>"
+    ],
+    "cases": [
+      [
+        "new ArrayList<>(List.of(210, 185, 240))",
+        "635"
+      ],
+      [
+        "new ArrayList<>()",
+        "0"
+      ],
+      [
+        "new ArrayList<>(List.of(90))",
+        "90"
+      ]
+    ],
+    "starter": "int totalSeconds(ArrayList<Integer> seconds) {\n    return 0;\n}\n\nvoid main() {\n    ArrayList<Integer> seconds = new ArrayList<>(List.of(210, 185, 240));\n    IO.println(totalSeconds(seconds));\n}\n"
+  },
+  "ch07-arrays-and-lists-practice#2": {
+    "kind": "method",
+    "name": "averageSeconds",
+    "returns": "double",
+    "params": [
+      "ArrayList<Integer>"
+    ],
+    "cases": [
+      [
+        "new ArrayList<>(List.of(210, 185, 240))",
+        "211.7"
+      ],
+      [
+        "new ArrayList<>(List.of(100, 200))",
+        "150.0"
+      ],
+      [
+        "new ArrayList<>(List.of(90))",
+        "90.0"
+      ]
+    ],
+    "starter": "double averageSeconds(ArrayList<Integer> seconds) {\n    return 0;\n}\n\nvoid main() {\n    ArrayList<Integer> seconds = new ArrayList<>(List.of(210, 185, 240));\n    IO.println(averageSeconds(seconds));\n}\n"
+  },
+  "ch07-arrays-and-lists-practice#3": {
+    "kind": "method",
+    "name": "longestTitle",
+    "returns": "String",
+    "params": [
+      "ArrayList<String>"
+    ],
+    "cases": [
+      [
+        "new ArrayList<>(List.of(\"Anvil\", \"Ghost Town\", \"Ribbons\"))",
+        "\"Ghost Town\""
+      ],
+      [
+        "new ArrayList<>(List.of(\"Ribbons\"))",
+        "\"Ribbons\""
+      ],
+      [
+        "new ArrayList<>(List.of(\"Anvil\", \"Ribbons\"))",
+        "\"Ribbons\""
+      ]
+    ],
+    "starter": "String longestTitle(ArrayList<String> titles) {\n    return \"\";\n}\n\nvoid main() {\n    ArrayList<String> titles = new ArrayList<>(List.of(\"Ghost Town\", \"Ribbons\", \"Anvil\"));\n    IO.println(longestTitle(titles));\n}\n"
+  },
+  "ch07-arrays-and-lists-practice#4": {
+    "kind": "output",
+    "expected": "[Ghost Town, Ribbons, Anvil, Lanterns]\n[Ghost Town, Ribbons, Anvil]",
+    "starter": "ArrayList<String> playlistWith(ArrayList<String> titles, String title) {\n    return new ArrayList<>();\n}\n\nvoid main() {\n    ArrayList<String> titles = new ArrayList<>(List.of(\"Ghost Town\", \"Ribbons\", \"Anvil\"));\n    IO.println(playlistWith(titles, \"Lanterns\"));\n    IO.println(titles);\n}\n"
+  },
+  "ch07-arrays-and-lists-practice#5": {
+    "kind": "method",
+    "name": "firstThree",
+    "returns": "ArrayList<String>",
+    "params": [
+      "ArrayList<String>"
+    ],
+    "cases": [
+      [
+        "new ArrayList<>(List.of(\"a\", \"b\", \"c\", \"d\"))",
+        "new ArrayList<>(List.of(\"a\", \"b\", \"c\"))"
+      ],
+      [
+        "new ArrayList<>(List.of(\"a\"))",
+        "new ArrayList<>(List.of(\"a\"))"
+      ],
+      [
+        "new ArrayList<>()",
+        "new ArrayList<>()"
+      ]
+    ],
+    "starter": "ArrayList<String> firstThree(ArrayList<String> titles) {\n    return new ArrayList<>();\n}\n\nvoid main() {\n    ArrayList<String> titles = new ArrayList<>(List.of(\"Ghost Town\", \"Ribbons\", \"Anvil\"));\n    titles.add(\"Lanterns\");\n    IO.println(firstThree(titles));\n}\n"
+  },
+  "ch07-arrays-and-lists-practice#6": {
+    "kind": "method",
+    "name": "hasSong",
+    "returns": "boolean",
+    "params": [
+      "ArrayList<String>",
+      "String"
+    ],
+    "cases": [
+      [
+        "new ArrayList<>(List.of(\"Anvil\", \"Ribbons\")), \"Ribbons\"",
+        "true"
+      ],
+      [
+        "new ArrayList<>(List.of(\"Anvil\", \"Ribbons\")), \"Nope\"",
+        "false"
+      ],
+      [
+        "new ArrayList<>(), \"Anvil\"",
+        "false"
+      ],
+      [
+        "new ArrayList<>(List.of(\"Anvil\", \"Ribbons\")), \"Anvil\"",
+        "true"
+      ]
+    ],
+    "starter": "boolean hasSong(ArrayList<String> titles, String title) {\n    return false;\n}\n\nvoid main() {\n    ArrayList<String> titles = new ArrayList<>(List.of(\"Ghost Town\", \"Ribbons\", \"Anvil\"));\n    IO.println(hasSong(titles, \"Anvil\"));\n    IO.println(hasSong(titles, \"Lanterns\"));\n}\n"
+  },
+  "ch07-arrays-and-lists-practice#7": {
+    "kind": "method",
+    "name": "positions",
+    "returns": "ArrayList<Integer>",
+    "params": [
+      "ArrayList<String>",
+      "String"
+    ],
+    "cases": [
+      [
+        "new ArrayList<>(List.of(\"Ribbons\", \"Anvil\", \"Ribbons\")), \"Ribbons\"",
+        "new ArrayList<>(List.of(0, 2))"
+      ],
+      [
+        "new ArrayList<>(List.of(\"Anvil\")), \"Anvil\"",
+        "new ArrayList<>(List.of(0))"
+      ],
+      [
+        "new ArrayList<>(List.of(\"Anvil\")), \"Ribbons\"",
+        "new ArrayList<>()"
+      ],
+      [
+        "new ArrayList<>(List.of(\"Ribbons\", \"Anvil\", \"Ribbons\")), \" Ribbons\".strip()",
+        "new ArrayList<>(List.of(0, 2))"
+      ]
+    ],
+    "starter": "ArrayList<Integer> positions(ArrayList<String> titles, String title) {\n    return new ArrayList<>();\n}\n\nvoid main() {\n    ArrayList<String> titles = new ArrayList<>(List.of(\"Ribbons\", \"Anvil\", \"Ribbons\"));\n    IO.println(positions(titles, \"Ribbons\"));\n}\n"
+  },
+  "ch07-arrays-and-lists-practice#8": {
+    "kind": "method",
+    "name": "byLength",
+    "returns": "ArrayList<String>",
+    "params": [
+      "ArrayList<String>",
+      "ArrayList<Integer>"
+    ],
+    "cases": [
+      [
+        "new ArrayList<>(List.of(\"Anvil\", \"Ribbons\", \"Ghost Town\")), new ArrayList<>(List.of(240, 185, 210))",
+        "new ArrayList<>(List.of(\"Ribbons\", \"Ghost Town\", \"Anvil\"))"
+      ],
+      [
+        "new ArrayList<>(List.of(\"a\", \"b\")), new ArrayList<>(List.of(2, 1))",
+        "new ArrayList<>(List.of(\"b\", \"a\"))"
+      ],
+      [
+        "new ArrayList<>(), new ArrayList<>()",
+        "new ArrayList<>()"
+      ],
+      [
+        "new ArrayList<>(List.of(\"a\", \"b\", \"c\")), new ArrayList<>(List.of(200, 100, 200))",
+        "new ArrayList<>(List.of(\"b\", \"a\", \"c\"))"
+      ]
+    ],
+    "starter": "ArrayList<String> byLength(ArrayList<String> titles, ArrayList<Integer> seconds) {\n    return new ArrayList<>();\n}\n\nvoid main() {\n    ArrayList<String> titles = new ArrayList<>(List.of(\"Ghost Town\", \"Ribbons\", \"Anvil\"));\n    ArrayList<Integer> seconds = new ArrayList<>(List.of(210, 185, 240));\n    IO.println(byLength(titles, seconds));\n}\n"
   }
 }

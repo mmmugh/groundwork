@@ -1,0 +1,131 @@
+GROUNDWORK
+Chapter 7 - Arrays and Lists
+
+Name: ________________________________     Date: ______________
+
+Fill in every blank. Where a term is asked for, write the word the course
+uses. Where code is asked for, write exact Java. Where output is asked
+for, write what the program prints, one line per line.
+
+
+VOCABULARY
+----------
+
+ 1. The line int[] scores = {88, 92, 79}; makes one __________________:
+    many values of one type, held in one variable, in order, with a length
+    fixed when it is made.
+
+ 2. Each item in an array or a list has a position called its
+    __________________. Java counts these starting from zero.
+
+ 3. The property that lets an array's items be changed after it is
+    created, unlike the letters of a String, is called
+    __________________.
+
+ 4. Taking a section of an array into a new array, as
+    Arrays.copyOfRange(letters, 1, 4) does, is called
+    __________________. The original array is left untouched.
+
+
+READING CODE
+------------
+
+ 5. What does this print?
+
+        String[] names = {"Ada", "Grace", "Alan", "Katherine"};
+        IO.println(names[1]);
+        IO.println(names[names.length - 1]);
+
+    ____________________________________
+
+ 6. What does this print?
+
+        String[] letters = {"a", "b", "c", "d", "e", "f"};
+        IO.println(Arrays.toString(Arrays.copyOfRange(letters, 2, 5)));
+        IO.println(Arrays.toString(Arrays.copyOfRange(letters, 0, 2)));
+
+    ____________________________________
+
+ 7. What does this print?
+
+        ArrayList<Integer> scores = new ArrayList<>(List.of(88, 92, 79));
+        ArrayList<Integer> ordered = new ArrayList<>(scores);
+        Collections.sort(ordered);
+        IO.println(ordered);
+        IO.println(scores);
+
+    ____________________________________
+
+ 8. What does this print?
+
+        ArrayList<Integer> a = new ArrayList<>(List.of(1, 2, 3));
+        ArrayList<Integer> b = a;
+        b.add(4);
+        IO.println(a);
+
+    ____________________________________
+
+ 9. What does this print?
+
+        String[] names = {"Ada", "Grace", "Alan"};
+        for (int i = 0; i < names.length; i++) {
+            IO.println((i + 1) + ". " + names[i]);
+        }
+
+    ____________________________________
+
+10. What does this print?
+
+        int[] scores = {55, 82, 91, 40, 76};
+        ArrayList<Integer> passing = new ArrayList<>();
+        for (int score : scores) {
+            if (score >= 60) {
+                passing.add(score);
+            }
+        }
+        IO.println(passing);
+        IO.println(passing.size());
+
+    ____________________________________
+
+
+WRITING CODE
+------------
+
+11. Complete the line so that it adds "Alan" to the end of the list:
+    ArrayList<String> names = new ArrayList<>(List.of("Ada", "Grace"));
+    names.__________________("Alan");
+    IO.println(names); // [Ada, Grace, Alan]
+
+12. Complete the line so that it sorts the copy, leaving scores as it
+    was:
+    ArrayList<Integer> scores = new ArrayList<>(List.of(88, 92, 79));
+    ArrayList<Integer> ordered = new ArrayList<>(scores);
+    __________________(ordered);
+    IO.println(ordered + " " + scores); // [79, 88, 92] [88, 92, 79]
+
+13. Complete the loop so that it keeps the even numbers:
+    ArrayList<Integer> evens = new ArrayList<>();
+    for (int n : numbers) {
+        if (n % 2 == 0) {
+            evens.__________________(n); // adds n to the end of evens
+        }
+    }
+
+
+WHY IT WORKS
+------------
+
+14. Printing a shows [1, 2, 3, 4] even though only b was changed, because
+    b = a does not create a second list: it makes b a second
+    __________________ holding the __________________ object as a.
+
+        ArrayList<Integer> a = new ArrayList<>(List.of(1, 2, 3));
+        ArrayList<Integer> b = a;
+        b.add(4);
+        IO.println(a);
+
+15. Collections.sort changes a list __________________ and gives back
+    __________________, which is why
+    ArrayList<Integer> result = Collections.sort(scores); does not
+    compile.

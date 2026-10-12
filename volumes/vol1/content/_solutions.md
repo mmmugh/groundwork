@@ -4649,3 +4649,1309 @@ void main() {
     IO.println("2 cups is " + cupsToMl(2) + " ml");
 }
 ```
+
+## ch07-arrays-and-lists#23
+
+Try It 1: the total, average, largest and smallest of ten numbers.
+
+```java
+// The total, average, largest and smallest of ten numbers.
+
+void main() {
+    int[] numbers = {88, 92, 79, 95, 60, 73, 85, 91, 68, 77};
+
+    int total = 0;
+    int largest = numbers[0];
+    int smallest = numbers[0];
+    for (int number : numbers) {
+        total += number;
+        if (number > largest) {
+            largest = number;
+        }
+        if (number < smallest) {
+            smallest = number;
+        }
+    }
+
+    IO.println("Total: " + total);
+    IO.println("Average: " + ((double) total / numbers.length));
+    IO.println("Largest: " + largest);
+    IO.println("Smallest: " + smallest);
+}
+```
+
+One pass over the array does all three jobs, as in the chapter's totals program. `largest` and `smallest` both start from the first number, never from 0, and the `(double)` cast keeps the average's fraction: 808 divided by 10 is 80.8, where two `int`s would give 80.
+
+```java
+void main() {
+    int[] numbers = {88, 92, 79, 95, 60, 73, 85, 91, 68, 77};
+
+    int total = 0;
+    for (int i = 0; i < numbers.length; i++) {
+        total += numbers[i];
+    }
+
+    int largest = numbers[0];
+    int smallest = numbers[0];
+    for (int i = 1; i < numbers.length; i++) {
+        if (numbers[i] > largest) {
+            largest = numbers[i];
+        }
+        if (numbers[i] < smallest) {
+            smallest = numbers[i];
+        }
+    }
+
+    double average = (double) total / numbers.length;
+    IO.println("Total: " + total);
+    IO.println(String.format("Average: %.1f", average));
+    IO.println("Largest: " + largest);
+    IO.println("Smallest: " + smallest);
+}
+```
+
+The second answer uses counting loops, two of them, the second starting at index 1 since index 0 is already the first guess, and formats the average with `String.format`.
+
+### mistake
+
+Dividing two `int`s: the average comes out as 80, not 80.8.
+
+```java
+void main() {
+    int[] numbers = {88, 92, 79, 95, 60, 73, 85, 91, 68, 77};
+
+    int total = 0;
+    int largest = numbers[0];
+    int smallest = numbers[0];
+    for (int number : numbers) {
+        total += number;
+        if (number > largest) {
+            largest = number;
+        }
+        if (number < smallest) {
+            smallest = number;
+        }
+    }
+
+    IO.println("Total: " + total);
+    IO.println("Average: " + (total / numbers.length));
+    IO.println("Largest: " + largest);
+    IO.println("Smallest: " + smallest);
+}
+```
+
+Starting the smallest at 0: no number is below 0, so the smallest comes out as 0.
+
+```java
+void main() {
+    int[] numbers = {88, 92, 79, 95, 60, 73, 85, 91, 68, 77};
+
+    int total = 0;
+    int largest = 0;
+    int smallest = 0;
+    for (int number : numbers) {
+        total += number;
+        if (number > largest) {
+            largest = number;
+        }
+        if (number < smallest) {
+            smallest = number;
+        }
+    }
+
+    IO.println("Total: " + total);
+    IO.println("Average: " + ((double) total / numbers.length));
+    IO.println("Largest: " + largest);
+    IO.println("Smallest: " + smallest);
+}
+```
+
+## ch07-arrays-and-lists#24
+
+Try It 2: five words in alphabetical order.
+
+```java
+// Sorts five words the user types.
+
+void main() {
+    ArrayList<String> words = new ArrayList<>();
+
+    for (int i = 0; i < 5; i++) {
+        String word = IO.readln("Word " + (i + 1) + ": ");
+        if (word == null) {
+            break;
+        }
+        words.add(word.strip());
+    }
+
+    Collections.sort(words);
+    for (String word : words) {
+        IO.println(word);
+    }
+}
+```
+
+An `ArrayList` starts empty and takes each word as it comes, and `Collections.sort` puts them in order once all five are in. As in every loop that reads, a `null` answer ends the loop early. Words typed with capitals sort before lowercase ones, in Chapter 3's character-code order.
+
+```java
+void main() {
+    ArrayList<String> words = new ArrayList<>();
+
+    while (words.size() < 5) {
+        String word = IO.readln("Next word: ");
+        if (word == null) {
+            break;
+        }
+        words.add(word.strip());
+    }
+
+    Collections.sort(words);
+    IO.println(words);
+}
+```
+
+The second answer loops until the list holds five words, and prints the sorted list in one line.
+
+### mistake
+
+No sort: the words come out in the order they were typed.
+
+```java
+void main() {
+    ArrayList<String> words = new ArrayList<>();
+
+    for (int i = 0; i < 5; i++) {
+        String word = IO.readln("Word " + (i + 1) + ": ");
+        if (word == null) {
+            break;
+        }
+        words.add(word.strip());
+    }
+
+    for (String word : words) {
+        IO.println(word);
+    }
+}
+```
+
+Counting from 1 but stopping before 5: the loop asks for only four words, so the fifth never arrives.
+
+```java
+void main() {
+    ArrayList<String> words = new ArrayList<>();
+
+    for (int i = 1; i < 5; i++) {
+        String word = IO.readln("Word " + i + ": ");
+        if (word == null) {
+            break;
+        }
+        words.add(word.strip());
+    }
+
+    Collections.sort(words);
+    for (String word : words) {
+        IO.println(word);
+    }
+}
+```
+
+## ch07-arrays-and-lists#25
+
+Try It 3: `countAbove`.
+
+```java
+int countAbove(int[] numbers, int threshold) {
+    int count = 0;
+    for (int number : numbers) {
+        if (number > threshold) {
+            count++;
+        }
+    }
+    return count;
+}
+
+void main() {
+    int[] scores = {88, 92, 45, 95, 58, 71};
+    IO.println(countAbove(scores, 80));
+}
+```
+
+A counter that starts at 0 and goes up by one for each number above the threshold. "Greater than" is `>`: a number equal to the threshold does not count, so three 3s are not above 3. An empty array never enters the loop and counts 0.
+
+```java
+int countAbove(int[] numbers, int threshold) {
+    int count = 0;
+    for (int i = 0; i < numbers.length; i++) {
+        if (numbers[i] > threshold) {
+            count += 1;
+        }
+    }
+    return count;
+}
+
+void main() {
+    IO.println(countAbove(new int[] {-5, 0, 5}, -1));
+}
+```
+
+The second answer walks the indexes with a counting loop.
+
+### mistake
+
+`>=` where `>` belongs: three 3s count as above 3.
+
+```java
+int countAbove(int[] numbers, int threshold) {
+    int count = 0;
+    for (int number : numbers) {
+        if (number >= threshold) {
+            count++;
+        }
+    }
+    return count;
+}
+
+void main() {
+    IO.println(countAbove(new int[] {3, 3, 3}, 3));
+}
+```
+
+A counting loop that starts at index 1 skips the first number, which only matters when it is above the threshold: `{10, 2, 3}` above 5 counts 0.
+
+```java
+int countAbove(int[] numbers, int threshold) {
+    int count = 0;
+    for (int i = 1; i < numbers.length; i++) {
+        if (numbers[i] > threshold) {
+            count++;
+        }
+    }
+    return count;
+}
+
+void main() {
+    IO.println(countAbove(new int[] {10, 2, 3}, 5));
+}
+```
+
+## ch07-arrays-and-lists#26
+
+Try It 4: the even numbers, in a new list.
+
+```java
+// Keeps the even numbers from an array, in a new list.
+
+void main() {
+    int[] numbers = {3, 8, 15, 22, 41, 56, 7, 10};
+    ArrayList<Integer> evens = new ArrayList<>();
+
+    for (int number : numbers) {
+        if (number % 2 == 0) {
+            evens.add(number);
+        }
+    }
+
+    IO.println(evens);
+}
+```
+
+The chapter's filtering loop: the list starts empty and the `if` decides what gets added. A number is even when dividing it by 2 leaves no remainder, Chapter 3's `% 2 == 0`.
+
+```java
+void main() {
+    int[] numbers = {3, 8, 15, 22, 41, 56, 7, 10};
+    ArrayList<Integer> evens = new ArrayList<>();
+
+    for (int i = 0; i < numbers.length; i++) {
+        if (numbers[i] % 2 == 0) {
+            evens.add(numbers[i]);
+        }
+    }
+
+    IO.println(evens);
+}
+```
+
+The second answer walks the indexes with a counting loop.
+
+### mistake
+
+The test the wrong way around, which keeps the odd numbers:
+
+```java
+void main() {
+    int[] numbers = {3, 8, 15, 22, 41, 56, 7, 10};
+    ArrayList<Integer> evens = new ArrayList<>();
+
+    for (int number : numbers) {
+        if (number % 2 == 1) {
+            evens.add(number);
+        }
+    }
+
+    IO.println(evens);
+}
+```
+
+Printing each even number as it is found, instead of building the list and printing it:
+
+```java
+void main() {
+    int[] numbers = {3, 8, 15, 22, 41, 56, 7, 10};
+
+    for (int number : numbers) {
+        if (number % 2 == 0) {
+            IO.println(number);
+        }
+    }
+}
+```
+
+## ch07-arrays-and-lists#27
+
+Try It 5: a reversed copy, without `Collections.reverse`.
+
+```java
+// Builds a reversed copy of an array by walking it backward.
+
+void main() {
+    int[] original = {1, 2, 3, 4, 5};
+    ArrayList<Integer> reversed = new ArrayList<>();
+
+    for (int i = original.length - 1; i >= 0; i--) {
+        reversed.add(original[i]);
+    }
+
+    IO.println(reversed);
+}
+```
+
+The loop walks the indexes backward, from the last, `length - 1`, down to 0, and adds each item to the end of the new list. `i >= 0` keeps index 0 in: the loop stops only once `i` has gone below it.
+
+```java
+void main() {
+    int[] original = {1, 2, 3, 4, 5};
+    ArrayList<Integer> reversed = new ArrayList<>();
+
+    for (int number : original) {
+        reversed.add(0, number);
+    }
+
+    IO.println(reversed);
+}
+```
+
+The second answer walks forward and inserts each item at the front, so the last one in ends up first.
+
+### mistake
+
+`i > 0` stops before index 0, so the 1 is left out:
+
+```java
+void main() {
+    int[] original = {1, 2, 3, 4, 5};
+    ArrayList<Integer> reversed = new ArrayList<>();
+
+    for (int i = original.length - 1; i > 0; i--) {
+        reversed.add(original[i]);
+    }
+
+    IO.println(reversed);
+}
+```
+
+Starting at `original.length`, one past the last index: the first pass stops the program with an exception.
+
+```java
+void main() {
+    int[] original = {1, 2, 3, 4, 5};
+    ArrayList<Integer> reversed = new ArrayList<>();
+
+    for (int i = original.length; i >= 0; i--) {
+        reversed.add(original[i]);
+    }
+
+    IO.println(reversed);
+}
+```
+
+## ch07-arrays-and-lists#28
+
+Try It 6: `secondLargest`.
+
+```java
+int secondLargest(int[] numbers) {
+    int[] sorted = Arrays.copyOfRange(numbers, 0, numbers.length);
+    Arrays.sort(sorted);
+    return sorted[sorted.length - 2];
+}
+
+void main() {
+    IO.println(secondLargest(new int[] {3, 1, 4, 1, 5}));
+}
+```
+
+Sort a copy, and the second-largest value is one from the end, at `length - 2`. Copying the whole array first, from 0 to its length, leaves the caller's array in its own order.
+
+```java
+int secondLargest(int[] numbers) {
+    int largest = numbers[0];
+    int second = numbers[1];
+    if (second > largest) {
+        largest = numbers[1];
+        second = numbers[0];
+    }
+    for (int i = 2; i < numbers.length; i++) {
+        if (numbers[i] > largest) {
+            second = largest;
+            largest = numbers[i];
+        } else if (numbers[i] > second) {
+            second = numbers[i];
+        }
+    }
+    return second;
+}
+
+void main() {
+    IO.println(secondLargest(new int[] {9, 5, 7}));
+}
+```
+
+The second answer makes one pass and keeps the two largest so far, starting from the first two numbers in the right order. A new largest pushes the old one down to second; a number that beats only the second takes its place.
+
+### mistake
+
+Index 1 of the sorted copy is the second-*smallest*:
+
+```java
+int secondLargest(int[] numbers) {
+    int[] sorted = Arrays.copyOfRange(numbers, 0, numbers.length);
+    Arrays.sort(sorted);
+    return sorted[1];
+}
+
+void main() {
+    IO.println(secondLargest(new int[] {3, 1, 4, 1, 5}));
+}
+```
+
+Updating the second only when a new largest arrives misses a number that comes after the largest: `{5, 9, 7}` gives 5.
+
+```java
+int secondLargest(int[] numbers) {
+    int largest = numbers[0];
+    int second = numbers[0];
+    for (int number : numbers) {
+        if (number > largest) {
+            second = largest;
+            largest = number;
+        }
+    }
+    return second;
+}
+
+void main() {
+    IO.println(secondLargest(new int[] {5, 9, 7}));
+}
+```
+
+Starting both at the first number: when the first is the largest, nothing ever beats the second, so `{9, 5, 7}` gives 9.
+
+```java
+int secondLargest(int[] numbers) {
+    int largest = numbers[0];
+    int second = numbers[0];
+    for (int number : numbers) {
+        if (number > largest) {
+            second = largest;
+            largest = number;
+        } else if (number > second) {
+            second = number;
+        }
+    }
+    return second;
+}
+
+void main() {
+    IO.println(secondLargest(new int[] {9, 5, 7}));
+}
+```
+
+Starting both at 0: when every number is negative, the answer is 0.
+
+```java
+int secondLargest(int[] numbers) {
+    int largest = 0;
+    int second = 0;
+    for (int number : numbers) {
+        if (number > largest) {
+            second = largest;
+            largest = number;
+        } else if (number > second) {
+            second = number;
+        }
+    }
+    return second;
+}
+
+void main() {
+    IO.println(secondLargest(new int[] {-3, -1, -7}));
+}
+```
+
+## ch07-arrays-and-lists#29
+
+Try It 7: a grid of zeros with a 5 in the center.
+
+```java
+// A 3-by-3 grid of zeros with a 5 in the center.
+
+void main() {
+    int[][] grid = {
+        {0, 0, 0},
+        {0, 0, 0},
+        {0, 0, 0}
+    };
+
+    grid[1][1] = 5;
+
+    for (int[] row : grid) {
+        for (int value : row) {
+            IO.print(value + " ");
+        }
+        IO.println();
+    }
+}
+```
+
+The center of a 3-by-3 grid is row 1, position 1, since both count from 0. The two loops are the chapter's grid printer: the outer one hands out the rows, and the inner one prints each value with a space after it.
+
+```java
+void main() {
+    int[][] grid = {
+        {0, 0, 0},
+        {0, 0, 0},
+        {0, 0, 0}
+    };
+    grid[1][1] = 5;
+
+    for (int row = 0; row < grid.length; row++) {
+        for (int column = 0; column < grid[row].length; column++) {
+            IO.print(grid[row][column] + " ");
+        }
+        IO.println();
+    }
+}
+```
+
+The second answer walks the grid with counting loops, row and column, as two indexes.
+
+### mistake
+
+Counting from 1: row 2, position 2 is the bottom right corner, not the center.
+
+```java
+void main() {
+    int[][] grid = {
+        {0, 0, 0},
+        {0, 0, 0},
+        {0, 0, 0}
+    };
+
+    grid[2][2] = 5;
+
+    for (int[] row : grid) {
+        for (int value : row) {
+            IO.print(value + " ");
+        }
+        IO.println();
+    }
+}
+```
+
+Printing each row with `Arrays.toString`, which adds brackets and commas:
+
+```java
+void main() {
+    int[][] grid = {
+        {0, 0, 0},
+        {0, 0, 0},
+        {0, 0, 0}
+    };
+
+    grid[1][1] = 5;
+
+    for (int[] row : grid) {
+        IO.println(Arrays.toString(row));
+    }
+}
+```
+
+## ch07-arrays-and-lists-practice#1
+
+```java
+int totalSeconds(ArrayList<Integer> seconds) {
+    int total = 0;
+    for (int length : seconds) {
+        total += length;
+    }
+    return total;
+}
+
+void main() {
+    ArrayList<Integer> seconds = new ArrayList<>(List.of(210, 185, 240));
+    IO.println(totalSeconds(seconds));
+}
+```
+
+An accumulator over the list. The empty case falls out for free, because the total starts at 0 and the loop never runs.
+
+```java
+int totalSeconds(ArrayList<Integer> seconds) {
+    int total = 0;
+    for (int i = 0; i < seconds.size(); i++) {
+        total += seconds.get(i);
+    }
+    return total;
+}
+
+void main() {
+    IO.println(totalSeconds(new ArrayList<>()));
+}
+```
+
+The second answer walks the indexes with `get(i)`.
+
+### mistake
+
+Starting at index 1 leaves out the first song, so a one-song playlist totals 0.
+
+```java
+int totalSeconds(ArrayList<Integer> seconds) {
+    int total = 0;
+    for (int i = 1; i < seconds.size(); i++) {
+        total += seconds.get(i);
+    }
+    return total;
+}
+
+void main() {
+    IO.println(totalSeconds(new ArrayList<>(List.of(90))));
+}
+```
+
+Starting the total at the first song and then adding every song counts the first one twice.
+
+```java
+int totalSeconds(ArrayList<Integer> seconds) {
+    int total = seconds.get(0);
+    for (int length : seconds) {
+        total += length;
+    }
+    return total;
+}
+
+void main() {
+    IO.println(totalSeconds(new ArrayList<>(List.of(210, 185, 240))));
+}
+```
+
+## ch07-arrays-and-lists-practice#2
+
+```java
+double averageSeconds(ArrayList<Integer> seconds) {
+    int total = 0;
+    for (int length : seconds) {
+        total += length;
+    }
+    return Math.round((double) total / seconds.size() * 10) / 10.0;
+}
+
+void main() {
+    ArrayList<Integer> seconds = new ArrayList<>(List.of(210, 185, 240));
+    IO.println(averageSeconds(seconds));
+}
+```
+
+Divide by `size()`, not by the number of songs you happen to be testing with, and cast first, so the division keeps its fraction. Then Chapter 3's rounding: times 10, `Math.round`, divided by `10.0`.
+
+```java
+int totalSeconds(ArrayList<Integer> seconds) {
+    int total = 0;
+    for (int length : seconds) {
+        total += length;
+    }
+    return total;
+}
+
+double averageSeconds(ArrayList<Integer> seconds) {
+    double average = (double) totalSeconds(seconds) / seconds.size();
+    return Math.round(average * 10) / 10.0;
+}
+
+void main() {
+    IO.println(averageSeconds(new ArrayList<>(List.of(100, 200))));
+}
+```
+
+The second answer reuses step 1's `totalSeconds` and rounds on a line of its own.
+
+### mistake
+
+Two `int`s divided: 635 divided by 3 is 211, and 211.7 never appears.
+
+```java
+double averageSeconds(ArrayList<Integer> seconds) {
+    int total = 0;
+    for (int length : seconds) {
+        total += length;
+    }
+    return Math.round(total / seconds.size() * 10) / 10.0;
+}
+
+void main() {
+    IO.println(averageSeconds(new ArrayList<>(List.of(210, 185, 240))));
+}
+```
+
+Dividing by 3, the test playlist's length, gets the test playlist right and every other wrong:
+
+```java
+double averageSeconds(ArrayList<Integer> seconds) {
+    int total = 0;
+    for (int length : seconds) {
+        total += length;
+    }
+    return Math.round((double) total / 3 * 10) / 10.0;
+}
+
+void main() {
+    IO.println(averageSeconds(new ArrayList<>(List.of(100, 200))));
+}
+```
+
+No rounding: 211.66666666666666, not 211.7.
+
+```java
+double averageSeconds(ArrayList<Integer> seconds) {
+    int total = 0;
+    for (int length : seconds) {
+        total += length;
+    }
+    return (double) total / seconds.size();
+}
+
+void main() {
+    IO.println(averageSeconds(new ArrayList<>(List.of(210, 185, 240))));
+}
+```
+
+## ch07-arrays-and-lists-practice#3
+
+```java
+String longestTitle(ArrayList<String> titles) {
+    String best = titles.get(0);
+    for (String title : titles) {
+        if (title.length() > best.length()) {
+            best = title;
+        }
+    }
+    return best;
+}
+
+void main() {
+    ArrayList<String> titles = new ArrayList<>(List.of("Ghost Town", "Ribbons", "Anvil"));
+    IO.println(longestTitle(titles));
+}
+```
+
+The largest-so-far loop, comparing lengths. Starting from the first title, not from an empty string, means the answer is always a real title.
+
+```java
+String longestTitle(ArrayList<String> titles) {
+    int best = 0;
+    for (int i = 1; i < titles.size(); i++) {
+        if (titles.get(i).length() > titles.get(best).length()) {
+            best = i;
+        }
+    }
+    return titles.get(best);
+}
+
+void main() {
+    IO.println(longestTitle(new ArrayList<>(List.of("Anvil", "Ribbons"))));
+}
+```
+
+The second answer keeps the index of the longest title so far, as the gradebook kept the index of the highest score.
+
+### mistake
+
+Comparing the titles themselves with `compareTo` finds the one that comes last alphabetically, which answers a different question and gets "Ribbons" most of the time by luck:
+
+```java
+String longestTitle(ArrayList<String> titles) {
+    String best = titles.get(0);
+    for (String title : titles) {
+        if (title.compareTo(best) > 0) {
+            best = title;
+        }
+    }
+    return best;
+}
+
+void main() {
+    IO.println(longestTitle(new ArrayList<>(List.of("Anvil", "Ghost Town", "Ribbons"))));
+}
+```
+
+`<` where `>` belongs finds the shortest title:
+
+```java
+String longestTitle(ArrayList<String> titles) {
+    String best = titles.get(0);
+    for (String title : titles) {
+        if (title.length() < best.length()) {
+            best = title;
+        }
+    }
+    return best;
+}
+
+void main() {
+    IO.println(longestTitle(new ArrayList<>(List.of("Anvil", "Ghost Town", "Ribbons"))));
+}
+```
+
+## ch07-arrays-and-lists-practice#4
+
+```java
+ArrayList<String> playlistWith(ArrayList<String> titles, String title) {
+    ArrayList<String> longer = new ArrayList<>(titles);
+    longer.add(title);
+    return longer;
+}
+
+void main() {
+    ArrayList<String> titles = new ArrayList<>(List.of("Ghost Town", "Ribbons", "Anvil"));
+    IO.println(playlistWith(titles, "Lanterns"));
+    IO.println(titles);
+}
+```
+
+Copy first, so the caller's playlist is left alone: `main` prints the original afterward, and it still has three songs. `titles.add(title)` would have changed the caller's list, since `titles` holds the same object the caller passed in.
+
+```java
+ArrayList<String> playlistWith(ArrayList<String> titles, String title) {
+    ArrayList<String> longer = new ArrayList<>();
+    longer.addAll(titles);
+    longer.add(title);
+    return longer;
+}
+
+void main() {
+    ArrayList<String> titles = new ArrayList<>(List.of("Ghost Town", "Ribbons", "Anvil"));
+    IO.println(playlistWith(titles, "Lanterns"));
+    IO.println(titles);
+}
+```
+
+The second answer starts from an empty list and copies the titles in with `addAll`.
+
+### mistake
+
+Adding to the caller's list and returning it: the first line is right, but the second shows that the original has four songs now.
+
+```java
+ArrayList<String> playlistWith(ArrayList<String> titles, String title) {
+    titles.add(title);
+    return titles;
+}
+
+void main() {
+    ArrayList<String> titles = new ArrayList<>(List.of("Ghost Town", "Ribbons", "Anvil"));
+    IO.println(playlistWith(titles, "Lanterns"));
+    IO.println(titles);
+}
+```
+
+`add(0, title)` puts the new song at the front instead of the end:
+
+```java
+ArrayList<String> playlistWith(ArrayList<String> titles, String title) {
+    ArrayList<String> longer = new ArrayList<>(titles);
+    longer.add(0, title);
+    return longer;
+}
+
+void main() {
+    ArrayList<String> titles = new ArrayList<>(List.of("Ghost Town", "Ribbons", "Anvil"));
+    IO.println(playlistWith(titles, "Lanterns"));
+    IO.println(titles);
+}
+```
+
+A new list with only the new title in it:
+
+```java
+ArrayList<String> playlistWith(ArrayList<String> titles, String title) {
+    ArrayList<String> longer = new ArrayList<>();
+    longer.add(title);
+    return longer;
+}
+
+void main() {
+    ArrayList<String> titles = new ArrayList<>(List.of("Ghost Town", "Ribbons", "Anvil"));
+    IO.println(playlistWith(titles, "Lanterns"));
+    IO.println(titles);
+}
+```
+
+## ch07-arrays-and-lists-practice#5
+
+```java
+ArrayList<String> firstThree(ArrayList<String> titles) {
+    if (titles.size() <= 3) {
+        return new ArrayList<>(titles);
+    }
+    return new ArrayList<>(titles.subList(0, 3));
+}
+
+void main() {
+    ArrayList<String> titles = new ArrayList<>(List.of("Ghost Town", "Ribbons", "Anvil"));
+    titles.add("Lanterns");
+    IO.println(firstThree(titles));
+}
+```
+
+`subList(0, 3)` stops the program with an exception when the list is shorter than three, so a short playlist is copied whole before it gets there. Each `return` hands back a new list, never the caller's.
+
+```java
+ArrayList<String> firstThree(ArrayList<String> titles) {
+    ArrayList<String> first = new ArrayList<>();
+    for (int i = 0; i < titles.size() && i < 3; i++) {
+        first.add(titles.get(i));
+    }
+    return first;
+}
+
+void main() {
+    IO.println(firstThree(new ArrayList<>(List.of("a"))));
+}
+```
+
+The second answer copies titles one at a time, and its loop stops at whichever comes first: the end of the list or the third title.
+
+### mistake
+
+`subList(0, 3)` with no check: a one-song playlist stops the program with an exception.
+
+```java
+ArrayList<String> firstThree(ArrayList<String> titles) {
+    return new ArrayList<>(titles.subList(0, 3));
+}
+
+void main() {
+    IO.println(firstThree(new ArrayList<>(List.of("a"))));
+}
+```
+
+`i <= 3` lets a fourth title in:
+
+```java
+ArrayList<String> firstThree(ArrayList<String> titles) {
+    ArrayList<String> first = new ArrayList<>();
+    for (int i = 0; i < titles.size() && i <= 3; i++) {
+        first.add(titles.get(i));
+    }
+    return first;
+}
+
+void main() {
+    IO.println(firstThree(new ArrayList<>(List.of("a", "b", "c", "d"))));
+}
+```
+
+## ch07-arrays-and-lists-practice#6
+
+```java
+boolean hasSong(ArrayList<String> titles, String title) {
+    return titles.contains(title);
+}
+
+void main() {
+    ArrayList<String> titles = new ArrayList<>(List.of("Ghost Town", "Ribbons", "Anvil"));
+    IO.println(hasSong(titles, "Anvil"));
+    IO.println(hasSong(titles, "Lanterns"));
+}
+```
+
+`contains` asks whether the list holds the title, and its answer is already the `true` or `false` the method returns.
+
+```java
+boolean hasSong(ArrayList<String> titles, String title) {
+    for (String t : titles) {
+        if (t.equals(title)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+void main() {
+    IO.println(hasSong(new ArrayList<>(), "Anvil"));
+}
+```
+
+The second answer searches by hand: `return true` the moment a title matches, and `false` only once the loop has seen them all.
+
+### mistake
+
+`indexOf(title) > 0` forgets that the first song is at index 0:
+
+```java
+boolean hasSong(ArrayList<String> titles, String title) {
+    return titles.indexOf(title) > 0;
+}
+
+void main() {
+    IO.println(hasSong(new ArrayList<>(List.of("Anvil", "Ribbons")), "Anvil"));
+}
+```
+
+`return false` inside the loop decides after the first title alone:
+
+```java
+boolean hasSong(ArrayList<String> titles, String title) {
+    for (String t : titles) {
+        if (t.equals(title)) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+    return false;
+}
+
+void main() {
+    IO.println(hasSong(new ArrayList<>(List.of("Anvil", "Ribbons")), "Ribbons"));
+}
+```
+
+## ch07-arrays-and-lists-practice#7
+
+```java
+ArrayList<Integer> positions(ArrayList<String> titles, String title) {
+    ArrayList<Integer> found = new ArrayList<>();
+    for (int i = 0; i < titles.size(); i++) {
+        if (titles.get(i).equals(title)) {
+            found.add(i);
+        }
+    }
+    return found;
+}
+
+void main() {
+    ArrayList<String> titles = new ArrayList<>(List.of("Ribbons", "Anvil", "Ribbons"));
+    IO.println(positions(titles, "Ribbons"));
+}
+```
+
+A counting loop gives the index and the title together, and the filtering pattern keeps the indexes that match. Titles are text, so they are compared with `.equals`. The last case makes its title at run time, with `strip()`, so it is a separate `String` object with the same letters: `.equals` matches it, and `==` would not.
+
+```java
+ArrayList<Integer> positions(ArrayList<String> titles, String title) {
+    ArrayList<Integer> found = new ArrayList<>();
+    int index = 0;
+    for (String t : titles) {
+        if (t.equals(title)) {
+            found.add(index);
+        }
+        index++;
+    }
+    return found;
+}
+
+void main() {
+    IO.println(positions(new ArrayList<>(List.of("Anvil")), "Ribbons"));
+}
+```
+
+The second answer uses the enhanced `for` and counts the index alongside it.
+
+### mistake
+
+`indexOf` finds only the first:
+
+```java
+ArrayList<Integer> positions(ArrayList<String> titles, String title) {
+    ArrayList<Integer> found = new ArrayList<>();
+    if (titles.contains(title)) {
+        found.add(titles.indexOf(title));
+    }
+    return found;
+}
+
+void main() {
+    IO.println(positions(new ArrayList<>(List.of("Ribbons", "Anvil", "Ribbons")), "Ribbons"));
+}
+```
+
+`i + 1` numbers the songs from 1, as a printed list would, but these are indexes:
+
+```java
+ArrayList<Integer> positions(ArrayList<String> titles, String title) {
+    ArrayList<Integer> found = new ArrayList<>();
+    for (int i = 0; i < titles.size(); i++) {
+        if (titles.get(i).equals(title)) {
+            found.add(i + 1);
+        }
+    }
+    return found;
+}
+
+void main() {
+    IO.println(positions(new ArrayList<>(List.of("Ribbons", "Anvil", "Ribbons")), "Ribbons"));
+}
+```
+
+`==` asks whether two titles are the same object. The titles written in the program are one object, so the first cases pass, but a title made with `strip()` is a separate one:
+
+```java
+ArrayList<Integer> positions(ArrayList<String> titles, String title) {
+    ArrayList<Integer> found = new ArrayList<>();
+    for (int i = 0; i < titles.size(); i++) {
+        if (titles.get(i) == title) {
+            found.add(i);
+        }
+    }
+    return found;
+}
+
+void main() {
+    IO.println(positions(new ArrayList<>(List.of("Ribbons", "Anvil", "Ribbons")), " Ribbons".strip()));
+}
+```
+
+## ch07-arrays-and-lists-practice#8
+
+```java
+ArrayList<String> byLength(ArrayList<String> titles, ArrayList<Integer> seconds) {
+    ArrayList<String> titlesLeft = new ArrayList<>(titles);
+    ArrayList<Integer> secondsLeft = new ArrayList<>(seconds);
+    ArrayList<String> ordered = new ArrayList<>();
+
+    while (!secondsLeft.isEmpty()) {
+        int shortest = 0;
+        for (int i = 1; i < secondsLeft.size(); i++) {
+            if (secondsLeft.get(i) < secondsLeft.get(shortest)) {
+                shortest = i;
+            }
+        }
+        ordered.add(titlesLeft.get(shortest));
+        titlesLeft.remove(shortest);
+        secondsLeft.remove(shortest);
+    }
+    return ordered;
+}
+
+void main() {
+    ArrayList<String> titles = new ArrayList<>(List.of("Ghost Town", "Ribbons", "Anvil"));
+    ArrayList<Integer> seconds = new ArrayList<>(List.of(210, 185, 240));
+    IO.println(byLength(titles, seconds));
+}
+```
+
+Each pass of the `while` finds the index of the shortest length left, moves that song's title to the answer, and removes the pair from both copies at the same index, so the copies stay parallel. `shortest` is an `int`, so `remove` takes it as an index, which is what is wanted here. `<`, not `<=`, keeps the first of two equal lengths, so ties stay in playlist order.
+
+```java
+ArrayList<String> byLength(ArrayList<String> titles, ArrayList<Integer> seconds) {
+    ArrayList<Integer> sorted = new ArrayList<>(seconds);
+    Collections.sort(sorted);
+
+    ArrayList<Integer> unused = new ArrayList<>(seconds);
+    ArrayList<String> ordered = new ArrayList<>();
+    for (int length : sorted) {
+        int i = unused.indexOf(length);
+        ordered.add(titles.get(i));
+        unused.set(i, -1);
+    }
+    return ordered;
+}
+
+void main() {
+    ArrayList<String> titles = new ArrayList<>(List.of("a", "b", "c"));
+    ArrayList<Integer> seconds = new ArrayList<>(List.of(200, 100, 200));
+    IO.println(byLength(titles, seconds));
+}
+```
+
+The second answer sorts a copy of the lengths, then finds each length's song with `indexOf`. Setting a used length to -1, which no song lasts, stops `indexOf` from finding the same song twice when two songs are the same length.
+
+### mistake
+
+Sorting the titles sorts them alphabetically, which is a different playlist entirely:
+
+```java
+ArrayList<String> byLength(ArrayList<String> titles, ArrayList<Integer> seconds) {
+    ArrayList<String> ordered = new ArrayList<>(titles);
+    Collections.sort(ordered);
+    return ordered;
+}
+
+void main() {
+    ArrayList<String> titles = new ArrayList<>(List.of("Ghost Town", "Ribbons", "Anvil"));
+    ArrayList<Integer> seconds = new ArrayList<>(List.of(210, 185, 240));
+    IO.println(byLength(titles, seconds));
+}
+```
+
+`indexOf` without marking a length as used: two songs of 200 seconds both find the first one.
+
+```java
+ArrayList<String> byLength(ArrayList<String> titles, ArrayList<Integer> seconds) {
+    ArrayList<Integer> sorted = new ArrayList<>(seconds);
+    Collections.sort(sorted);
+
+    ArrayList<String> ordered = new ArrayList<>();
+    for (int length : sorted) {
+        ordered.add(titles.get(seconds.indexOf(length)));
+    }
+    return ordered;
+}
+
+void main() {
+    ArrayList<String> titles = new ArrayList<>(List.of("a", "b", "c"));
+    ArrayList<Integer> seconds = new ArrayList<>(List.of(200, 100, 200));
+    IO.println(byLength(titles, seconds));
+}
+```
+
+`<=` keeps the last of two equal lengths, so a tie comes out in the wrong order:
+
+```java
+ArrayList<String> byLength(ArrayList<String> titles, ArrayList<Integer> seconds) {
+    ArrayList<String> titlesLeft = new ArrayList<>(titles);
+    ArrayList<Integer> secondsLeft = new ArrayList<>(seconds);
+    ArrayList<String> ordered = new ArrayList<>();
+
+    while (!secondsLeft.isEmpty()) {
+        int shortest = 0;
+        for (int i = 1; i < secondsLeft.size(); i++) {
+            if (secondsLeft.get(i) <= secondsLeft.get(shortest)) {
+                shortest = i;
+            }
+        }
+        ordered.add(titlesLeft.get(shortest));
+        titlesLeft.remove(shortest);
+        secondsLeft.remove(shortest);
+    }
+    return ordered;
+}
+
+void main() {
+    ArrayList<String> titles = new ArrayList<>(List.of("a", "b", "c"));
+    ArrayList<Integer> seconds = new ArrayList<>(List.of(200, 100, 200));
+    IO.println(byLength(titles, seconds));
+}
+```
