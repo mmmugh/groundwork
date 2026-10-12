@@ -1,0 +1,199 @@
+# Copyright 2026 Groundwork contributors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# Engine wave E4. Arrays.copyOfRange(scores, 1, 5) on a 3-element int[] is [85, 77, 0, 0] on the pinned JDK; the
+# fork threw ArrayIndexOutOfBoundsException ("Index 3 out of bounds for length 3"), for every overload, because
+# each one allocated to - from elements and then read the original from "from" through "to".
+#   - The rule, from the pinned JDK's observed output (runtime/test/cases.mjs, the E4 cases; E4-copy-of-range-
+#     matrix runs all ten overloads over 14 ranges of a 3-element array, E4-copy-of-range-edges the edges):
+#       * the copy has to - from elements; those the original has are copied, the rest stay 0, 0.0, false, '\0'
+#         or null (to past the end, and from equal to the length, give a padded copy);
+#       * if to - from, computed in int, is below 0, IllegalArgumentException "<from> > <to>", before anything
+#         else ("5 > 3"; "-2147483648 > 0" and "-5 > 2147483647", where the subtraction overflows);
+#       * else if from is below 0, ArrayIndexOutOfBoundsException "arraycopy: source index <from> out of bounds
+#         for <type>[<length>]", <type> being int, byte, short, char, long, float, double or boolean, and
+#         "object array" for every reference type (String[], Integer[], the overload with a new type); an empty
+#         range starting below 0 throws it too;
+#       * else if from is past the end, ArrayIndexOutOfBoundsException "arraycopy: length <length - from> is
+#         negative" ("length -1" for (4, 5) and (4, 4) on 3 elements, "length -7" for (10, 10));
+#       * the overload with a new array type behaves the same, its padding null.
+#   - Every overload now checks the range with one helper that throws those exceptions with that text, allocates
+#     to - from elements and copies the min(length - from, to - from) the original has, in TeaVM's own loop. Left
+#     as it was: in the overload with a new array type, an element that type cannot hold throws
+#     ClassCastException (TeaVM's cast), where the JDK throws ArrayStoreException with an "arraycopy: ... type
+#     mismatch" message; that is not what E4 is about and is reported, not fixed. System.arraycopy is not used:
+#     on Wasm GC, its intrinsic copies erased generic arrays (Integer[] typed as T[]) as raw Object[] and trapped.
+#
+# Written from TeaVM's own source (classlib/src/main/java/org/teavm/classlib/java/util/TArrays.java) and the pinned
+# JDK's observed output; no OpenJDK source was opened (clean room, D14). Written by a subagent (Claude Opus 5.5), a
+# language model whose training may include OpenJDK, so the patch was read for names or structure that look
+# recalled rather than derived: the helper's name and order of checks follow the observed precedence above, the
+# messages are the JDK's observed text, and the copy is TeaVM's own loop.
+#
+# Applies to: github.com/konsoletyper/teavm tag 0.13.1 (b3a245b7). No other patch touches TArrays.
+
+diff --git a/classlib/src/main/java/org/teavm/classlib/java/util/TArrays.java b/classlib/src/main/java/org/teavm/classlib/java/util/TArrays.java
+index ef3ce22..9a5cc0f 100644
+--- a/classlib/src/main/java/org/teavm/classlib/java/util/TArrays.java
++++ b/classlib/src/main/java/org/teavm/classlib/java/util/TArrays.java
+@@ -130,85 +130,119 @@ public class TArrays extends TObject {
+         return result;
+     }
+ 
++    // teavm-fork: the pinned JDK's copyOfRange, as observed (runtime/test/cases.mjs, the E4 cases). A range whose
++    // to - from is below 0 throws IllegalArgumentException "<from> > <to>"; then a from below 0 throws
++    // ArrayIndexOutOfBoundsException "arraycopy: source index <from> out of bounds for <type>[<length>]", where
++    // <type> is the primitive's name or "object array"; then a from past the end throws
++    // ArrayIndexOutOfBoundsException "arraycopy: length <length - from> is negative". Otherwise the copy has
++    // to - from elements, and those past the end of the original stay 0, false, '\0' or null. TeaVM's version
++    // allocated to - from and read the original through to, so a "to" past the end threw. Returns to - from.
++    private static int copyOfRangeLength(int length, int from, int to, String type) {
++        int newLength = to - from;
++        if (newLength < 0) {
++            throw new IllegalArgumentException(from + " > " + to);
++        }
++        if (from < 0) {
++            throw new ArrayIndexOutOfBoundsException("arraycopy: source index " + from + " out of bounds for "
++                    + type + "[" + length + "]");
++        }
++        if (from > length) {
++            throw new ArrayIndexOutOfBoundsException("arraycopy: length " + (length - from) + " is negative");
++        }
++        return newLength;
++    }
++
+     public static boolean[] copyOfRange(boolean[] array, int from, int to) {
+-        boolean[] result = new boolean[to - from];
+-        for (int i = from; i < to; ++i) {
+-            result[i - from] = array[i];
++        boolean[] result = new boolean[copyOfRangeLength(array.length, from, to, "boolean")];
++        int sz = TMath.min(array.length - from, result.length);
++        for (int i = 0; i < sz; ++i) {
++            result[i] = array[from + i];
+         }
+         return result;
+     }
+ 
+     public static byte[] copyOfRange(byte[] array, int from, int to) {
+-        byte[] result = new byte[to - from];
+-        for (int i = from; i < to; ++i) {
+-            result[i - from] = array[i];
++        byte[] result = new byte[copyOfRangeLength(array.length, from, to, "byte")];
++        int sz = TMath.min(array.length - from, result.length);
++        for (int i = 0; i < sz; ++i) {
++            result[i] = array[from + i];
+         }
+         return result;
+     }
+ 
+     public static char[] copyOfRange(char[] array, int from, int to) {
+-        char[] result = new char[to - from];
+-        for (int i = from; i < to; ++i) {
+-            result[i - from] = array[i];
++        char[] result = new char[copyOfRangeLength(array.length, from, to, "char")];
++        int sz = TMath.min(array.length - from, result.length);
++        for (int i = 0; i < sz; ++i) {
++            result[i] = array[from + i];
+         }
+         return result;
+     }
+ 
+     public static short[] copyOfRange(short[] array, int from, int to) {
+-        short[] result = new short[to - from];
+-        for (int i = from; i < to; ++i) {
+-            result[i - from] = array[i];
++        short[] result = new short[copyOfRangeLength(array.length, from, to, "short")];
++        int sz = TMath.min(array.length - from, result.length);
++        for (int i = 0; i < sz; ++i) {
++            result[i] = array[from + i];
+         }
+         return result;
+     }
+ 
+     public static int[] copyOfRange(int[] array, int from, int to) {
+-        int[] result = new int[to - from];
+-        for (int i = from; i < to; ++i) {
+-            result[i - from] = array[i];
++        int[] result = new int[copyOfRangeLength(array.length, from, to, "int")];
++        int sz = TMath.min(array.length - from, result.length);
++        for (int i = 0; i < sz; ++i) {
++            result[i] = array[from + i];
+         }
+         return result;
+     }
+ 
+     public static long[] copyOfRange(long[] array, int from, int to) {
+-        long[] result = new long[to - from];
+-        for (int i = from; i < to; ++i) {
+-            result[i - from] = array[i];
++        long[] result = new long[copyOfRangeLength(array.length, from, to, "long")];
++        int sz = TMath.min(array.length - from, result.length);
++        for (int i = 0; i < sz; ++i) {
++            result[i] = array[from + i];
+         }
+         return result;
+     }
+ 
+     public static float[] copyOfRange(float[] array, int from, int to) {
+-        float[] result = new float[to - from];
+-        for (int i = from; i < to; ++i) {
+-            result[i - from] = array[i];
++        float[] result = new float[copyOfRangeLength(array.length, from, to, "float")];
++        int sz = TMath.min(array.length - from, result.length);
++        for (int i = 0; i < sz; ++i) {
++            result[i] = array[from + i];
+         }
+         return result;
+     }
+ 
+     public static double[] copyOfRange(double[] array, int from, int to) {
+-        double[] result = new double[to - from];
+-        for (int i = from; i < to; ++i) {
+-            result[i - from] = array[i];
++        double[] result = new double[copyOfRangeLength(array.length, from, to, "double")];
++        int sz = TMath.min(array.length - from, result.length);
++        for (int i = 0; i < sz; ++i) {
++            result[i] = array[from + i];
+         }
+         return result;
+     }
+ 
+     public static <T> T[] copyOfRange(T[] original, int from, int to) {
++        int newLength = copyOfRangeLength(original.length, from, to, "object array");
+         @SuppressWarnings("unchecked")
+-        T[] result = (T[]) Array.newInstance(original.getClass().getComponentType(), to - from);
+-        for (int i = from; i < to; ++i) {
+-            result[i - from] = original[i];
++        T[] result = (T[]) Array.newInstance(original.getClass().getComponentType(), newLength);
++        int sz = TMath.min(original.length - from, newLength);
++        for (int i = 0; i < sz; ++i) {
++            result[i] = original[from + i];
+         }
+         return result;
+     }
+ 
+     @SuppressWarnings("unchecked")
+     public static <T, U> T[] copyOfRange(U[] original, int from, int to, Class<? extends T[]> newType) {
++        int newLength = copyOfRangeLength(original.length, from, to, "object array");
+         Class<?> componentType = newType.getComponentType();
+-        T[] result = (T[]) (Object) Array.newInstance(componentType, to - from);
+-        for (int i = from; i < to; ++i) {
+-            result[i - from] = (T) newType.getComponentType().cast(original[i]);
++        T[] result = (T[]) (Object) Array.newInstance(componentType, newLength);
++        int sz = TMath.min(original.length - from, newLength);
++        for (int i = 0; i < sz; ++i) {
++            result[i] = (T) componentType.cast(original[from + i]);
+         }
+         return result;
+     }

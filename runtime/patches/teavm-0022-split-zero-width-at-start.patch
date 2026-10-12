@@ -1,0 +1,53 @@
+# Copyright 2026 Groundwork contributors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# Engine wave E2. "Ada|88".split("|") is [A, d, a, |, 8, 8] on the pinned JDK and was [, A, d, a, |, 8, 8] on the
+# fork: a pattern that matches with zero width at the very start of the input made a leading empty piece.
+#   - The rule, from the pinned JDK's observed output (runtime/test/cases.mjs, the E2 cases; E2-split-matrix runs
+#     String.split and Pattern.split over 11 inputs, 10 patterns and the limits 0, -1, 1, 2 and 3): a match of
+#     zero width at index 0 of a non-empty input is no split point. It makes no leading empty piece ("abc".split("")
+#     is [a, b, c]; "xax".split("(?=x)") is [xa, x]; "abc".split("\\b", -1) is [abc, ]) and does not count toward
+#     a positive limit ("abc".split("", 2) is [a, bc], not [, abc]). A match that takes characters at index 0 is a
+#     split point as before (",a".split(",") is [, a]; "abc".split("a*") is [, , b, c]), and so is a zero-width
+#     match anywhere else. Pattern.split gave the same as String.split for every input, pattern and limit, and an
+#     empty input gave [""] for every pattern and limit, as before.
+#   - TPattern.split (which String.split calls) took every match as a split point. Now it skips a match whose end
+#     is 0, which is exactly a zero-width match at index 0; nothing else changes. On the fork after this patch,
+#     E2-split-matrix prints what the JDK prints, line for line.
+#
+# Written from TeaVM's own source (classlib/src/main/java/org/teavm/classlib/java/util/regex/TPattern.java) and the
+# pinned JDK's observed output; no OpenJDK source was opened (clean room, D14). Written by a subagent (Claude Opus
+# 5.5), a language model whose training may include OpenJDK, so the patch was read for names or structure that
+# look recalled rather than derived: it adds no name, only one test, in TeaVM's own loop, that the observed rule
+# states.
+#
+# Applies to: github.com/konsoletyper/teavm tag 0.13.1 (b3a245b7). No other patch touches TPattern.
+
+diff --git a/classlib/src/main/java/org/teavm/classlib/java/util/regex/TPattern.java b/classlib/src/main/java/org/teavm/classlib/java/util/regex/TPattern.java
+index edd2b34..06f1ae4 100644
+--- a/classlib/src/main/java/org/teavm/classlib/java/util/regex/TPattern.java
++++ b/classlib/src/main/java/org/teavm/classlib/java/util/regex/TPattern.java
+@@ -187,6 +187,12 @@ public final class TPattern implements Serializable {
+             return new String[] { "" }; //$NON-NLS-1$
+         } else {
+             while (mat.find() && (index + 1 < limit || limit <= 0)) {
++                // teavm-fork: a match of zero width at the very start of the input is no split point, as on the
++                // pinned JDK ("abc".split("") is [a, b, c], with no leading empty piece, while ",a".split(",") is
++                // [, a]); it adds no piece and does not count toward the limit.
++                if (mat.end() == 0) {
++                    continue;
++                }
+                 res.add(inputSeq.subSequence(curPos, mat.start()).toString());
+                 curPos = mat.end();
+                 index++;

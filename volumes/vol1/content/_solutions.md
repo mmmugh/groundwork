@@ -6462,6 +6462,15 @@ void main() {
 
 The second answer finds each line's comma with `indexOf` and keeps what comes before it and after it with `substring`.
 
+```java
+void main() {
+    String data = "Ada,88\nGrace,92\nAlan,45";
+    IO.println(data.replace(",", ": "));
+}
+```
+
+The third answer needs no loop: `replace` turns every comma into a colon and a space, and the line breaks stay where they were.
+
 ### mistake
 
 A space where the colon belongs:

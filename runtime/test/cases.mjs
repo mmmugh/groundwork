@@ -882,4 +882,357 @@ cases.push(
   { id: "D100-localhost-connect-is-socket-exception", group: "D100", src: 'void main() { try { new java.net.URL("http://localhost:1/").openConnection().connect(); IO.println("connected"); } catch (java.net.ConnectException e) { IO.println("ConnectException, a SocketException: " + (e instanceof java.net.SocketException)); } catch (java.io.IOException e) { IO.println("other: " + e.getClass().getName()); } }', note: "catches ConnectException and asks whether it is also a SocketException" },
 );
 
+// Engine wave E1: a String instance method could give back null instead of "", the first time in a run. TeaVM
+// took a call to any method of a class as proof that the class's initializer had run, so it dropped the
+// initializer call in front of a later read of that class's static field. A String literal exists without
+// String's constructor ever running, so String's EMPTY (and CASE_INSENSITIVE_ORDER) could still be null. Each
+// case is the first String operation in its program, since the bug shows only on first use; the last case is
+// the same mechanism reaching an interface, whose implementing objects exist before it is initialized.
+cases.push(
+  { id: "E1-substring-at-end", group: "E1", src: R`void main() {
+    String rest = "abc".substring(3);
+    IO.println(rest.length());
+    IO.println("[" + rest + "]");
+}
+` },
+  { id: "E1-substring-of-length", group: "E1", src: R`void main() {
+    String word = "level";
+    String tail = word.substring(word.length());
+    IO.println(tail.isEmpty());
+}
+` },
+  { id: "E1-replace-separator", group: "E1", note: "chapter 8's Try It 7 as a reader would solve it",
+    src: R`void main() {
+    String data = "Ada,88";
+    IO.println(data.replace(",", ": "));
+}
+` },
+  { id: "E1-replace-all-of-it", group: "E1", src: R`void main() {
+    String s = "x,y".replace("x,y", "");
+    IO.println(s.length() + " [" + s + "]");
+}
+` },
+  { id: "E1-strip-indent-blank", group: "E1", src: R`void main() {
+    String r = "   ".stripIndent();
+    IO.println(r.length() + " [" + r + "]");
+}
+` },
+  { id: "E1-case-insensitive-order-after-call", group: "E1", note: "a String instance call, then String's own static field",
+    src: R`void main() {
+    List<String> names = new ArrayList<>(List.of("bob", "alice", "Carl"));
+    int first = names.get(0).length();
+    names.sort(String.CASE_INSENSITIVE_ORDER);
+    IO.println(first + " " + names);
+}
+` },
+  { id: "E1-interface-constant-after-call", group: "E1", note: "the same mechanism: an interface's constant read after a call through the interface; the JDK initializes the interface at that read",
+    src: R`interface Shape {
+    List<String> NAMES = make();
+    static List<String> make() {
+        IO.println("Shape initialized");
+        return List.of("circle");
+    }
+    String name();
+}
+class Circle implements Shape {
+    static { IO.println("Circle initialized"); }
+    public String name() { return "c"; }
+}
+class Square implements Shape {
+    public String name() { return "s"; }
+}
+static void show(Shape s) {
+    IO.println("calling");
+    IO.println(s.name());
+    IO.println("reading");
+    IO.println(Shape.NAMES);
+}
+void main() {
+    Shape s = new Circle();
+    IO.println("made");
+    show(s);
+    show(new Square());
+}
+` },
+  // Controls: the first-use calls that were already right, so a fix cannot break them unseen.
+  { id: "E1-control-substring-empty-range", group: "E1", src: 'void main() { String s = "abc".substring(1, 1); IO.println(s.length() + " [" + s + "]"); }' },
+  { id: "E1-control-trim-blank", group: "E1", src: 'void main() { String s = "   ".trim(); IO.println(s.length() + " [" + s + "]"); }' },
+  { id: "E1-control-strip-blank", group: "E1", src: 'void main() { String s = "   ".strip(); IO.println(s.length() + " [" + s + "]"); }' },
+  { id: "E1-control-upper-empty", group: "E1", src: 'void main() { String s = "".toUpperCase(); IO.println(s.length() + " [" + s + "]"); }' },
+  { id: "E1-control-repeat-zero", group: "E1", src: 'void main() { String s = "ab".repeat(0); IO.println(s.length() + " [" + s + "]"); }' },
+);
+
+// Engine wave E2: split. On the pinned JDK a match of zero width at the very start of the input makes no
+// leading empty piece ("Ada|88".split("|") is [A, d, a, |, 8, 8]), while a match that takes characters there
+// does (",a".split(",") is [, a]). The fork kept a leading empty piece for both. The matrix case runs String.split
+// and Pattern.split over inputs, patterns of zero and of nonzero width, and limits 0, negative and positive.
+cases.push(
+  { id: "E2-split-pipe", group: "E2", note: "chapter 8: | alone is an empty alternation, so it splits between characters",
+    src: R`void main() {
+    String line = "WARN|14:03|Disk";
+    String[] parts = line.split("|");
+    IO.println(parts.length + " " + Arrays.toString(parts));
+    IO.println(parts[0]);
+    IO.println(Arrays.toString("Ada|88".split("|")));
+}
+` },
+  { id: "E2-split-empty-pattern-limits", group: "E2",
+    src: R`void main() {
+    IO.println(Arrays.toString("abc".split("")));
+    IO.println(Arrays.toString("abc".split("", -1)));
+    IO.println(Arrays.toString("abc".split("", 2)));
+    IO.println(Arrays.toString("abc".split("", 1)));
+    IO.println("".split("").length);
+}
+` },
+  { id: "E2-split-lookahead-at-start", group: "E2",
+    src: R`void main() {
+    IO.println(Arrays.toString("xax".split("(?=x)")));
+    IO.println(Arrays.toString("Ada".split("(?=A)")));
+    IO.println(Arrays.toString("a,b".split("\\b", -1)));
+}
+` },
+  { id: "E2-split-separator-at-start", group: "E2", note: "control: a match that takes characters at the start keeps its empty piece on both",
+    src: R`void main() {
+    IO.println(Arrays.toString(",a".split(",")));
+    IO.println(Arrays.toString(",a,".split(",", -1)));
+    IO.println(Arrays.toString(" the quick".split(" ")));
+    IO.println(Arrays.toString("abc".split("a*")));
+}
+` },
+  { id: "E2-pattern-split", group: "E2",
+    src: R`import java.util.regex.Pattern;
+
+void main() {
+    Pattern between = Pattern.compile("");
+    IO.println(Arrays.toString(between.split("abc")));
+    IO.println(Arrays.toString(between.split("abc", 3)));
+    IO.println(Arrays.toString(Pattern.compile("x*").split("xax", -1)));
+    IO.println(Arrays.toString(Pattern.compile("(?=a)").split("abc", -1)));
+}
+` },
+  { id: "E2-split-matrix", group: "E2", note: "String.split and Pattern.split, 11 inputs by 10 patterns by 5 limits",
+    src: R`import java.util.regex.Pattern;
+
+static String show(String[] parts) {
+    StringBuilder sb = new StringBuilder();
+    sb.append(parts.length).append(" [");
+    for (int i = 0; i < parts.length; i++) {
+        if (i > 0) sb.append(", ");
+        sb.append('"').append(parts[i]).append('"');
+    }
+    return sb.append("]").toString();
+}
+
+void main() {
+    String[] inputs = { "", "abc", ",a", "a,", ",", ",,", "a,,b", ",a,", "Ada|88", "xax", "xx" };
+    String[] regexes = { ",", "", "|", "(?=a)", "(?=x)", "\\b", "x*", "a*", "(?<=,)", "x" };
+    int[] limits = { 0, -1, 1, 2, 3 };
+    for (String in : inputs) {
+        for (String re : regexes) {
+            StringBuilder line = new StringBuilder();
+            line.append('"').append(in).append("\" / \"").append(re).append("\": ");
+            line.append("split=").append(show(in.split(re)));
+            for (int lim : limits) {
+                String a = show(in.split(re, lim));
+                String b = show(Pattern.compile(re).split(in, lim));
+                line.append(" | ").append(lim).append("=").append(a);
+                if (!a.equals(b)) line.append(" PATTERN:").append(b);
+            }
+            String c = show(Pattern.compile(re).split(in));
+            if (!c.equals(show(in.split(re)))) line.append(" PATTERN0:").append(c);
+            IO.println(line);
+        }
+    }
+}
+` },
+);
+
+// Engine wave E3: .equals on a type that inherits Object's (or AbstractList's) did not compile on the fork:
+// "reference to equals is ambiguous", because the compile classlib's java.lang.Object and java.util.AbstractList
+// each declared equals(Object) twice, once under TeaVM's renamed equals0. HashSet's and TreeSet's clone() were
+// ambiguous the same way. Each case compares a true and a false pair; an array's equals is identity on the JDK.
+cases.push(
+  { id: "E3-equals-arraylist", group: "E3", src: R`void main() {
+    ArrayList<Integer> a = new ArrayList<>(List.of(1, 2));
+    ArrayList<Integer> b = new ArrayList<>(List.of(1, 2));
+    ArrayList<Integer> c = new ArrayList<>(List.of(2, 1));
+    IO.println(a.equals(b));
+    IO.println(a.equals(c));
+    IO.println(a.equals(List.of(1, 2)));
+    LinkedList<Integer> d = new LinkedList<>(List.of(1, 2));
+    IO.println(d.equals(a));
+}
+` },
+  { id: "E3-equals-list-of", group: "E3", src: R`void main() {
+    List<Integer> a = List.of(1, 2);
+    IO.println(a.equals(List.of(1, 2)));
+    IO.println(a.equals(List.of(2, 1)));
+    List<String> names = new ArrayList<>(List.of("Ada"));
+    IO.println(names.equals(List.of("Ada")));
+}
+` },
+  { id: "E3-equals-array", group: "E3", note: "an array's equals is Object's: identity, not contents",
+    src: R`void main() {
+    int[] a = {1, 2};
+    int[] b = {1, 2};
+    IO.println(a.equals(b));
+    IO.println(a.equals(a));
+    IO.println(Arrays.equals(a, b));
+}
+` },
+  { id: "E3-equals-stringbuilder", group: "E3", src: R`void main() {
+    StringBuilder a = new StringBuilder("x");
+    StringBuilder b = new StringBuilder("x");
+    IO.println(a.equals(a));
+    IO.println(a.equals(b));
+    IO.println(a.toString().equals(b.toString()));
+}
+` },
+  { id: "E3-equals-object", group: "E3", src: R`void main() {
+    Object o = new Object();
+    IO.println(o.equals(o));
+    IO.println(o.equals(new Object()));
+    Object s = "x";
+    IO.println(s.equals("x"));
+    IO.println(s.equals("y"));
+}
+` },
+  { id: "E3-equals-user-class", group: "E3", src: R`class Box {
+    int v;
+    Box(int v) { this.v = v; }
+}
+void main() {
+    Box a = new Box(1);
+    Box b = a;
+    IO.println(a.equals(b));
+    IO.println(a.equals(new Box(1)));
+}
+` },
+  { id: "E3-equals-overriding-types", group: "E3", note: "control: types that override equals compiled on both",
+    src: R`record Point(int x, int y) {}
+void main() {
+    IO.println("ab".equals("a" + "b") + " " + "ab".equals("ba"));
+    Integer i = 1000;
+    IO.println(i.equals(1000) + " " + i.equals(1001));
+    Character c = 'x';
+    IO.println(c.equals('x') + " " + c.equals('y'));
+    Double d = 1.0;
+    IO.println(d.equals(1.0) + " " + d.equals(2.0));
+    IO.println(new HashSet<>(List.of("x", "y")).equals(new HashSet<>(List.of("y", "x"))) + " " + new HashSet<>(List.of("x")).equals(new HashSet<>(List.of("y"))));
+    HashMap<String, Integer> m = new HashMap<>();
+    HashMap<String, Integer> n = new HashMap<>();
+    m.put("x", 1);
+    n.put("x", 1);
+    IO.println(m.equals(n));
+    n.put("x", 2);
+    IO.println(m.equals(n));
+    IO.println(new Point(1, 2).equals(new Point(1, 2)) + " " + new Point(1, 2).equals(new Point(2, 1)));
+}
+` },
+  { id: "E3-clone-sets", group: "E3", note: "the same duplicate, clone() in HashSet and TreeSet",
+    src: R`void main() {
+    HashSet<String> s = new HashSet<>(List.of("a"));
+    Object c = s.clone();
+    IO.println(c.equals(s) + " " + (c != s));
+    TreeSet<String> t = new TreeSet<>(List.of("b", "a"));
+    Object d = t.clone();
+    IO.println(d + " " + (d != t));
+}
+` },
+);
+
+// Engine wave E4: Arrays.copyOfRange with "to" past the end. The pinned JDK pads the copy with 0, false, '\0' or
+// null; the fork threw. The matrix case runs every overload over in-range, padded and failing ranges and prints
+// each result, or the exception's class and message (from > to, from past the end, from below 0).
+cases.push(
+  { id: "E4-copy-of-range-padded", group: "E4", src: R`void main() {
+    int[] scores = {90, 85, 77};
+    IO.println(Arrays.toString(Arrays.copyOfRange(scores, 1, 5)));
+    String[] names = {"Ada", "Grace"};
+    IO.println(Arrays.toString(Arrays.copyOfRange(names, 0, 4)));
+    boolean[] flags = {true};
+    IO.println(Arrays.toString(Arrays.copyOfRange(flags, 0, 3)));
+    char[] letters = {'h', 'i'};
+    char[] longer = Arrays.copyOfRange(letters, 0, 3);
+    IO.println(longer.length + " " + (int) longer[2]);
+}
+` },
+  { id: "E4-copy-of-range-matrix", group: "E4", note: "every overload, 14 ranges on a 3-element array",
+    src: R`import java.util.function.Supplier;
+
+static void tryIt(String label, Supplier<String> s) {
+    try {
+        IO.println(label + " -> " + s.get());
+    } catch (RuntimeException e) {
+        IO.println(label + " -> " + e.getClass().getName() + ": " + e.getMessage());
+    }
+}
+
+void main() {
+    int[][] ranges = { {0, 3}, {1, 3}, {0, 5}, {2, 6}, {3, 3}, {3, 5}, {2, 1}, {4, 5}, {4, 4}, {5, 3}, {-1, 2}, {-2, -1}, {0, -1}, {0, 0} };
+    byte[] b = {1, 2, 3};
+    short[] sh = {1, 2, 3};
+    char[] c = {'a', 'b', 'c'};
+    int[] i = {1, 2, 3};
+    long[] l = {1, 2, 3};
+    float[] f = {1, 2, 3};
+    double[] d = {1, 2, 3};
+    boolean[] z = {true, true, true};
+    String[] s = {"a", "b", "c"};
+    Integer[] boxed = {1, 2, 3};
+    for (int[] r : ranges) {
+        int from = r[0], to = r[1];
+        String k = "(" + from + ", " + to + ") ";
+        tryIt(k + "byte", () -> Arrays.toString(Arrays.copyOfRange(b, from, to)));
+        tryIt(k + "short", () -> Arrays.toString(Arrays.copyOfRange(sh, from, to)));
+        tryIt(k + "char", () -> { char[] x = Arrays.copyOfRange(c, from, to); StringBuilder sb = new StringBuilder(); for (char ch : x) sb.append((int) ch).append(' '); return x.length + " " + sb; });
+        tryIt(k + "int", () -> Arrays.toString(Arrays.copyOfRange(i, from, to)));
+        tryIt(k + "long", () -> Arrays.toString(Arrays.copyOfRange(l, from, to)));
+        tryIt(k + "float", () -> Arrays.toString(Arrays.copyOfRange(f, from, to)));
+        tryIt(k + "double", () -> Arrays.toString(Arrays.copyOfRange(d, from, to)));
+        tryIt(k + "boolean", () -> Arrays.toString(Arrays.copyOfRange(z, from, to)));
+        tryIt(k + "String", () -> Arrays.toString(Arrays.copyOfRange(s, from, to)));
+        tryIt(k + "Object[] as Integer[]", () -> { Object[] x = Arrays.copyOfRange(boxed, from, to, Object[].class); return x.getClass().getSimpleName() + " " + Arrays.toString(x); });
+        tryIt(k + "T[] type", () -> { Integer[] x = Arrays.copyOfRange(boxed, from, to); return x.getClass().getSimpleName() + " " + Arrays.toString(x); });
+    }
+}
+` },
+  { id: "E4-copy-of-range-edges", group: "E4", note: "a range starting below 0 or past the end, an empty array, and to - from overflowing",
+    src: R`import java.util.function.Supplier;
+
+static void tryIt(String label, Supplier<String> s) {
+    try {
+        IO.println(label + " -> " + s.get());
+    } catch (RuntimeException e) {
+        IO.println(label + " -> " + e.getClass().getName() + ": " + e.getMessage());
+    }
+}
+
+void main() {
+    int[][] ranges = { {-1, -1}, {-1, 0}, {-1, -2}, {-3, 10}, {5, 6}, {4, 100}, {10, 10}, {3, 4}, {7, 9}, {Integer.MIN_VALUE, 0}, {-5, Integer.MAX_VALUE} };
+    int[] i = {1, 2, 3};
+    String[] s = {"a", "b", "c"};
+    int[] empty = {};
+    for (int[] r : ranges) {
+        int from = r[0], to = r[1];
+        String k = "(" + from + ", " + to + ") ";
+        tryIt(k + "int", () -> Arrays.toString(Arrays.copyOfRange(i, from, to)));
+        tryIt(k + "String", () -> Arrays.toString(Arrays.copyOfRange(s, from, to)));
+        tryIt(k + "empty int", () -> Arrays.toString(Arrays.copyOfRange(empty, from, to)));
+    }
+}
+` },
+  { id: "E4-copy-of-range-new-type", group: "E4", note: "the overload with a new array type: padding, and ranges that copy no element the new type cannot hold",
+    src: R`void main() {
+    Integer[] boxed = {1, 2, 3};
+    Number[] numbers = Arrays.copyOfRange(boxed, 1, 5, Number[].class);
+    IO.println(numbers.getClass().getSimpleName() + " " + Arrays.toString(numbers));
+    IO.println(Arrays.toString(Arrays.copyOfRange(boxed, 3, 5, String[].class)));
+    Object[] mixed = {"a", 1};
+    IO.println(Arrays.toString(Arrays.copyOfRange(mixed, 0, 1, String[].class)));
+}
+` },
+);
+
 export const byId = Object.fromEntries(cases.map((c) => [c.id, c]));

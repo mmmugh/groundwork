@@ -1,4 +1,4 @@
-Groundwork course runtime—release 2026.10.08-1
+Groundwork course runtime—release 2026.10.12-1
 
 This release is a WebAssembly build of a patched teavm-javac (TeaVM's javac-on-the-web fork). Its six
 runtime files (compile-classlib-teavm.bin, compiler.wasm, compiler.wasm-deobfuscator.wasm,

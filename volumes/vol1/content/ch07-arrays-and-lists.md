@@ -562,6 +562,7 @@ void main() {
     ArrayList<String> copy = new ArrayList<>(first);
     IO.println(first == same);
     IO.println(first == copy);
+    IO.println(first.equals(copy));
 
     int[] x = {1, 2, 3};
     int[] y = Arrays.copyOf(x, x.length);
@@ -573,11 +574,12 @@ void main() {
 ```output
 true
 false
+true
 false
 true
 ```
 
-`copy` holds the same items as `first`, but it is a different object, and so is `y` beside `x`: `==` says `false` for both. Whether two objects hold the same contents is a different question, asked by `Arrays.equals` for two arrays and by `.equals` for two `String`s (the same letters?) or two `Integer`s (the same number?). That is why Chapter 3's `answer == "yes"` was `false` when the user typed `yes`: the typed text and the `"yes"` in the program are two separate `String` objects with the same letters. It is also why two `Integer`s are compared with `.equals`. Compare text and `Integer`s with `.equals`, and keep `==` for numbers, `char`s and booleans.
+`copy` holds the same items as `first`, but it is a different object, and so is `y` beside `x`: `==` says `false` for both. Whether two objects hold the same contents is a different question, asked by `.equals`: for two lists (the same items in the same order?), two `String`s (the same letters?) or two `Integer`s (the same number?). An array's own `.equals` asks only `==`'s question, so two arrays are compared with `Arrays.equals`. That is why Chapter 3's `answer == "yes"` was `false` when the user typed `yes`: the typed text and the `"yes"` in the program are two separate `String` objects with the same letters. It is also why two `Integer`s are compared with `.equals`. Compare text, `Integer`s and lists with `.equals`, and keep `==` for numbers, `char`s and booleans.
 
 ## Try It
 

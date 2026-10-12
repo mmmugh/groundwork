@@ -1,0 +1,69 @@
+# Copyright 2026 Groundwork contributors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# Engine wave E1. A String method could give back null where the pinned JDK gives "", the first time in a run:
+# "abc".substring(3) printed nothing and its length() threw NullPointerException, and "Ada,88".replace(",", ": ")
+# printed "Ada: 88null", where the JDK printed 0 and "Ada: 88" (runtime/test/cases.mjs, the E1 cases).
+#   - The cause is TeaVM's optimizer, not String. A static field read is preceded by an initializer call for its
+#     class (ClassInitInsertion), and ClassInitElimination deletes that call where it is already known to have
+#     run. It took a call to any method of the class as that proof, a call on an instance included, on the
+#     reasoning that an instance exists only once its constructor, and so its class's initializer, has run.
+#     That is false for String: a String literal exists before String's initializer has run. So in an instance
+#     method of String that calls another (substring(int) calls length(), then substring(int, int) is inlined
+#     into it and reads EMPTY), the initializer call was deleted and EMPTY was still null on first use. Whether
+#     a given method lost it depended on what was inlined where, which is why substring(1, 1), trim() and
+#     strip() came out right as a first call and substring(3) did not. The program's Wasm shows it: with
+#     substring(3) as its first call, the compiled String.substring never calls String's initializer; with
+#     substring(1, 1), it does.
+#   - The same deletion reaches a program's own code: names.get(0).length() and then String.CASE_INSENSITIVE_ORDER
+#     in one method sorted with a null comparator, in natural order (the JDK prints [alice, bob, Carl]). And it
+#     reaches every interface: an object whose class implements an interface exists before the interface is
+#     initialized. The JDK ran Shape's initializer at the first read of Shape.NAMES, after a call s.name()
+#     through Shape; the fork never ran it, and printed null where the JDK printed the list.
+#   - Now only a static call counts as proof, since a static method starts with its class's initializer
+#     (ClassInitializerInsertionTransformer). That is the rule ClassInitInsertion, which inserts these calls,
+#     already uses. An initializer is a call through a pointer that the initializer's first run replaces with
+#     an empty function, so a call kept where it was not needed costs one indirect call and changes nothing a
+#     program can see.
+#
+# Written from TeaVM's own sources (core/src/main/java/org/teavm/model/optimization/ClassInitElimination.java,
+# model/transformation/, vm/TeaVM.java, backend/wasm/) and the pinned JDK's observed output; no OpenJDK source
+# was opened (clean room, D14). Written by a subagent (Claude Opus 5.5), a language model whose training may
+# include OpenJDK, so the patch was read for names or structure that look recalled rather than derived: it adds
+# no name and changes one condition in TeaVM's own optimizer, which has no OpenJDK counterpart.
+#
+# Applies to: github.com/konsoletyper/teavm tag 0.13.1 (b3a245b7). No other patch touches ClassInitElimination.
+
+diff --git a/core/src/main/java/org/teavm/model/optimization/ClassInitElimination.java b/core/src/main/java/org/teavm/model/optimization/ClassInitElimination.java
+index aa86429..661b6b3 100644
+--- a/core/src/main/java/org/teavm/model/optimization/ClassInitElimination.java
++++ b/core/src/main/java/org/teavm/model/optimization/ClassInitElimination.java
+@@ -57,7 +57,16 @@ public class ClassInitElimination implements MethodOptimization {
+                 }
+                 if (insn instanceof InvokeInstruction) {
+                     InvokeInstruction invoke = (InvokeInstruction) insn;
+-                    step.initializedClasses.add(invoke.getMethod().getClassName());
++                    // teavm-fork: only a static call shows that its class has been initialized, since a static
++                    // method starts with its class's initializer (ClassInitializerInsertionTransformer). A call on
++                    // an instance shows nothing of the kind: a String literal exists before String's initializer
++                    // has run, and so does an object whose class implements an interface before that interface's
++                    // initializer has run. Counting such calls deleted the initializer in front of a later read of
++                    // String.EMPTY, or of an interface's constant, which then read null. ClassInitInsertion, which
++                    // inserts these initializers, already counts static calls only.
++                    if (invoke.getInstance() == null) {
++                        step.initializedClasses.add(invoke.getMethod().getClassName());
++                    }
+                 }
+             }
+ 

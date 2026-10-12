@@ -1,0 +1,126 @@
+# Copyright 2026 Groundwork contributors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# Engine wave E3. On the fork, list.equals(other) did not compile for an ArrayList, a List.of(...), an array, a
+# StringBuilder, an Object or a program's own class: "reference to equals is ambiguous: both method
+# equals(java.lang.Object) in java.lang.Object and method equals(java.lang.Object) in java.lang.Object match" (in
+# java.util.AbstractList for the lists). HashSet's and TreeSet's clone() failed the same way ("reference to clone
+# is ambiguous"). The pinned JDK compiles each and prints what the E3 cases record (runtime/test/cases.mjs): true
+# and false for equal and unequal lists, StringBuilders and objects, false for two arrays with the same contents
+# (an array's equals is identity), and a copy from clone() that equals the set it came from.
+#   - teavm-javac-0103 exports a method TeaVM declares under another name plus @Rename under its JDK name. TObject
+#     and TAbstractList declare equals(Object) and also @Rename("equals") equals0(TObject); THashSet and TTreeSet
+#     declare clone() and @Rename("clone") clone0(), which returns TObject. 0103's guard leaves a rename out when
+#     the class declares the new name with the original descriptor, but here the descriptors differ until TeaVM's
+#     class names are renamed (TObject to Object). Renamed, equals0 became a second equals(Object) in the compile
+#     classlib's java.lang.Object and java.util.AbstractList, and clone0 a second clone() in HashSet and TreeSet, so
+#     javac found two methods for every call that reached them. Types that override equals (String, Integer,
+#     Character, Double, HashSet, HashMap, records) compiled before and still do (E3-equals-overriding-types).
+#   - Now, before a class is converted, every renamed method whose new name plus renamed descriptor the stub
+#     already has is left out: one declared under its own name (kept, in whatever order the class declares them)
+#     or another renamed method written before it. The stub then declares each method once. Nothing changes at
+#     run time: the stub is the compile classlib, which javac reads for names and types only.
+#
+# Written from teavm-javac's own source (compiler/src/main/java/org/teavm/javac/StdlibConverter.java), TeaVM's
+# classlib (TObject.java, TAbstractList.java, THashSet.java, TTreeSet.java and the other @Rename sites) and the
+# pinned JDK's observed output; no OpenJDK source was opened (clean room, D14). Written by a subagent (Claude Opus
+# 5.5), a language model whose training may include OpenJDK, so the patch was read for names or structure that
+# look recalled rather than derived: it adds one field and one method of the converter's own, reusing 0103's
+# renames map and the converter's renameMethodDesc.
+#
+# Applies to: github.com/konsoletyper/teavm-javac 2ddcf02e (master, 2026-09-04), after teavm-javac-0101 to
+# teavm-javac-0103, with or without teavm-javac-0104 to 0106, which change other lines of the same file. It changes
+# lines teavm-javac-0103 wrote (the renames field, visitMethod's rename and addFile), so it cannot apply without
+# 0103, and the leave-one-out build without 0103 leaves it out too (runtime/build.sh and runtime/test/negatives.mjs
+# read the line below).
+# Builds on: teavm-javac-0103
+
+diff --git a/compiler/src/main/java/org/teavm/javac/StdlibConverter.java b/compiler/src/main/java/org/teavm/javac/StdlibConverter.java
+index 74ec518..b8db19a 100644
+--- a/compiler/src/main/java/org/teavm/javac/StdlibConverter.java
++++ b/compiler/src/main/java/org/teavm/javac/StdlibConverter.java
+@@ -25,6 +25,7 @@ import java.io.UncheckedIOException;
+ import java.nio.file.Files;
+ import java.util.HashMap;
+ import java.util.HashSet;
++import java.util.LinkedHashMap;
+ import java.util.LinkedHashSet;
+ import java.util.Map;
+ import java.util.Set;
+@@ -60,6 +61,12 @@ public class StdlibConverter extends ClassVisitor {
+     // The converter used to export them under the Java-side name, so javac reported
+     // "cannot find symbol: method getMessage()". Key: name + descriptor (original), value: JDK name.
+     private final Map<String, String> renames;
++    // teavm-fork: a method renamed onto a name and descriptor that the stub already has is left out of it, not
++    // declared twice. TObject.equals0(TObject) and TAbstractList.equals0(TObject) become equals(Object) beside
++    // the class's own equals(Object), and THashSet's and TTreeSet's clone0() become clone() beside their own
++    // clone(); declared twice, javac said "reference to equals is ambiguous" for every type that inherits
++    // Object's or AbstractList's equals. Key: name + descriptor (original), as in renames.
++    private final Set<String> duplicates = new HashSet<>();
+ 
+     public StdlibConverter(ClassVisitor cv) {
+         this(cv, Map.of());
+@@ -111,6 +118,34 @@ public class StdlibConverter extends ClassVisitor {
+         return result;
+     }
+ 
++    // teavm-fork: finds the renamed methods whose new name plus renamed descriptor the stub already has, either
++    // from a public or protected method declared under its own name (which is kept, whatever the order) or from
++    // a renamed method written before it.
++    void skipRenamedDuplicates(byte[] classFile) {
++        var kept = new HashSet<String>();
++        var renamed = new LinkedHashMap<String, String>();
++        new ClassReader(classFile).accept(new ClassVisitor(Opcodes.ASM9) {
++            @Override
++            public MethodVisitor visitMethod(int access, String name, String desc, String signature,
++                    String[] exceptions) {
++                if ((access & (Opcodes.ACC_PUBLIC | Opcodes.ACC_PROTECTED)) != 0) {
++                    var target = renames.get(name + desc);
++                    if (target == null) {
++                        kept.add(name + renameMethodDesc(desc));
++                    } else {
++                        renamed.put(name + desc, target + renameMethodDesc(desc));
++                    }
++                }
++                return null;
++            }
++        }, ClassReader.SKIP_CODE | ClassReader.SKIP_FRAMES | ClassReader.SKIP_DEBUG);
++        for (var entry : renamed.entrySet()) {
++            if (!kept.add(entry.getValue())) {
++                duplicates.add(entry.getKey());
++            }
++        }
++    }
++
+     @Override
+     public void visit(int version, int access, String name, String signature, String superName, String[] interfaces) {
+         if ((access & Opcodes.ACC_PRIVATE) != 0) {
+@@ -187,6 +222,9 @@ public class StdlibConverter extends ClassVisitor {
+         if ((access & Opcodes.ACC_PUBLIC) == 0 && ((access & Opcodes.ACC_PROTECTED) == 0)) {
+             return null;
+         }
++        if (duplicates.contains(name + desc)) {
++            return null;
++        }
+         name = renames.getOrDefault(name + desc, name);
+         desc = renameMethodDesc(desc);
+         if (signature != null) {
+@@ -579,6 +617,7 @@ public class StdlibConverter extends ClassVisitor {
+         ClassReader reader = new ClassReader(bytes);
+         ClassWriter writer = new ClassWriter(0);
+         StdlibConverter converter = new StdlibConverter(writer, collectRenames(bytes));
++        converter.skipRenamedDuplicates(bytes);
+         reader.accept(converter, ClassReader.SKIP_CODE | ClassReader.SKIP_FRAMES
+                 | ClassReader.SKIP_DEBUG);
+         if (converter.visible) {
