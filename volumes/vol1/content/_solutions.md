@@ -8354,3 +8354,1400 @@ void main() {
     IO.println(registerFrom(found));
 }
 ```
+
+## ch10-records#13
+
+Try It 1: five cities as records.
+
+```java
+// Five cities as records, printed with their coordinates.
+
+record City(String name, double latitude, double longitude) {}
+
+void main() {
+    ArrayList<City> cities = new ArrayList<>(List.of(
+            new City("Tokyo", 35.68, 139.69),
+            new City("Cairo", 30.04, 31.24),
+            new City("Lima", -12.05, -77.04),
+            new City("Oslo", 59.91, 10.75),
+            new City("Perth", -31.95, 115.86)));
+
+    for (City city : cities) {
+        IO.println(String.format("%s: (%.2f, %.2f)",
+                city.name(), city.latitude(), city.longitude()));
+    }
+}
+```
+
+Each city is one record, so its name and its coordinates travel together, and the loop reads them back with the accessors. `%.2f` prints each coordinate to two decimal places, and a coordinate south of the equator or west of Greenwich keeps its minus sign.
+
+```java
+record City(String name, double latitude, double longitude) {}
+
+void main() {
+    City[] cities = {
+        new City("Tokyo", 35.68, 139.69),
+        new City("Cairo", 30.04, 31.24),
+        new City("Lima", -12.05, -77.04),
+        new City("Oslo", 59.91, 10.75),
+        new City("Perth", -31.95, 115.86)
+    };
+
+    for (City city : cities) {
+        IO.println(city.name() + ": (" + city.latitude() + ", " + city.longitude() + ")");
+    }
+}
+```
+
+The second answer keeps the cities in an array and joins each coordinate with `+`: these values already print with two decimal places, so no format is needed.
+
+### mistake
+
+Latitude and longitude read back in the wrong order:
+
+```java
+record City(String name, double latitude, double longitude) {}
+
+void main() {
+    ArrayList<City> cities = new ArrayList<>(List.of(
+            new City("Tokyo", 35.68, 139.69),
+            new City("Cairo", 30.04, 31.24),
+            new City("Lima", -12.05, -77.04),
+            new City("Oslo", 59.91, 10.75),
+            new City("Perth", -31.95, 115.86)));
+
+    for (City city : cities) {
+        IO.println(String.format("%s: (%.2f, %.2f)",
+                city.name(), city.longitude(), city.latitude()));
+    }
+}
+```
+
+One decimal place instead of two prints Tokyo at 35.7:
+
+```java
+record City(String name, double latitude, double longitude) {}
+
+void main() {
+    ArrayList<City> cities = new ArrayList<>(List.of(
+            new City("Tokyo", 35.68, 139.69),
+            new City("Cairo", 30.04, 31.24),
+            new City("Lima", -12.05, -77.04),
+            new City("Oslo", 59.91, 10.75),
+            new City("Perth", -31.95, 115.86)));
+
+    for (City city : cities) {
+        IO.println(String.format("%s: (%.1f, %.1f)",
+                city.name(), city.latitude(), city.longitude()));
+    }
+}
+```
+
+## ch10-records#14
+
+Try It 2: `distance`.
+
+```java
+record Point(double x, double y) {}
+
+double distance(Point p1, Point p2) {
+    double dx = p2.x() - p1.x();
+    double dy = p2.y() - p1.y();
+    return Math.sqrt(dx * dx + dy * dy);
+}
+
+void main() {
+    IO.println(distance(new Point(0, 0), new Point(3, 4)));
+}
+```
+
+The differences in `x` and in `y` are the two short sides of a right triangle, and the distance is its long side: the square root of the sum of their squares. Squaring makes a negative difference positive, so it does not matter which point comes first.
+
+```java
+record Point(double x, double y) {}
+
+double distance(Point p1, Point p2) {
+    return Math.pow(Math.pow(p1.x() - p2.x(), 2) + Math.pow(p1.y() - p2.y(), 2), 0.5);
+}
+
+void main() {
+    IO.println(distance(new Point(1, 1), new Point(4, 5)));
+}
+```
+
+The second answer squares with Chapter 3's `Math.pow` and takes the square root as the power of one half.
+
+### mistake
+
+No square root: the sum of the squares, 25 for a distance of 5.
+
+```java
+record Point(double x, double y) {}
+
+double distance(Point p1, Point p2) {
+    double dx = p2.x() - p1.x();
+    double dy = p2.y() - p1.y();
+    return dx * dx + dy * dy;
+}
+
+void main() {
+    IO.println(distance(new Point(0, 0), new Point(3, 4)));
+}
+```
+
+Adding the differences walks along the two short sides instead of across:
+
+```java
+record Point(double x, double y) {}
+
+double distance(Point p1, Point p2) {
+    double dx = p2.x() - p1.x();
+    double dy = p2.y() - p1.y();
+    return dx + dy;
+}
+
+void main() {
+    IO.println(distance(new Point(0, 0), new Point(3, 4)));
+}
+```
+
+## ch10-records#15
+
+Try It 3: book records, oldest first.
+
+```java
+// Book records, printed oldest first.
+
+record Book(String title, String author, int year) {}
+
+void main() {
+    ArrayList<Book> books = new ArrayList<>(List.of(
+            new Book("Dune", "Frank Herbert", 1965),
+            new Book("Neuromancer", "William Gibson", 1984),
+            new Book("The Hobbit", "J.R.R. Tolkien", 1937),
+            new Book("Project Hail Mary", "Andy Weir", 2021),
+            new Book("Foundation", "Isaac Asimov", 1951)));
+
+    ArrayList<Book> byYear = new ArrayList<>(books);
+    byYear.sort(Comparator.comparing(book -> book.year()));
+
+    for (Book book : byYear) {
+        IO.println(book.year() + ": " + book.title() + " by " + book.author());
+    }
+}
+```
+
+A copy of the list is sorted by each book's year, the lambda saying what to compare, and the loop prints the copy. Each record keeps its title, author and year together however the list is rearranged.
+
+```java
+record Book(String title, String author, int year) {}
+
+void main() {
+    ArrayList<Book> books = new ArrayList<>();
+    books.add(new Book("Dune", "Frank Herbert", 1965));
+    books.add(new Book("Neuromancer", "William Gibson", 1984));
+    books.add(new Book("The Hobbit", "J.R.R. Tolkien", 1937));
+    books.add(new Book("Project Hail Mary", "Andy Weir", 2021));
+    books.add(new Book("Foundation", "Isaac Asimov", 1951));
+
+    books.sort(Comparator.comparing((Book b) -> b.year()));
+    for (Book book : books) {
+        IO.println(String.format("%d: %s by %s",
+                book.year(), book.title(), book.author()));
+    }
+}
+```
+
+The second answer sorts the list itself, with the lambda's type written out, and builds each line with `String.format`.
+
+### mistake
+
+Sorting by title puts Dune first:
+
+```java
+record Book(String title, String author, int year) {}
+
+void main() {
+    ArrayList<Book> books = new ArrayList<>(List.of(
+            new Book("Dune", "Frank Herbert", 1965),
+            new Book("Neuromancer", "William Gibson", 1984),
+            new Book("The Hobbit", "J.R.R. Tolkien", 1937),
+            new Book("Project Hail Mary", "Andy Weir", 2021),
+            new Book("Foundation", "Isaac Asimov", 1951)));
+
+    ArrayList<Book> sorted = new ArrayList<>(books);
+    sorted.sort(Comparator.comparing(book -> book.title()));
+
+    for (Book book : sorted) {
+        IO.println(book.year() + ": " + book.title() + " by " + book.author());
+    }
+}
+```
+
+`.reversed()` puts the newest first:
+
+```java
+record Book(String title, String author, int year) {}
+
+void main() {
+    ArrayList<Book> books = new ArrayList<>(List.of(
+            new Book("Dune", "Frank Herbert", 1965),
+            new Book("Neuromancer", "William Gibson", 1984),
+            new Book("The Hobbit", "J.R.R. Tolkien", 1937),
+            new Book("Project Hail Mary", "Andy Weir", 2021),
+            new Book("Foundation", "Isaac Asimov", 1951)));
+
+    ArrayList<Book> byYear = new ArrayList<>(books);
+    byYear.sort(Comparator.comparing((Book book) -> book.year()).reversed());
+
+    for (Book book : byYear) {
+        IO.println(book.year() + ": " + book.title() + " by " + book.author());
+    }
+}
+```
+
+## ch10-records#16
+
+Try It 4: the books published after 2000.
+
+```java
+// Prints the books published after 2000.
+
+record Book(String title, String author, int year) {}
+
+void main() {
+    ArrayList<Book> books = new ArrayList<>(List.of(
+            new Book("Dune", "Frank Herbert", 1965),
+            new Book("Neuromancer", "William Gibson", 1984),
+            new Book("The Hobbit", "J.R.R. Tolkien", 1937),
+            new Book("Project Hail Mary", "Andy Weir", 2021),
+            new Book("Foundation", "Isaac Asimov", 1951)));
+
+    ArrayList<Book> recent = new ArrayList<>();
+    for (Book book : books) {
+        if (book.year() > 2000) {
+            recent.add(book);
+        }
+    }
+
+    for (Book book : recent) {
+        IO.println(book.title() + " (" + book.year() + ")");
+    }
+}
+```
+
+The first loop keeps each book whose year is greater than 2000 in a new list, as the chapter's filtering does, and the second prints them. `> 2000` leaves out a book from 2000 itself, which is what "after" means.
+
+```java
+record Book(String title, String author, int year) {}
+
+void main() {
+    ArrayList<Book> books = new ArrayList<>(List.of(
+            new Book("Dune", "Frank Herbert", 1965),
+            new Book("Neuromancer", "William Gibson", 1984),
+            new Book("The Hobbit", "J.R.R. Tolkien", 1937),
+            new Book("Project Hail Mary", "Andy Weir", 2021),
+            new Book("Foundation", "Isaac Asimov", 1951)));
+
+    for (Book book : books) {
+        if (book.year() > 2000) {
+            IO.println(String.format("%s (%d)", book.title(), book.year()));
+        }
+    }
+}
+```
+
+The second answer prints each book as the loop finds it, with no list in between, and formats the line with `String.format`.
+
+### mistake
+
+`<` keeps the older books instead:
+
+```java
+record Book(String title, String author, int year) {}
+
+void main() {
+    ArrayList<Book> books = new ArrayList<>(List.of(
+            new Book("Dune", "Frank Herbert", 1965),
+            new Book("Neuromancer", "William Gibson", 1984),
+            new Book("The Hobbit", "J.R.R. Tolkien", 1937),
+            new Book("Project Hail Mary", "Andy Weir", 2021),
+            new Book("Foundation", "Isaac Asimov", 1951)));
+
+    for (Book book : books) {
+        if (book.year() < 2000) {
+            IO.println(book.title() + " (" + book.year() + ")");
+        }
+    }
+}
+```
+
+Printing the whole record, not its title and year:
+
+```java
+record Book(String title, String author, int year) {}
+
+void main() {
+    ArrayList<Book> books = new ArrayList<>(List.of(
+            new Book("Dune", "Frank Herbert", 1965),
+            new Book("Neuromancer", "William Gibson", 1984),
+            new Book("The Hobbit", "J.R.R. Tolkien", 1937),
+            new Book("Project Hail Mary", "Andy Weir", 2021),
+            new Book("Foundation", "Isaac Asimov", 1951)));
+
+    for (Book book : books) {
+        if (book.year() > 2000) {
+            IO.println(book);
+        }
+    }
+}
+```
+
+## ch10-records#17
+
+Try It 5: the books grouped by author.
+
+```java
+// Groups the books by author.
+
+record Book(String title, String author, int year) {}
+
+void main() {
+    ArrayList<Book> books = new ArrayList<>(List.of(
+            new Book("Dune", "Frank Herbert", 1965),
+            new Book("Neuromancer", "William Gibson", 1984),
+            new Book("The Hobbit", "J.R.R. Tolkien", 1937),
+            new Book("Project Hail Mary", "Andy Weir", 2021),
+            new Book("Foundation", "Isaac Asimov", 1951),
+            new Book("Children of Dune", "Frank Herbert", 1976)));
+
+    Map<String, ArrayList<String>> byAuthor = new TreeMap<>();
+    for (Book book : books) {
+        String author = book.author();
+        if (!byAuthor.containsKey(author)) {
+            byAuthor.put(author, new ArrayList<>());
+        }
+        byAuthor.get(author).add(book.title());
+    }
+
+    for (String author : byAuthor.keySet()) {
+        IO.println(author + ": " + String.join(", ", byAuthor.get(author)));
+    }
+}
+```
+
+The first time the loop meets an author, the map has no list for them, so the `if` puts in an empty one; every book then adds its title to its author's list. The `TreeMap` keeps the authors in alphabetical order, and `String.join` puts a comma between Frank Herbert's two titles.
+
+```java
+record Book(String title, String author, int year) {}
+
+void main() {
+    ArrayList<Book> books = new ArrayList<>(List.of(
+            new Book("Dune", "Frank Herbert", 1965),
+            new Book("Neuromancer", "William Gibson", 1984),
+            new Book("The Hobbit", "J.R.R. Tolkien", 1937),
+            new Book("Project Hail Mary", "Andy Weir", 2021),
+            new Book("Foundation", "Isaac Asimov", 1951),
+            new Book("Children of Dune", "Frank Herbert", 1976)));
+
+    Map<String, ArrayList<String>> byAuthor = new LinkedHashMap<>();
+    for (Book book : books) {
+        ArrayList<String> titles = byAuthor.getOrDefault(book.author(), new ArrayList<>());
+        titles.add(book.title());
+        byAuthor.put(book.author(), titles);
+    }
+
+    ArrayList<String> authors = new ArrayList<>(byAuthor.keySet());
+    Collections.sort(authors);
+    for (String author : authors) {
+        IO.println(author + ": " + String.join(", ", byAuthor.get(author)));
+    }
+}
+```
+
+The second answer takes an author's list, or a new empty one, with `getOrDefault`, and puts it back after adding the title. Its `LinkedHashMap` keeps the authors in the order they first appear, so it sorts a list of them before printing.
+
+### mistake
+
+A new list for every book replaces the one already there, so Frank Herbert keeps only Children of Dune:
+
+```java
+record Book(String title, String author, int year) {}
+
+void main() {
+    ArrayList<Book> books = new ArrayList<>(List.of(
+            new Book("Dune", "Frank Herbert", 1965),
+            new Book("Neuromancer", "William Gibson", 1984),
+            new Book("The Hobbit", "J.R.R. Tolkien", 1937),
+            new Book("Project Hail Mary", "Andy Weir", 2021),
+            new Book("Foundation", "Isaac Asimov", 1951),
+            new Book("Children of Dune", "Frank Herbert", 1976)));
+
+    Map<String, ArrayList<String>> byAuthor = new TreeMap<>();
+    for (Book book : books) {
+        byAuthor.put(book.author(), new ArrayList<>());
+        byAuthor.get(book.author()).add(book.title());
+    }
+
+    for (String author : byAuthor.keySet()) {
+        IO.println(author + ": " + String.join(", ", byAuthor.get(author)));
+    }
+}
+```
+
+A `LinkedHashMap` keeps the authors in the order they first appear, not in alphabetical order:
+
+```java
+record Book(String title, String author, int year) {}
+
+void main() {
+    ArrayList<Book> books = new ArrayList<>(List.of(
+            new Book("Dune", "Frank Herbert", 1965),
+            new Book("Neuromancer", "William Gibson", 1984),
+            new Book("The Hobbit", "J.R.R. Tolkien", 1937),
+            new Book("Project Hail Mary", "Andy Weir", 2021),
+            new Book("Foundation", "Isaac Asimov", 1951),
+            new Book("Children of Dune", "Frank Herbert", 1976)));
+
+    Map<String, ArrayList<String>> byAuthor = new LinkedHashMap<>();
+    for (Book book : books) {
+        if (!byAuthor.containsKey(book.author())) {
+            byAuthor.put(book.author(), new ArrayList<>());
+        }
+        byAuthor.get(book.author()).add(book.title());
+    }
+
+    for (String author : byAuthor.keySet()) {
+        IO.println(author + ": " + String.join(", ", byAuthor.get(author)));
+    }
+}
+```
+
+No map at all: a copy sorted by author prints one line per book, so Frank Herbert's two titles land on two lines:
+
+```java
+record Book(String title, String author, int year) {}
+
+void main() {
+    ArrayList<Book> books = new ArrayList<>(List.of(
+            new Book("Dune", "Frank Herbert", 1965),
+            new Book("Neuromancer", "William Gibson", 1984),
+            new Book("The Hobbit", "J.R.R. Tolkien", 1937),
+            new Book("Project Hail Mary", "Andy Weir", 2021),
+            new Book("Foundation", "Isaac Asimov", 1951),
+            new Book("Children of Dune", "Frank Herbert", 1976)));
+
+    ArrayList<Book> byAuthor = new ArrayList<>(books);
+    byAuthor.sort(Comparator.comparing(book -> book.author()));
+    for (Book book : byAuthor) {
+        IO.println(book.author() + ": " + book.title());
+    }
+}
+```
+
+## ch10-records#18
+
+Try It 6: `oldest`.
+
+```java
+record Book(String title, String author, int year) {}
+
+/// Returns the record of the earliest published book.
+Book oldest(ArrayList<Book> books) {
+    Book earliest = books.get(0);
+    for (Book book : books) {
+        if (book.year() < earliest.year()) {
+            earliest = book;
+        }
+    }
+    return earliest;
+}
+
+void main() {
+    ArrayList<Book> books = new ArrayList<>(List.of(
+            new Book("Dune", "Frank Herbert", 1965),
+            new Book("Neuromancer", "William Gibson", 1984),
+            new Book("The Hobbit", "J.R.R. Tolkien", 1937),
+            new Book("Project Hail Mary", "Andy Weir", 2021),
+            new Book("Foundation", "Isaac Asimov", 1951)));
+
+    Book result = oldest(books);
+    IO.println(result.title() + " (" + result.year() + ") by " + result.author());
+}
+```
+
+`earliest` starts as the first book, and a book replaces it only when it is older. The method gives back the whole record, so the caller can read any part of it.
+
+```java
+record Book(String title, String author, int year) {}
+
+Book oldest(ArrayList<Book> books) {
+    ArrayList<Book> byYear = new ArrayList<>(books);
+    byYear.sort(Comparator.comparing(book -> book.year()));
+    return byYear.get(0);
+}
+
+void main() {
+    ArrayList<Book> books = new ArrayList<>(List.of(
+            new Book("Dune", "Frank Herbert", 1965),
+            new Book("Foundation", "Isaac Asimov", 1951)));
+    IO.println(oldest(books));
+}
+```
+
+The second answer sorts a copy by year and takes the first record, leaving the list it is handed as it was.
+
+### mistake
+
+`>` keeps the newest book instead:
+
+```java
+record Book(String title, String author, int year) {}
+
+Book oldest(ArrayList<Book> books) {
+    Book earliest = books.get(0);
+    for (Book book : books) {
+        if (book.year() > earliest.year()) {
+            earliest = book;
+        }
+    }
+    return earliest;
+}
+
+void main() {
+    ArrayList<Book> books = new ArrayList<>(List.of(
+            new Book("Dune", "Frank Herbert", 1965),
+            new Book("Foundation", "Isaac Asimov", 1951)));
+    IO.println(oldest(books));
+}
+```
+
+Comparing every book with the first one, not with the oldest so far, ends on the last book older than the first:
+
+```java
+record Book(String title, String author, int year) {}
+
+Book oldest(ArrayList<Book> books) {
+    Book earliest = books.get(0);
+    for (Book book : books) {
+        if (book.year() < books.get(0).year()) {
+            earliest = book;
+        }
+    }
+    return earliest;
+}
+
+void main() {
+    ArrayList<Book> books = new ArrayList<>(List.of(
+            new Book("Dune", "Frank Herbert", 1965),
+            new Book("Foundation", "Isaac Asimov", 1951)));
+    IO.println(oldest(books));
+}
+```
+
+Starting from a made-up book from year 0: no real book is older, so the made-up one comes back.
+
+```java
+record Book(String title, String author, int year) {}
+
+Book oldest(ArrayList<Book> books) {
+    Book earliest = new Book("", "", 0);
+    for (Book book : books) {
+        if (book.year() < earliest.year()) {
+            earliest = book;
+        }
+    }
+    return earliest;
+}
+
+void main() {
+    ArrayList<Book> books = new ArrayList<>(List.of(
+            new Book("Dune", "Frank Herbert", 1965),
+            new Book("Foundation", "Isaac Asimov", 1951)));
+    IO.println(oldest(books));
+}
+```
+
+## ch10-records#19
+
+Try It 7: a tic-tac-toe board in a map.
+
+```java
+// A tic-tac-toe board in a map with Cell keys, printed as a grid.
+
+record Cell(int row, int col) {}
+
+void main() {
+    Map<Cell, String> board = new LinkedHashMap<>();
+    board.put(new Cell(0, 0), "X");
+    board.put(new Cell(1, 1), "O");
+    board.put(new Cell(0, 2), "X");
+    board.put(new Cell(2, 0), "O");
+
+    for (int row = 0; row < 3; row++) {
+        ArrayList<String> cells = new ArrayList<>();
+        for (int col = 0; col < 3; col++) {
+            cells.add(board.getOrDefault(new Cell(row, col), "."));
+        }
+        IO.println(String.join(" ", cells));
+    }
+}
+```
+
+`getOrDefault` gives back the mark on a square, or `.` for a square the map has no entry for, so the map holds only the four squares that are taken. Each `new Cell(row, col)` made in the loop equals the cell its mark was put under.
+
+```java
+record Cell(int row, int col) {}
+
+void main() {
+    Map<Cell, String> board = new LinkedHashMap<>();
+    board.put(new Cell(0, 0), "X");
+    board.put(new Cell(0, 2), "X");
+    board.put(new Cell(1, 1), "O");
+    board.put(new Cell(2, 0), "O");
+
+    for (int row = 0; row < 3; row++) {
+        for (int col = 0; col < 3; col++) {
+            Cell cell = new Cell(row, col);
+            String mark = board.containsKey(cell) ? board.get(cell) : ".";
+            IO.print(mark + " ");
+        }
+        IO.println();
+    }
+}
+```
+
+The second answer asks `containsKey` in a conditional expression and prints each square as it goes, a space after each; the space at the end of a line does not show.
+
+### mistake
+
+Row and column swapped in the lookup: the board comes out turned on its side.
+
+```java
+record Cell(int row, int col) {}
+
+void main() {
+    Map<Cell, String> board = new LinkedHashMap<>();
+    board.put(new Cell(0, 0), "X");
+    board.put(new Cell(1, 1), "O");
+    board.put(new Cell(0, 2), "X");
+    board.put(new Cell(2, 0), "O");
+
+    for (int row = 0; row < 3; row++) {
+        ArrayList<String> cells = new ArrayList<>();
+        for (int col = 0; col < 3; col++) {
+            cells.add(board.getOrDefault(new Cell(col, row), "."));
+        }
+        IO.println(String.join(" ", cells));
+    }
+}
+```
+
+`get` gives back `null` for an empty square, and `null` is what prints:
+
+```java
+record Cell(int row, int col) {}
+
+void main() {
+    Map<Cell, String> board = new LinkedHashMap<>();
+    board.put(new Cell(0, 0), "X");
+    board.put(new Cell(1, 1), "O");
+    board.put(new Cell(0, 2), "X");
+    board.put(new Cell(2, 0), "O");
+
+    for (int row = 0; row < 3; row++) {
+        for (int col = 0; col < 3; col++) {
+            IO.print(board.get(new Cell(row, col)) + " ");
+        }
+        IO.println();
+    }
+}
+```
+
+## ch10-records-practice#1
+
+```java
+record Service(String route, int departs, String destination) {}
+
+String routeOf(Service service) {
+    String route = service.route();
+    int departs = service.departs();
+    String destination = service.destination();
+    return route;
+}
+
+void main() {
+    Service service = new Service("47", 415, "Harbor");
+    IO.println(routeOf(service));
+}
+```
+
+The three lines name every part of a service, so whoever reads `routeOf` next sees at once what a service holds, and the method gives back the one it was asked for.
+
+```java
+record Service(String route, int departs, String destination) {}
+
+String routeOf(Service service) {
+    return service.route();
+}
+
+void main() {
+    IO.println(routeOf(new Service("12", 380, "Museum")));
+}
+```
+
+The second answer calls only the accessor it needs. It gives back the same route, but tells the next reader less about what a service holds.
+
+### mistake
+
+The wrong variable handed back:
+
+```java
+record Service(String route, int departs, String destination) {}
+
+String routeOf(Service service) {
+    String route = service.route();
+    int departs = service.departs();
+    String destination = service.destination();
+    return destination;
+}
+
+void main() {
+    IO.println(routeOf(new Service("47", 415, "Harbor")));
+}
+```
+
+## ch10-records-practice#2
+
+```java
+String clock(int minutes) {
+    return String.format("%02d:%02d", minutes / 60, minutes % 60);
+}
+
+void main() {
+    IO.println(clock(380));
+    IO.println(clock(0));
+}
+```
+
+`%02d` pads to two digits with a zero. Without it, five past ten prints as 10:5 and the timetable stops lining up.
+
+```java
+String clock(int minutes) {
+    int hours = minutes / 60;
+    int mins = minutes % 60;
+    String hh = hours < 10 ? "0" + hours : "" + hours;
+    String mm = mins < 10 ? "0" + mins : "" + mins;
+    return hh + ":" + mm;
+}
+
+void main() {
+    IO.println(clock(605));
+}
+```
+
+The second answer pads each half by hand, a `0` in front of a number below 10, with two conditional expressions.
+
+### mistake
+
+No padding: 415 comes out as 6:55.
+
+```java
+String clock(int minutes) {
+    return minutes / 60 + ":" + minutes % 60;
+}
+
+void main() {
+    IO.println(clock(415));
+}
+```
+
+## ch10-records-practice#3
+
+```java
+record Service(String route, int departs, String destination) {}
+
+ArrayList<String> destinations(ArrayList<Service> services) {
+    Set<String> places = new TreeSet<>();
+    for (Service service : services) {
+        places.add(service.destination());
+    }
+    return new ArrayList<>(places);
+}
+
+void main() {
+    ArrayList<Service> services = new ArrayList<>(List.of(
+            new Service("12", 380, "Museum"),
+            new Service("47", 415, "Harbor"),
+            new Service("47", 500, "Harbor")));
+    IO.println(destinations(services));
+}
+```
+
+Two services run to the Harbor, so without the set it would appear twice. A `TreeSet` holds each destination once and keeps them sorted, and a new `ArrayList` hands them back as a list.
+
+```java
+record Service(String route, int departs, String destination) {}
+
+ArrayList<String> destinations(ArrayList<Service> services) {
+    ArrayList<String> places = new ArrayList<>();
+    for (Service service : services) {
+        if (!places.contains(service.destination())) {
+            places.add(service.destination());
+        }
+    }
+    Collections.sort(places);
+    return places;
+}
+
+void main() {
+    ArrayList<Service> services = new ArrayList<>(List.of(
+            new Service("47", 415, "Harbor"),
+            new Service("9", 1000, "Airport")));
+    IO.println(destinations(services));
+}
+```
+
+The second answer uses a list, adding a destination only when the list does not hold it yet, then sorts it.
+
+### mistake
+
+No set: the Harbor appears twice.
+
+```java
+record Service(String route, int departs, String destination) {}
+
+ArrayList<String> destinations(ArrayList<Service> services) {
+    ArrayList<String> places = new ArrayList<>();
+    for (Service service : services) {
+        places.add(service.destination());
+    }
+    Collections.sort(places);
+    return places;
+}
+
+void main() {
+    ArrayList<Service> services = new ArrayList<>(List.of(
+            new Service("47", 415, "Harbor"),
+            new Service("47", 500, "Harbor")));
+    IO.println(destinations(services));
+}
+```
+
+A `LinkedHashSet` removes the repeats but keeps the order the services came in, not alphabetical order:
+
+```java
+record Service(String route, int departs, String destination) {}
+
+ArrayList<String> destinations(ArrayList<Service> services) {
+    Set<String> places = new LinkedHashSet<>();
+    for (Service service : services) {
+        places.add(service.destination());
+    }
+    return new ArrayList<>(places);
+}
+
+void main() {
+    ArrayList<Service> services = new ArrayList<>(List.of(
+            new Service("12", 380, "Museum"),
+            new Service("47", 415, "Harbor")));
+    IO.println(destinations(services));
+}
+```
+
+`==` asks whether two `String`s are the same object, and a destination made while the program runs is a different object from one written in the code, so the Harbor can go in twice:
+
+```java
+record Service(String route, int departs, String destination) {}
+
+ArrayList<String> destinations(ArrayList<Service> services) {
+    ArrayList<String> places = new ArrayList<>();
+    for (Service service : services) {
+        boolean seen = false;
+        for (String place : places) {
+            if (place == service.destination()) {
+                seen = true;
+            }
+        }
+        if (!seen) {
+            places.add(service.destination());
+        }
+    }
+    Collections.sort(places);
+    return places;
+}
+
+void main() {
+    ArrayList<Service> services = new ArrayList<>(List.of(
+            new Service("47", 415, "Harbor"),
+            new Service("47", 500, " Harbor".strip())));
+    IO.println(destinations(services));
+}
+```
+
+## ch10-records-practice#4
+
+```java
+record Service(String route, int departs, String destination) {}
+
+Service nextAfter(ArrayList<Service> services, int minute) {
+    ArrayList<Service> sorted = new ArrayList<>(services);
+    sorted.sort(Comparator.comparing(service -> service.departs()));
+    for (Service service : sorted) {
+        if (service.departs() > minute) {
+            return service;
+        }
+    }
+    return null;
+}
+
+void main() {
+    ArrayList<Service> services = new ArrayList<>(List.of(
+            new Service("12", 380, "Museum"),
+            new Service("47", 415, "Harbor"),
+            new Service("47", 500, "Harbor")));
+    IO.println(nextAfter(services, 400));
+    IO.println(nextAfter(services, 600));
+}
+```
+
+Strictly after, so the bus leaving at exactly that minute is the one you just missed. Sorting a copy first means the first match found is the earliest, and `null` after the loop says that no bus is left.
+
+```java
+record Service(String route, int departs, String destination) {}
+
+Service nextAfter(ArrayList<Service> services, int minute) {
+    Service best = null;
+    for (Service service : services) {
+        if (service.departs() > minute
+                && (best == null || service.departs() < best.departs())) {
+            best = service;
+        }
+    }
+    return best;
+}
+
+void main() {
+    ArrayList<Service> services = new ArrayList<>(List.of(
+            new Service("47", 500, "Harbor"),
+            new Service("12", 380, "Museum")));
+    IO.println(nextAfter(services, 400));
+}
+```
+
+The second answer keeps the earliest bus after the minute seen so far, starting from `null`, so it needs no sort; when no bus qualifies, `best` is still `null` at the end.
+
+### mistake
+
+`>=` hands back the bus leaving at that very minute:
+
+```java
+record Service(String route, int departs, String destination) {}
+
+Service nextAfter(ArrayList<Service> services, int minute) {
+    ArrayList<Service> sorted = new ArrayList<>(services);
+    sorted.sort(Comparator.comparing(service -> service.departs()));
+    for (Service service : sorted) {
+        if (service.departs() >= minute) {
+            return service;
+        }
+    }
+    return null;
+}
+
+void main() {
+    ArrayList<Service> services = new ArrayList<>(List.of(
+            new Service("12", 380, "Museum"),
+            new Service("47", 415, "Harbor")));
+    IO.println(nextAfter(services, 415));
+}
+```
+
+When the day is done, the last bus instead of `null`:
+
+```java
+record Service(String route, int departs, String destination) {}
+
+Service nextAfter(ArrayList<Service> services, int minute) {
+    ArrayList<Service> sorted = new ArrayList<>(services);
+    sorted.sort(Comparator.comparing(service -> service.departs()));
+    for (Service service : sorted) {
+        if (service.departs() > minute) {
+            return service;
+        }
+    }
+    return sorted.get(sorted.size() - 1);
+}
+
+void main() {
+    ArrayList<Service> services = new ArrayList<>(List.of(
+            new Service("12", 380, "Museum"),
+            new Service("47", 415, "Harbor")));
+    IO.println(nextAfter(services, 600));
+}
+```
+
+No sort: the first bus in the list after that minute, which is not the earliest when the services come out of order:
+
+```java
+record Service(String route, int departs, String destination) {}
+
+Service nextAfter(ArrayList<Service> services, int minute) {
+    for (Service service : services) {
+        if (service.departs() > minute) {
+            return service;
+        }
+    }
+    return null;
+}
+
+void main() {
+    ArrayList<Service> services = new ArrayList<>(List.of(
+            new Service("47", 500, "Harbor"),
+            new Service("12", 380, "Museum"),
+            new Service("47", 415, "Harbor")));
+    IO.println(nextAfter(services, 400));
+}
+```
+
+## ch10-records-practice#5
+
+```java
+record Service(String route, int departs, String destination) {}
+
+ArrayList<Service> byTime(ArrayList<Service> services) {
+    ArrayList<Service> sorted = new ArrayList<>(services);
+    sorted.sort(Comparator.comparing(service -> service.departs()));
+    return sorted;
+}
+
+void main() {
+    ArrayList<Service> services = new ArrayList<>(List.of(
+            new Service("47", 500, "Harbor"),
+            new Service("12", 380, "Museum"),
+            new Service("47", 415, "Harbor")));
+    IO.println(byTime(services));
+}
+```
+
+The comparator says which part to sort on, the departure. Sorting a copy leaves the list it is handed as it was.
+
+```java
+record Service(String route, int departs, String destination) {}
+
+ArrayList<Service> byTime(ArrayList<Service> services) {
+    ArrayList<Service> left = new ArrayList<>(services);
+    ArrayList<Service> sorted = new ArrayList<>();
+    while (!left.isEmpty()) {
+        int earliest = 0;
+        for (int i = 1; i < left.size(); i++) {
+            if (left.get(i).departs() < left.get(earliest).departs()) {
+                earliest = i;
+            }
+        }
+        sorted.add(left.remove(earliest));
+    }
+    return sorted;
+}
+
+void main() {
+    ArrayList<Service> services = new ArrayList<>(List.of(
+            new Service("12", 380, "Museum"),
+            new Service("9", 300, "Airport")));
+    IO.println(byTime(services));
+}
+```
+
+The second answer sorts by hand, as Chapter 7 did before comparators: it takes the earliest service left, again and again.
+
+### mistake
+
+Sorting by the route: route 12 comes before route 9, since `"12"` comes before `"9"` as text.
+
+```java
+record Service(String route, int departs, String destination) {}
+
+ArrayList<Service> byTime(ArrayList<Service> services) {
+    ArrayList<Service> sorted = new ArrayList<>(services);
+    sorted.sort(Comparator.comparing(service -> service.route()));
+    return sorted;
+}
+
+void main() {
+    ArrayList<Service> services = new ArrayList<>(List.of(
+            new Service("12", 380, "Museum"),
+            new Service("9", 300, "Airport")));
+    IO.println(byTime(services));
+}
+```
+
+`.reversed()` puts the last bus first:
+
+```java
+record Service(String route, int departs, String destination) {}
+
+ArrayList<Service> byTime(ArrayList<Service> services) {
+    ArrayList<Service> sorted = new ArrayList<>(services);
+    sorted.sort(Comparator.comparing((Service s) -> s.departs()).reversed());
+    return sorted;
+}
+
+void main() {
+    ArrayList<Service> services = new ArrayList<>(List.of(
+            new Service("12", 380, "Museum"),
+            new Service("9", 300, "Airport")));
+    IO.println(byTime(services));
+}
+```
+
+## ch10-records-practice#6
+
+```java
+record Service(String route, int departs, String destination) {}
+
+Map<String, Integer> countByRoute(ArrayList<Service> services) {
+    Map<String, Integer> counts = new LinkedHashMap<>();
+    for (Service service : services) {
+        String route = service.route();
+        if (!counts.containsKey(route)) {
+            counts.put(route, 0);
+        }
+        counts.put(route, counts.get(route) + 1);
+    }
+    return counts;
+}
+
+void main() {
+    ArrayList<Service> services = new ArrayList<>(List.of(
+            new Service("12", 380, "Museum"),
+            new Service("47", 415, "Harbor"),
+            new Service("47", 500, "Harbor")));
+    IO.println(countByRoute(services));
+}
+```
+
+The `if` puts a 0 there only when nothing is there yet, so the line after it can always add one. Route 47 runs twice, which is what catches a version that puts 1.
+
+```java
+record Service(String route, int departs, String destination) {}
+
+Map<String, Integer> countByRoute(ArrayList<Service> services) {
+    Map<String, Integer> counts = new TreeMap<>();
+    for (Service service : services) {
+        counts.put(service.route(), counts.getOrDefault(service.route(), 0) + 1);
+    }
+    return counts;
+}
+
+void main() {
+    ArrayList<Service> services = new ArrayList<>(List.of(
+            new Service("47", 415, "Harbor"),
+            new Service("47", 500, "Harbor")));
+    IO.println(countByRoute(services));
+}
+```
+
+The second answer is Chapter 9's counting pattern, `getOrDefault(route, 0) + 1`, which does the same in one line. Check compares maps by their keys and values, so the `TreeMap` makes no difference.
+
+### mistake
+
+Putting 1 every time counts route 47 once:
+
+```java
+record Service(String route, int departs, String destination) {}
+
+Map<String, Integer> countByRoute(ArrayList<Service> services) {
+    Map<String, Integer> counts = new LinkedHashMap<>();
+    for (Service service : services) {
+        counts.put(service.route(), 1);
+    }
+    return counts;
+}
+
+void main() {
+    ArrayList<Service> services = new ArrayList<>(List.of(
+            new Service("47", 415, "Harbor"),
+            new Service("47", 500, "Harbor")));
+    IO.println(countByRoute(services));
+}
+```
+
+## ch10-records-practice#7
+
+```java
+String label(int minute) {
+    return (minute >= 420 && minute < 560) || (minute >= 960 && minute < 1140)
+            ? "peak"
+            : "off-peak";
+}
+
+void main() {
+    IO.println(label(415));
+    IO.println(label(500));
+}
+```
+
+Up to but not including, so 560 is already off-peak. The cases sit on the boundaries because that is the only place this can be wrong.
+
+```java
+String label(int minute) {
+    boolean morning = minute >= 420 && minute < 560;
+    boolean evening = minute >= 960 && minute < 1140;
+    return morning || evening ? "peak" : "off-peak";
+}
+
+void main() {
+    IO.println(label(960));
+}
+```
+
+The second answer names each peak with a `boolean` first, which keeps the conditional expression short.
+
+### mistake
+
+`<=` at the end of each peak makes 560 and 1140 peak:
+
+```java
+String label(int minute) {
+    return (minute >= 420 && minute <= 560) || (minute >= 960 && minute <= 1140)
+            ? "peak"
+            : "off-peak";
+}
+
+void main() {
+    IO.println(label(560));
+}
+```
+
+The evening peak left out:
+
+```java
+String label(int minute) {
+    return minute >= 420 && minute < 560 ? "peak" : "off-peak";
+}
+
+void main() {
+    IO.println(label(1000));
+}
+```
+
+## ch10-records-practice#8
+
+```java
+record Service(String route, int departs, String destination) {}
+
+String clock(int minutes) {
+    return String.format("%02d:%02d", minutes / 60, minutes % 60);
+}
+
+ArrayList<Service> byTime(ArrayList<Service> services) {
+    ArrayList<Service> sorted = new ArrayList<>(services);
+    sorted.sort(Comparator.comparing(service -> service.departs()));
+    return sorted;
+}
+
+ArrayList<String> timetableLines(ArrayList<Service> services) {
+    ArrayList<String> lines = new ArrayList<>();
+    for (Service service : byTime(services)) {
+        lines.add(service.route() + " " + clock(service.departs()) + " "
+                + service.destination());
+    }
+    return lines;
+}
+
+void main() {
+    ArrayList<Service> services = new ArrayList<>(List.of(
+            new Service("47", 500, "Harbor"),
+            new Service("12", 380, "Museum"),
+            new Service("47", 415, "Harbor")));
+    for (String line : timetableLines(services)) {
+        IO.println(line);
+    }
+}
+```
+
+Two methods you already wrote, used rather than repeated. The check passes the services out of order on purpose.
+
+```java
+record Service(String route, int departs, String destination) {}
+
+String clock(int minutes) {
+    return String.format("%02d:%02d", minutes / 60, minutes % 60);
+}
+
+ArrayList<Service> byTime(ArrayList<Service> services) {
+    ArrayList<Service> sorted = new ArrayList<>(services);
+    sorted.sort(Comparator.comparing(service -> service.departs()));
+    return sorted;
+}
+
+ArrayList<String> timetableLines(ArrayList<Service> services) {
+    ArrayList<Service> ordered = byTime(services);
+    ArrayList<String> lines = new ArrayList<>();
+    for (int i = 0; i < ordered.size(); i++) {
+        Service service = ordered.get(i);
+        lines.add(String.format("%s %s %s", service.route(),
+                clock(service.departs()), service.destination()));
+    }
+    return lines;
+}
+
+void main() {
+    ArrayList<Service> services = new ArrayList<>(List.of(
+            new Service("9", 1000, "Airport")));
+    IO.println(timetableLines(services));
+}
+```
+
+The second answer keeps `byTime`'s list in a variable, walks it by index, and builds each line with `String.format` around `clock`'s result.
+
+### mistake
+
+No sort: the lines come out in the order the services were given.
+
+```java
+record Service(String route, int departs, String destination) {}
+
+String clock(int minutes) {
+    return String.format("%02d:%02d", minutes / 60, minutes % 60);
+}
+
+ArrayList<String> timetableLines(ArrayList<Service> services) {
+    ArrayList<String> lines = new ArrayList<>();
+    for (Service service : services) {
+        lines.add(service.route() + " " + clock(service.departs()) + " "
+                + service.destination());
+    }
+    return lines;
+}
+
+void main() {
+    ArrayList<Service> services = new ArrayList<>(List.of(
+            new Service("47", 500, "Harbor"),
+            new Service("12", 380, "Museum")));
+    IO.println(timetableLines(services));
+}
+```
+
+The departure in minutes, not as a clock: `47 415 Harbor`.
+
+```java
+record Service(String route, int departs, String destination) {}
+
+ArrayList<String> timetableLines(ArrayList<Service> services) {
+    ArrayList<Service> sorted = new ArrayList<>(services);
+    sorted.sort(Comparator.comparing(service -> service.departs()));
+
+    ArrayList<String> lines = new ArrayList<>();
+    for (Service service : sorted) {
+        lines.add(service.route() + " " + service.departs() + " " + service.destination());
+    }
+    return lines;
+}
+
+void main() {
+    ArrayList<Service> services = new ArrayList<>(List.of(
+            new Service("47", 415, "Harbor")));
+    IO.println(timetableLines(services));
+}
+```

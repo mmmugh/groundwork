@@ -1,0 +1,172 @@
+GROUNDWORK
+Chapter 10 - Records
+
+Name: ________________________________     Date: ______________
+
+Fill in every blank. Where a term is asked for, write the word the course
+uses. Where code is asked for, write exact Java. Where output is asked
+for, write what the program prints, one line per line.
+
+
+VOCABULARY
+----------
+
+ 1. A __________________ is a type of your own that holds a fixed set of
+    named values together and cannot be changed after it is made.
+
+ 2. In point.x(), the method x() is the record's __________________ for
+    its x component: a method named after the component that gives back
+    its value.
+
+ 3. Real data is usually a collection of records, and in Java that is
+    represented as a __________________, such as ArrayList<Student>.
+
+ 4. final int LOW_STOCK = 10; is written in capitals, the Java convention
+    for a __________________ - a value fixed for the whole program.
+
+ 5. The line String state = left == 0 ? "OUT OF STOCK" : left + " left";
+    uses a __________________ - an if/else that produces a value rather
+    than choosing statements.
+
+
+READING CODE
+------------
+
+ 6. What does this print?
+
+        record Point(int x, int y) {}
+
+        record Color(int red, int green, int blue) {}
+
+        void main() {
+            Point point = new Point(3, 4);
+            Color color = new Color(255, 128, 0);
+            IO.println(point.x());
+            IO.println(color.green());
+            IO.println(color);
+        }
+
+    ____________________________________
+
+ 7. What does this print?
+
+        record Student(String name, int score) {}
+
+        void main() {
+            Student a = new Student("Ada", 88);
+            Student b = new Student("Ada", 88);
+            Student c = a;
+            IO.println(a.equals(b));
+            IO.println(a == b);
+            IO.println(a == c);
+        }
+
+    ____________________________________
+
+ 8. What does this print?
+
+        record Cell(int row, int col) {}
+
+        void main() {
+            Map<Cell, String> board = new LinkedHashMap<>();
+            board.put(new Cell(0, 0), "X");
+            board.put(new Cell(1, 1), "O");
+            board.put(new Cell(2, 2), "X");
+            IO.println(board.get(new Cell(1, 1)));
+            IO.println(board.containsKey(new Cell(0, 0)));
+            IO.println(board.containsKey(new Cell(0, 1)));
+        }
+
+    ____________________________________
+
+ 9. What does this print?
+
+        record Range(int lowest, int highest) {}
+
+        Range minMax(int[] numbers) {
+            int lowest = numbers[0];
+            int highest = numbers[0];
+            for (int number : numbers) {
+                if (number < lowest) {
+                    lowest = number;
+                }
+                if (number > highest) {
+                    highest = number;
+                }
+            }
+            return new Range(lowest, highest);
+        }
+
+        void main() {
+            int[] numbers = {5, 2, 9, 1};
+            Range result = minMax(numbers);
+            IO.println(result);
+            IO.println(result.highest());
+        }
+
+    ____________________________________
+
+10. What does this print?
+
+        record Student(String name, int grade) {}
+
+        Student findStudent(ArrayList<Student> students, String name) {
+            for (Student student : students) {
+                if (student.name().equals(name)) {
+                    return student;
+                }
+            }
+            return null;
+        }
+
+        void main() {
+            ArrayList<Student> students = new ArrayList<>(List.of(
+                    new Student("Ada", 9), new Student("Grace", 10)));
+            Student found = findStudent(students, "Alan");
+            if (found != null) {
+                IO.println(found.grade());
+            } else {
+                IO.println("Not found.");
+            }
+            IO.println(findStudent(students, "Grace"));
+        }
+
+    ____________________________________
+
+
+WRITING CODE
+------------
+
+11. Complete the line so that it reads the point's x component into a
+    variable:
+    Point point = new Point(3, 4);
+    int x = point.__________________;
+    IO.println(x); // 3
+
+12. Complete the declaration of a record that holds a name and a score:
+    __________________ Student(String name, int score) {}
+
+13. Complete the line so that an empty list is put in for a category the
+    map does not have yet, before an item is added to that category's
+    list:
+    Map<String, ArrayList<Item>> groups = new TreeMap<>();
+    if (!groups.__________________(item.category())) {
+        groups.put(item.category(), new ArrayList<>());
+    }
+    groups.get(item.category()).add(item);
+
+
+WHY IT WORKS
+------------
+
+14. A method handed a record cannot change any of its components, because
+    a record is __________________.
+
+15. A map looks up a key by its value, as .equals compares it, and two
+    records with the same components are __________________, so
+    new Cell(1, 1) finds the entry put in under another new Cell(1, 1).
+
+16. Sorting a list of student records by score keeps each student's name
+    and score correctly matched, because every field for one student lives
+    together inside a single __________________, so sorting only reorders
+    those units in the list, not the values inside them.

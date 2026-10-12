@@ -2781,5 +2781,381 @@
       ]
     ],
     "starter": "Map<String, Integer> registerFrom(ArrayList<String> found) {\n    return new HashMap<>();\n}\n\nvoid main() {\n    ArrayList<String> found = new ArrayList<>(List.of(\"hat\", \"scarf\", \"hat\"));\n    IO.println(registerFrom(found));\n}\n"
+  },
+  "ch10-records#13": {
+    "kind": "input",
+    "runs": [
+      {
+        "typed": [],
+        "numbers": [
+          "35.68",
+          "139.69",
+          "30.04",
+          "31.24",
+          "-12.05",
+          "-77.04",
+          "59.91",
+          "10.75",
+          "-31.95",
+          "115.86"
+        ],
+        "words": [
+          "Tokyo",
+          "Cairo",
+          "Lima",
+          "Oslo",
+          "Perth"
+        ]
+      }
+    ],
+    "starter": "// Declare a City record here.\n\nvoid main() {\n    // Five cities; print each.\n}\n"
+  },
+  "ch10-records#14": {
+    "kind": "method",
+    "name": "distance",
+    "returns": "double",
+    "params": [
+      "Point",
+      "Point"
+    ],
+    "cases": [
+      [
+        "new Point(0, 0), new Point(3, 4)",
+        "5.0"
+      ],
+      [
+        "new Point(1, 1), new Point(1, 1)",
+        "0.0"
+      ],
+      [
+        "new Point(0, 0), new Point(0, 5)",
+        "5.0"
+      ],
+      [
+        "new Point(-1, 2), new Point(2, -2)",
+        "5.0"
+      ],
+      [
+        "new Point(0, 0), new Point(1, 1)",
+        "1.4142135623730951"
+      ]
+    ],
+    "starter": "record Point(double x, double y) {}\n\ndouble distance(Point p1, Point p2) {\n    return 0;\n}\n\nvoid main() {\n    IO.println(distance(new Point(0, 0), new Point(3, 4)));\n}\n"
+  },
+  "ch10-records#15": {
+    "kind": "input",
+    "runs": [
+      {
+        "typed": [],
+        "numbers": [
+          "1937",
+          "1951",
+          "1965",
+          "1984",
+          "2021"
+        ],
+        "words": [
+          "Hobbit",
+          "Foundation",
+          "Dune",
+          "Neuromancer",
+          "Hail"
+        ]
+      }
+    ],
+    "starter": "// Declare a Book record here.\n\nvoid main() {\n    // Five books, printed oldest first.\n}\n"
+  },
+  "ch10-records#16": {
+    "kind": "output",
+    "expected": "Project Hail Mary (2021)",
+    "starter": "record Book(String title, String author, int year) {}\n\nvoid main() {\n    ArrayList<Book> books = new ArrayList<>(List.of(\n            new Book(\"Dune\", \"Frank Herbert\", 1965),\n            new Book(\"Neuromancer\", \"William Gibson\", 1984),\n            new Book(\"The Hobbit\", \"J.R.R. Tolkien\", 1937),\n            new Book(\"Project Hail Mary\", \"Andy Weir\", 2021),\n            new Book(\"Foundation\", \"Isaac Asimov\", 1951)));\n    // Only the books published after 2000.\n}\n"
+  },
+  "ch10-records#17": {
+    "kind": "input",
+    "runs": [
+      {
+        "typed": [],
+        "words": [
+          "Andy",
+          "Project",
+          "Frank",
+          "Dune",
+          "Children",
+          "Isaac",
+          "Foundation",
+          "Tolkien",
+          "Hobbit",
+          "William",
+          "Neuromancer"
+        ],
+        "contains": "Dune, Children of Dune"
+      }
+    ],
+    "starter": "record Book(String title, String author, int year) {}\n\nvoid main() {\n    ArrayList<Book> books = new ArrayList<>(List.of(\n            new Book(\"Dune\", \"Frank Herbert\", 1965),\n            new Book(\"Neuromancer\", \"William Gibson\", 1984),\n            new Book(\"The Hobbit\", \"J.R.R. Tolkien\", 1937),\n            new Book(\"Project Hail Mary\", \"Andy Weir\", 2021),\n            new Book(\"Foundation\", \"Isaac Asimov\", 1951),\n            new Book(\"Children of Dune\", \"Frank Herbert\", 1976)));\n    // Group the titles by author; print each author.\n}\n"
+  },
+  "ch10-records#18": {
+    "kind": "method",
+    "name": "oldest",
+    "returns": "Book",
+    "params": [
+      "ArrayList<Book>"
+    ],
+    "cases": [
+      [
+        "new ArrayList<>(List.of(new Book(\"Dune\", \"Frank Herbert\", 1965), new Book(\"Neuromancer\", \"William Gibson\", 1984), new Book(\"The Hobbit\", \"J.R.R. Tolkien\", 1937), new Book(\"Project Hail Mary\", \"Andy Weir\", 2021), new Book(\"Foundation\", \"Isaac Asimov\", 1951)))",
+        "new Book(\"The Hobbit\", \"J.R.R. Tolkien\", 1937)"
+      ],
+      [
+        "new ArrayList<>(List.of(new Book(\"Dune\", \"Frank Herbert\", 1965)))",
+        "new Book(\"Dune\", \"Frank Herbert\", 1965)"
+      ],
+      [
+        "new ArrayList<>(List.of(new Book(\"The Hobbit\", \"J.R.R. Tolkien\", 1937), new Book(\"Dune\", \"Frank Herbert\", 1965)))",
+        "new Book(\"The Hobbit\", \"J.R.R. Tolkien\", 1937)"
+      ],
+      [
+        "new ArrayList<>(List.of(new Book(\"Dune\", \"Frank Herbert\", 1965), new Book(\"Foundation\", \"Isaac Asimov\", 1951)))",
+        "new Book(\"Foundation\", \"Isaac Asimov\", 1951)"
+      ]
+    ],
+    "starter": "record Book(String title, String author, int year) {}\n\nBook oldest(ArrayList<Book> books) {\n    return null;\n}\n\nvoid main() {\n    ArrayList<Book> books = new ArrayList<>(List.of(\n            new Book(\"Dune\", \"Frank Herbert\", 1965),\n            new Book(\"Neuromancer\", \"William Gibson\", 1984),\n            new Book(\"The Hobbit\", \"J.R.R. Tolkien\", 1937),\n            new Book(\"Project Hail Mary\", \"Andy Weir\", 2021),\n            new Book(\"Foundation\", \"Isaac Asimov\", 1951)));\n    IO.println(oldest(books));\n}\n"
+  },
+  "ch10-records#19": {
+    "kind": "output",
+    "expected": "X . X\n. O .\nO . .",
+    "starter": "// Declare a Cell record here.\n\nvoid main() {\n    // The board in a map; print it as a grid.\n}\n"
+  },
+  "ch10-records-practice#1": {
+    "kind": "method",
+    "name": "routeOf",
+    "returns": "String",
+    "params": [
+      "Service"
+    ],
+    "cases": [
+      [
+        "new Service(\"47\", 415, \"Harbor\")",
+        "\"47\""
+      ],
+      [
+        "new Service(\"12\", 380, \"Museum\")",
+        "\"12\""
+      ],
+      [
+        "new Service(\"9\", 1000, \"Airport\")",
+        "\"9\""
+      ]
+    ],
+    "starter": "record Service(String route, int departs, String destination) {}\n\nString routeOf(Service service) {\n    return \"\";\n}\n\nvoid main() {\n    Service service = new Service(\"47\", 415, \"Harbor\");\n    IO.println(routeOf(service));\n}\n"
+  },
+  "ch10-records-practice#2": {
+    "kind": "method",
+    "name": "clock",
+    "returns": "String",
+    "params": [
+      "int"
+    ],
+    "cases": [
+      [
+        "415",
+        "\"06:55\""
+      ],
+      [
+        "380",
+        "\"06:20\""
+      ],
+      [
+        "0",
+        "\"00:00\""
+      ],
+      [
+        "1000",
+        "\"16:40\""
+      ],
+      [
+        "605",
+        "\"10:05\""
+      ]
+    ],
+    "starter": "String clock(int minutes) {\n    return \"\";\n}\n\nvoid main() {\n    IO.println(clock(380));\n    IO.println(clock(0));\n}\n"
+  },
+  "ch10-records-practice#3": {
+    "kind": "method",
+    "name": "destinations",
+    "returns": "ArrayList<String>",
+    "params": [
+      "ArrayList<Service>"
+    ],
+    "cases": [
+      [
+        "new ArrayList<>(List.of(new Service(\"12\", 380, \"Museum\"), new Service(\"47\", 415, \"Harbor\"), new Service(\"47\", 500, \"Harbor\")))",
+        "new ArrayList<>(List.of(\"Harbor\", \"Museum\"))"
+      ],
+      [
+        "new ArrayList<>(List.of(new Service(\"47\", 415, \"Harbor\"), new Service(\"47\", 500, \"Harbor\")))",
+        "new ArrayList<>(List.of(\"Harbor\"))"
+      ],
+      [
+        "new ArrayList<>(List.of(new Service(\"12\", 380, \"Museum\"), new Service(\"47\", 415, \"Harbor\"), new Service(\"47\", 500, \"Harbor\"), new Service(\"9\", 1000, \"Airport\")))",
+        "new ArrayList<>(List.of(\"Airport\", \"Harbor\", \"Museum\"))"
+      ],
+      [
+        "new ArrayList<>()",
+        "new ArrayList<>()"
+      ],
+      [
+        "new ArrayList<>(List.of(new Service(\"47\", 415, \"Harbor\"), new Service(\"47\", 500, \" Harbor\".strip())))",
+        "new ArrayList<>(List.of(\"Harbor\"))"
+      ]
+    ],
+    "starter": "record Service(String route, int departs, String destination) {}\n\nArrayList<String> destinations(ArrayList<Service> services) {\n    return new ArrayList<>();\n}\n\nvoid main() {\n    ArrayList<Service> services = new ArrayList<>(List.of(\n            new Service(\"12\", 380, \"Museum\"),\n            new Service(\"47\", 415, \"Harbor\"),\n            new Service(\"47\", 500, \"Harbor\")));\n    IO.println(destinations(services));\n}\n"
+  },
+  "ch10-records-practice#4": {
+    "kind": "method",
+    "name": "nextAfter",
+    "returns": "Service",
+    "params": [
+      "ArrayList<Service>",
+      "int"
+    ],
+    "cases": [
+      [
+        "new ArrayList<>(List.of(new Service(\"12\", 380, \"Museum\"), new Service(\"47\", 415, \"Harbor\"), new Service(\"47\", 500, \"Harbor\"))), 400",
+        "new Service(\"47\", 415, \"Harbor\")"
+      ],
+      [
+        "new ArrayList<>(List.of(new Service(\"47\", 500, \"Harbor\"), new Service(\"12\", 380, \"Museum\"), new Service(\"47\", 415, \"Harbor\"))), 400",
+        "new Service(\"47\", 415, \"Harbor\")"
+      ],
+      [
+        "new ArrayList<>(List.of(new Service(\"12\", 380, \"Museum\"), new Service(\"47\", 415, \"Harbor\"), new Service(\"47\", 500, \"Harbor\"))), 415",
+        "new Service(\"47\", 500, \"Harbor\")"
+      ],
+      [
+        "new ArrayList<>(List.of(new Service(\"12\", 380, \"Museum\"), new Service(\"47\", 415, \"Harbor\"), new Service(\"47\", 500, \"Harbor\"), new Service(\"9\", 1000, \"Airport\"))), 900",
+        "new Service(\"9\", 1000, \"Airport\")"
+      ],
+      [
+        "new ArrayList<>(List.of(new Service(\"12\", 380, \"Museum\"), new Service(\"47\", 415, \"Harbor\"), new Service(\"47\", 500, \"Harbor\"))), 600",
+        "null"
+      ],
+      [
+        "new ArrayList<>(), 0",
+        "null"
+      ]
+    ],
+    "starter": "record Service(String route, int departs, String destination) {}\n\nService nextAfter(ArrayList<Service> services, int minute) {\n    return null;\n}\n\nvoid main() {\n    ArrayList<Service> services = new ArrayList<>(List.of(\n            new Service(\"12\", 380, \"Museum\"),\n            new Service(\"47\", 415, \"Harbor\"),\n            new Service(\"47\", 500, \"Harbor\")));\n    IO.println(nextAfter(services, 400));\n    IO.println(nextAfter(services, 600));\n}\n"
+  },
+  "ch10-records-practice#5": {
+    "kind": "method",
+    "name": "byTime",
+    "returns": "ArrayList<Service>",
+    "params": [
+      "ArrayList<Service>"
+    ],
+    "cases": [
+      [
+        "new ArrayList<>(List.of(new Service(\"47\", 500, \"Harbor\"), new Service(\"12\", 380, \"Museum\"), new Service(\"47\", 415, \"Harbor\")))",
+        "new ArrayList<>(List.of(new Service(\"12\", 380, \"Museum\"), new Service(\"47\", 415, \"Harbor\"), new Service(\"47\", 500, \"Harbor\")))"
+      ],
+      [
+        "new ArrayList<>(List.of(new Service(\"12\", 380, \"Museum\"), new Service(\"9\", 300, \"Airport\")))",
+        "new ArrayList<>(List.of(new Service(\"9\", 300, \"Airport\"), new Service(\"12\", 380, \"Museum\")))"
+      ],
+      [
+        "new ArrayList<>()",
+        "new ArrayList<>()"
+      ]
+    ],
+    "starter": "record Service(String route, int departs, String destination) {}\n\nArrayList<Service> byTime(ArrayList<Service> services) {\n    return new ArrayList<>();\n}\n\nvoid main() {\n    ArrayList<Service> services = new ArrayList<>(List.of(\n            new Service(\"47\", 500, \"Harbor\"),\n            new Service(\"12\", 380, \"Museum\"),\n            new Service(\"47\", 415, \"Harbor\")));\n    IO.println(byTime(services));\n}\n"
+  },
+  "ch10-records-practice#6": {
+    "kind": "method",
+    "name": "countByRoute",
+    "returns": "Map<String, Integer>",
+    "params": [
+      "ArrayList<Service>"
+    ],
+    "cases": [
+      [
+        "new ArrayList<>(List.of(new Service(\"12\", 380, \"Museum\"), new Service(\"47\", 415, \"Harbor\"), new Service(\"47\", 500, \"Harbor\")))",
+        "Map.of(\"12\", 1, \"47\", 2)"
+      ],
+      [
+        "new ArrayList<>()",
+        "Map.of()"
+      ],
+      [
+        "new ArrayList<>(List.of(new Service(\"9\", 1000, \"Airport\")))",
+        "Map.of(\"9\", 1)"
+      ]
+    ],
+    "starter": "record Service(String route, int departs, String destination) {}\n\nMap<String, Integer> countByRoute(ArrayList<Service> services) {\n    return new HashMap<>();\n}\n\nvoid main() {\n    ArrayList<Service> services = new ArrayList<>(List.of(\n            new Service(\"12\", 380, \"Museum\"),\n            new Service(\"47\", 415, \"Harbor\"),\n            new Service(\"47\", 500, \"Harbor\")));\n    IO.println(countByRoute(services));\n}\n"
+  },
+  "ch10-records-practice#7": {
+    "kind": "method",
+    "name": "label",
+    "returns": "String",
+    "params": [
+      "int"
+    ],
+    "cases": [
+      [
+        "415",
+        "\"off-peak\""
+      ],
+      [
+        "420",
+        "\"peak\""
+      ],
+      [
+        "500",
+        "\"peak\""
+      ],
+      [
+        "560",
+        "\"off-peak\""
+      ],
+      [
+        "959",
+        "\"off-peak\""
+      ],
+      [
+        "960",
+        "\"peak\""
+      ],
+      [
+        "1000",
+        "\"peak\""
+      ],
+      [
+        "1140",
+        "\"off-peak\""
+      ]
+    ],
+    "starter": "String label(int minute) {\n    return \"\";\n}\n\nvoid main() {\n    IO.println(label(415));\n    IO.println(label(500));\n}\n"
+  },
+  "ch10-records-practice#8": {
+    "kind": "method",
+    "name": "timetableLines",
+    "returns": "ArrayList<String>",
+    "params": [
+      "ArrayList<Service>"
+    ],
+    "cases": [
+      [
+        "new ArrayList<>(List.of(new Service(\"47\", 500, \"Harbor\"), new Service(\"12\", 380, \"Museum\"), new Service(\"47\", 415, \"Harbor\")))",
+        "new ArrayList<>(List.of(\"12 06:20 Museum\", \"47 06:55 Harbor\", \"47 08:20 Harbor\"))"
+      ],
+      [
+        "new ArrayList<>()",
+        "new ArrayList<>()"
+      ],
+      [
+        "new ArrayList<>(List.of(new Service(\"9\", 1000, \"Airport\")))",
+        "new ArrayList<>(List.of(\"9 16:40 Airport\"))"
+      ]
+    ],
+    "starter": "record Service(String route, int departs, String destination) {}\n\n// Bring in clock and byTime here.\n\nArrayList<String> timetableLines(ArrayList<Service> services) {\n    return new ArrayList<>();\n}\n\nvoid main() {\n    ArrayList<Service> services = new ArrayList<>(List.of(\n            new Service(\"47\", 500, \"Harbor\"),\n            new Service(\"12\", 380, \"Museum\"),\n            new Service(\"47\", 415, \"Harbor\")));\n    for (String line : timetableLines(services)) {\n        IO.println(line);\n    }\n}\n"
   }
 }
