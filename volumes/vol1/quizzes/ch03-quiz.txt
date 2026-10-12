@@ -1,0 +1,106 @@
+GROUNDWORK
+Chapter 3 - Expressions and Operators
+
+Name: ________________________________     Date: ______________
+
+Fill in every blank. Where a term is asked for, write the word the course
+uses. Where code is asked for, write exact Java. Where output is asked
+for, write what the program prints, one line per line.
+
+
+VOCABULARY
+----------
+
+ 1. An __________________ is anything Java can work out to produce a
+    single value, such as 7 or 3 + 4.
+
+ 2. Java __________________ an expression, reducing it down to one
+    value.
+
+ 3. The first argument of String.format, the text with placeholders
+    starting with %, is called the __________________.
+
+ 4. The %.2f inside a format string is called a __________________: it
+    controls how the value is displayed.
+
+
+READING CODE
+------------
+
+ 5. What does this print?
+
+        IO.println((17 / 5) + " " + (17 % 5) + " " + (17 / 5.0));
+
+    ____________________________________
+
+ 6. What does this print?
+
+        IO.println(10 + 3 * 2);
+        IO.println((10 + 3) * 2);
+        IO.println(Math.pow(2, 3) * 4);
+
+    ____________________________________
+
+ 7. What does this print?
+
+        String name = "Ada";
+        double score = 91.5;
+        IO.println(String.format("%s scored %.1f points.", name, score));
+
+    ____________________________________
+
+ 8. What does this print?
+
+        IO.println("-".repeat(10));
+        IO.println("ab".repeat(3));
+
+    ____________________________________
+
+ 9. What does this print?
+
+        int score = 0;
+        score += 10;
+        score += 25;
+        score *= 2;
+        IO.println(score);
+
+    ____________________________________
+
+10. What does this print?
+
+        IO.println((7 / 2) + " " + (7 % 2) + " " + (7 / 2.0));
+        IO.println(Math.pow(2, Math.pow(3, 2)));
+        IO.println("5".repeat(3));
+        IO.println(Integer.parseInt("5") * 3);
+
+    ____________________________________
+
+
+WRITING CODE
+------------
+
+11. Complete this line so it prints 1024.0, which is 2 to the power 10:
+    IO.println(__________________(2, 10));
+
+12. Complete this format string so a dollar total always shows exactly
+    two decimal places:
+    double total = 7.5;
+    IO.println(String.format("Total: $__________________", total));
+
+13. Rewrite x = x + 3; using the shorthand assignment operator:
+    x __________________ 3;
+
+
+WHY IT WORKS
+------------
+
+14. 0.1 + 0.2 prints 0.30000000000000004 because computers store a double
+    in __________________, and just as 1/3 cannot be written exactly as
+    a decimal, 0.1 cannot be written exactly in that format either.
+
+15. / on two ints drops the fraction by truncating toward
+    __________________, which is why -17 / 5 is -3 rather than -4.
+
+16. __________________ assigns a value to a variable, while
+    __________________ asks whether two values are equal and produces a
+    boolean.

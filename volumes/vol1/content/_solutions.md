@@ -874,3 +874,595 @@ void main() {
     IO.println("Permits: " + (4.50 * people));
 }
 ```
+
+## ch03-expressions-and-operators#16
+
+Try It 1: a number of minutes as hours and minutes.
+
+```java
+// Converts a number of minutes into hours and minutes.
+
+void main() {
+    int minutes = Integer.parseInt(IO.readln("Minutes: ").strip());
+    int hours = minutes / 60;
+    int leftOver = minutes % 60;
+    IO.println(hours + " hours and " + leftOver + " minutes");
+}
+```
+
+`/` on two `int`s gives the whole hours and drops the rest, and `%` gives the minutes left over: 150 minutes is 2 hours and 30 minutes.
+
+```java
+void main() {
+    String answer = IO.readln("How many minutes? ");
+    int total = Integer.parseInt(answer.strip());
+    IO.println(total + " minutes is " + (total / 60) + "h " + (total % 60) + "m");
+}
+```
+
+The second answer keeps the typed text in a variable before converting it, and works out the hours and minutes inside the join, each in parentheses.
+
+### mistake
+
+Dividing by `60.0`, which keeps the fraction, so 150 minutes comes out as `2.5 hours and 30 minutes`:
+
+```java
+void main() {
+    int minutes = Integer.parseInt(IO.readln("Minutes: ").strip());
+    double hours = minutes / 60.0;
+    int leftOver = minutes % 60;
+    IO.println(hours + " hours and " + leftOver + " minutes");
+}
+```
+
+Taking 60 away instead of finding the remainder, `2 hours and 90 minutes`:
+
+```java
+void main() {
+    int minutes = Integer.parseInt(IO.readln("Minutes: ").strip());
+    int hours = minutes / 60;
+    int leftOver = minutes - 60;
+    IO.println(hours + " hours and " + leftOver + " minutes");
+}
+```
+
+## ch03-expressions-and-operators#17
+
+Try It 2: the tax on a price, and the total, to two decimal places.
+
+```java
+// Works out the tax on a price, and the total, to the cent.
+
+void main() {
+    double price = Double.parseDouble(IO.readln("Price: ").strip());
+    double rate = Double.parseDouble(IO.readln("Tax rate (%): ").strip());
+
+    double tax = price * rate / 100;
+    double total = price + tax;
+
+    IO.println("Tax: " + String.format("%.2f", tax));
+    IO.println("Total: " + String.format("%.2f", total));
+}
+```
+
+A rate of 8 percent means 8 hundredths, so the tax is the price times the rate, divided by 100. Both answers are read with `Double.parseDouble`, since a price has cents and a rate can be 7.5, and `%.2f` shows each amount to the cent.
+
+```java
+void main() {
+    String priceText = IO.readln("What does it cost? ");
+    String rateText = IO.readln("Sales tax percent? ");
+    double price = Double.parseDouble(priceText.strip());
+    double rate = Double.parseDouble(rateText.strip());
+    double total = price * (1 + rate / 100);
+    IO.println(String.format("Tax %.2f, total %.2f", total - price, total));
+}
+```
+
+The second answer finds the total in one step, the price times one whole price plus the rate in hundredths, then the tax as the difference, and prints both with one format string.
+
+### mistake
+
+The rate read as an `int` and divided by the `int` `100`: integer division makes `8 / 100` zero, so there is never any tax.
+
+```java
+void main() {
+    double price = Double.parseDouble(IO.readln("Price: ").strip());
+    int rate = Integer.parseInt(IO.readln("Tax rate (%): ").strip());
+
+    double tax = price * (rate / 100);
+    double total = price + tax;
+
+    IO.println("Tax: " + String.format("%.2f", tax));
+    IO.println("Total: " + String.format("%.2f", total));
+}
+```
+
+The percentage used as it is, without dividing by 100, so 8% of 250 comes out as 2000:
+
+```java
+void main() {
+    double price = Double.parseDouble(IO.readln("Price: ").strip());
+    double rate = Double.parseDouble(IO.readln("Tax rate (%): ").strip());
+
+    double tax = price * rate;
+    double total = price + tax;
+
+    IO.println("Tax: " + String.format("%.2f", tax));
+    IO.println("Total: " + String.format("%.2f", total));
+}
+```
+
+## ch03-expressions-and-operators#18
+
+Try It 3: a rectangle of `#` characters, 20 wide and 5 tall.
+
+```java
+// Prints a rectangle of # characters, 20 wide and 5 tall.
+
+void main() {
+    IO.println("#".repeat(20));
+    IO.println("#".repeat(20));
+    IO.println("#".repeat(20));
+    IO.println("#".repeat(20));
+    IO.println("#".repeat(20));
+}
+```
+
+`repeat` builds each row of 20, and each `IO.println` prints one row, so five calls make five rows.
+
+```java
+void main() {
+    String row = "#".repeat(20);
+    IO.println(row);
+    IO.println(row);
+    IO.println(row);
+    IO.println(row);
+    IO.println(row);
+}
+```
+
+The second answer builds the row once, in a variable, and prints it five times: change the width in one place and every row follows.
+
+### mistake
+
+All 100 characters on one line: 20 times 5 is the rectangle's area, not its shape.
+
+```java
+void main() {
+    IO.println("#".repeat(20 * 5));
+}
+```
+
+One row short:
+
+```java
+void main() {
+    IO.println("#".repeat(20));
+    IO.println("#".repeat(20));
+    IO.println("#".repeat(20));
+    IO.println("#".repeat(20));
+}
+```
+
+## ch03-expressions-and-operators#19
+
+Try It 4: a right prediction written another way (spaces at the end of a line and a blank line after it, which Check ignores).
+
+```text
+3 1 3.5   
+512.0
+555
+15
+
+```
+
+### mistake
+
+Expecting `/` to keep the fraction and `Math.pow` to give back a whole number:
+
+```text
+3.5 1 3.5
+512
+555
+15
+```
+
+## ch03-expressions-and-operators#20
+
+Try It 5: the average of three test scores, to one decimal place.
+
+```java
+// Averages three test scores, to one decimal place.
+
+void main() {
+    int first = Integer.parseInt(IO.readln("First score: ").strip());
+    int second = Integer.parseInt(IO.readln("Second score: ").strip());
+    int third = Integer.parseInt(IO.readln("Third score: ").strip());
+
+    int total = first + second + third;
+    double average = (double) total / 3;
+
+    IO.println("Average: " + String.format("%.1f", average));
+}
+```
+
+The cast makes `total` a `double` before the division, so the fraction is kept: 251 divided by 3 is 83.666..., which `%.1f` shows as `83.7`. Without the cast, `total / 3` would be integer division, `83`.
+
+```java
+void main() {
+    double a = Double.parseDouble(IO.readln("First test? ").strip());
+    double b = Double.parseDouble(IO.readln("Second test? ").strip());
+    double c = Double.parseDouble(IO.readln("Third test? ").strip());
+    IO.println(String.format("The average is %.1f", (a + b + c) / 3));
+}
+```
+
+The second answer reads each score as a `double`, so the division keeps its fraction with no cast, and a score like 87.5 works too.
+
+### mistake
+
+Storing the answer in a `double` does not help when the division is done with `int`s: `251 / 3` is `83`, and the average prints as `83.0`.
+
+```java
+void main() {
+    int first = Integer.parseInt(IO.readln("First score: ").strip());
+    int second = Integer.parseInt(IO.readln("Second score: ").strip());
+    int third = Integer.parseInt(IO.readln("Third score: ").strip());
+    double average = (first + second + third) / 3;
+    IO.println("Average: " + String.format("%.1f", average));
+}
+```
+
+## ch03-expressions-and-operators-practice#1
+
+```java
+void main() {
+    int people = Integer.parseInt(IO.readln("How many people? ").strip());
+    int each = Integer.parseInt(IO.readln("Slices each? ").strip());
+    int slices = people * each;
+    IO.println("You need " + slices + " slices");
+}
+```
+
+Both answers go through `Integer.parseInt`. Without it, `IO.readln` gives back text, and javac refuses to multiply two `String`s: `bad operand types for binary operator '*'`.
+
+```java
+void main() {
+    String peopleText = IO.readln("Guests? ");
+    String eachText = IO.readln("Slices per guest? ");
+    int people = Integer.parseInt(peopleText.strip());
+    int each = Integer.parseInt(eachText.strip());
+    IO.println("Slices needed: " + (people * each));
+}
+```
+
+The second answer keeps each answer's text in a variable before converting it, and multiplies inside the join, in parentheses.
+
+### mistake
+
+Adding instead of multiplying: five people eating three slices each need 15, not 8.
+
+```java
+void main() {
+    int people = Integer.parseInt(IO.readln("How many people? ").strip());
+    int each = Integer.parseInt(IO.readln("Slices each? ").strip());
+    int slices = people + each;
+    IO.println("You need " + slices + " slices");
+}
+```
+
+## ch03-expressions-and-operators-practice#2
+
+```java
+void main() {
+    int people = Integer.parseInt(IO.readln("How many people? ").strip());
+    int each = Integer.parseInt(IO.readln("Slices each? ").strip());
+    int slices = people * each;
+    int pizzas = (slices + 7) / 8;
+    IO.println("Order " + pizzas + " pizzas");
+}
+```
+
+Plain `slices / 8` rounds down, which orders one pizza for fifteen slices and leaves someone hungry. The `+ 7` rounds up without needing an `if`.
+
+```java
+void main() {
+    int people = Integer.parseInt(IO.readln("How many people? ").strip());
+    int each = Integer.parseInt(IO.readln("Slices each? ").strip());
+    IO.println("Pizzas to order: " + ((people * each + 7) / 8));
+}
+```
+
+The second answer works out the whole sum inside the join, in parentheses, with no variable for the slices or the pizzas.
+
+### mistake
+
+Dividing without rounding up orders one pizza for fifteen slices:
+
+```java
+void main() {
+    int people = Integer.parseInt(IO.readln("How many people? ").strip());
+    int each = Integer.parseInt(IO.readln("Slices each? ").strip());
+    int slices = people * each;
+    int pizzas = slices / 8;
+    IO.println("Order " + pizzas + " pizzas");
+}
+```
+
+## ch03-expressions-and-operators-practice#3
+
+```java
+void main() {
+    int people = Integer.parseInt(IO.readln("How many people? ").strip());
+    int each = Integer.parseInt(IO.readln("Slices each? ").strip());
+    int slices = people * each;
+    int pizzas = (slices + 7) / 8;
+    IO.println((pizzas * 8 - slices) + " slices left over");
+}
+```
+
+What is left is what was ordered minus what is eaten: two pizzas are 16 slices, and 15 are eaten. `slices % 8` answers a different question and happens to agree sometimes, which is worse than always being wrong.
+
+```java
+void main() {
+    int people = Integer.parseInt(IO.readln("How many people? ").strip());
+    int each = Integer.parseInt(IO.readln("Slices each? ").strip());
+    int eaten = people * each;
+    int ordered = (eaten + 7) / 8 * 8;
+    int leftOver = ordered - eaten;
+    IO.println("Slices left in the boxes: " + leftOver);
+}
+```
+
+The second answer names the slices ordered and the slices eaten, and the leftover is one minus the other.
+
+### mistake
+
+The remainder, which agrees only by chance: 15 slices leave 1 in the boxes, but `15 % 8` is 7.
+
+```java
+void main() {
+    int people = Integer.parseInt(IO.readln("How many people? ").strip());
+    int each = Integer.parseInt(IO.readln("Slices each? ").strip());
+    int slices = people * each;
+    IO.println((slices % 8) + " slices left over");
+}
+```
+
+## ch03-expressions-and-operators-practice#4
+
+```java
+void main() {
+    int people = Integer.parseInt(IO.readln("How many people? ").strip());
+    int each = Integer.parseInt(IO.readln("Slices each? ").strip());
+    int slices = people * each;
+    int pizzas = (slices + 7) / 8;
+    double cost = pizzas * 13.50;
+    IO.println("That comes to " + String.format("%.2f", cost));
+}
+```
+
+`%.2f` shows money properly, so `27.0` prints as `27.00`.
+
+```java
+void main() {
+    int people = Integer.parseInt(IO.readln("How many people? ").strip());
+    int each = Integer.parseInt(IO.readln("Slices each? ").strip());
+    int pizzas = (people * each + 7) / 8;
+    IO.println(String.format("%d pizzas cost %.2f", pizzas, pizzas * 13.50));
+}
+```
+
+The second answer puts both numbers in one format string: `%d` for the whole number of pizzas and `%.2f` for the money.
+
+### mistake
+
+Pricing the slices, not the pizzas:
+
+```java
+void main() {
+    int people = Integer.parseInt(IO.readln("How many people? ").strip());
+    int each = Integer.parseInt(IO.readln("Slices each? ").strip());
+    int slices = people * each;
+    double cost = slices * 13.50;
+    IO.println("That comes to " + String.format("%.2f", cost));
+}
+```
+
+## ch03-expressions-and-operators-practice#5
+
+```java
+void main() {
+    int people = Integer.parseInt(IO.readln("How many people? ").strip());
+    int each = Integer.parseInt(IO.readln("Slices each? ").strip());
+    int slices = people * each;
+    int pizzas = (slices + 7) / 8;
+    double cost = pizzas * 13.50;
+    IO.println("Each of you owes " + String.format("%.2f", cost / people));
+}
+```
+
+Split between people, not between slices. Both are numbers the program has, which is exactly how that mistake happens. `%.2f` rounds to the nearest penny as it displays.
+
+```java
+void main() {
+    int people = Integer.parseInt(IO.readln("How many people? ").strip());
+    int each = Integer.parseInt(IO.readln("Slices each? ").strip());
+    int pizzas = (people * each + 7) / 8;
+    double share = pizzas * 13.50 / people;
+    double rounded = Math.round(share * 100) / 100.0;
+    IO.println("Your share: " + rounded);
+}
+```
+
+The second answer rounds the share to the penny as a value, with `Math.round`, and joins it with `+`. That prints `5.4` rather than `5.40`, which is why `%.2f` is the better tool for money.
+
+### mistake
+
+Split between the slices instead of the people:
+
+```java
+void main() {
+    int people = Integer.parseInt(IO.readln("How many people? ").strip());
+    int each = Integer.parseInt(IO.readln("Slices each? ").strip());
+    int slices = people * each;
+    int pizzas = (slices + 7) / 8;
+    double cost = pizzas * 13.50;
+    IO.println("Each of you owes " + String.format("%.2f", cost / slices));
+}
+```
+
+## ch03-expressions-and-operators-practice#6
+
+```java
+void main() {
+    int people = Integer.parseInt(IO.readln("How many people? ").strip());
+    int each = Integer.parseInt(IO.readln("Slices each? ").strip());
+    int slices = people * each;
+    IO.println("Would one pizza have done? " + (slices <= 8));
+}
+```
+
+A comparison is a value in its own right and can be printed. The parentheses make Java compare first and join the answer on afterward. Chapter 4 puts the same expression inside an `if`.
+
+```java
+void main() {
+    int people = Integer.parseInt(IO.readln("How many people? ").strip());
+    int each = Integer.parseInt(IO.readln("Slices each? ").strip());
+    boolean onePizza = people * each <= 8;
+    IO.println("One pizza enough: " + onePizza);
+}
+```
+
+The second answer keeps the comparison's answer in a `boolean` variable before printing it.
+
+### mistake
+
+`<` instead of `<=`: exactly 8 slices is one pizza, but `8 < 8` is `false`.
+
+```java
+void main() {
+    int people = Integer.parseInt(IO.readln("How many people? ").strip());
+    int each = Integer.parseInt(IO.readln("Slices each? ").strip());
+    int slices = people * each;
+    IO.println("Would one pizza have done? " + (slices < 8));
+}
+```
+
+## ch03-expressions-and-operators-practice#7
+
+```java
+void main() {
+    int people = Integer.parseInt(IO.readln("How many people? ").strip());
+    int each = Integer.parseInt(IO.readln("Slices each? ").strip());
+    int slices = people * each;
+    int pizzas = (slices + 7) / 8;
+    double cost = pizzas * 13.50;
+    double delivered = cost * 1.15;
+    IO.println("With delivery: " + String.format("%.2f", delivered));
+    IO.println("Each: " + String.format("%.2f", delivered / people));
+}
+```
+
+Multiplying by 1.15 adds the 15% and keeps the original. Multiplying by 0.15 throws the pizza away and bills for the delivery.
+
+```java
+void main() {
+    int people = Integer.parseInt(IO.readln("How many people? ").strip());
+    int each = Integer.parseInt(IO.readln("Slices each? ").strip());
+    int pizzas = (people * each + 7) / 8;
+    double total = pizzas * 13.50;
+    total += total * 0.15;
+    IO.println(String.format("Delivered: %.2f, or %.2f each", total, total / people));
+}
+```
+
+The second answer adds the delivery charge onto the total with `+=`, then prints both amounts with one format string.
+
+### mistake
+
+`cost * 0.15` is the delivery charge alone, billed without the pizza:
+
+```java
+void main() {
+    int people = Integer.parseInt(IO.readln("How many people? ").strip());
+    int each = Integer.parseInt(IO.readln("Slices each? ").strip());
+    int slices = people * each;
+    int pizzas = (slices + 7) / 8;
+    double cost = pizzas * 13.50;
+    double delivered = cost * 0.15;
+    IO.println("With delivery: " + String.format("%.2f", delivered));
+    IO.println("Each: " + String.format("%.2f", delivered / people));
+}
+```
+
+## ch03-expressions-and-operators-practice#8
+
+```java
+// Settles games night: pizzas to order, leftovers, and what everyone owes.
+
+void main() {
+    int people = Integer.parseInt(IO.readln("How many people? ").strip());
+    int each = Integer.parseInt(IO.readln("Slices each? ").strip());
+
+    int slices = people * each;
+    int pizzas = (slices + 7) / 8;
+    double cost = pizzas * 13.50;
+    double delivered = cost * 1.15;
+
+    IO.println("Slices needed:   " + slices);
+    IO.println("Pizzas to order: " + pizzas);
+    IO.println("Slices left:     " + (pizzas * 8 - slices));
+    IO.println("Cost:            " + String.format("%.2f", cost));
+    IO.println("With delivery:   " + String.format("%.2f", delivered));
+    IO.println("Each of you:     " + String.format("%.2f", delivered / people));
+}
+```
+
+Nothing new, only arrangement. The labels are padded with spaces so the numbers line up in a column.
+
+```java
+// The pizza order, worked out in full.
+
+void main() {
+    String peopleText = IO.readln("How many people? ");
+    String eachText = IO.readln("Slices each? ");
+    int people = Integer.parseInt(peopleText.strip());
+    int slices = people * Integer.parseInt(eachText.strip());
+
+    int pizzas = (slices + 7) / 8;
+    int leftOver = pizzas * 8 - slices;
+    double cost = pizzas * 13.50;
+    double delivered = cost * 1.15;
+
+    IO.println(slices + " slices means " + pizzas + " pizzas, " + leftOver + " to spare.");
+    IO.println(String.format("Cost %.2f, delivered %.2f, or %.2f each.", cost, delivered, delivered / people));
+}
+```
+
+The second answer keeps the leftover in a variable of its own and reports the order in two sentences, the money in one format string.
+
+### mistake
+
+Each person's share worked out from the cost before delivery:
+
+```java
+// Settles games night: pizzas to order, leftovers, and what everyone owes.
+
+void main() {
+    int people = Integer.parseInt(IO.readln("How many people? ").strip());
+    int each = Integer.parseInt(IO.readln("Slices each? ").strip());
+
+    int slices = people * each;
+    int pizzas = (slices + 7) / 8;
+    double cost = pizzas * 13.50;
+    double delivered = cost * 1.15;
+
+    IO.println("Slices needed:   " + slices);
+    IO.println("Pizzas to order: " + pizzas);
+    IO.println("Slices left:     " + (pizzas * 8 - slices));
+    IO.println("Cost:            " + String.format("%.2f", cost));
+    IO.println("With delivery:   " + String.format("%.2f", delivered));
+    IO.println("Each of you:     " + String.format("%.2f", cost / people));
+}
+```

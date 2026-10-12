@@ -89,5 +89,85 @@
       "11",
       "4"
     ]
+  },
+  "ch03-expressions-and-operators#11": {
+    "stdin": [
+      "yes"
+    ]
+  },
+  "ch03-expressions-and-operators#14": {
+    "compileError": "bad operand types for binary operator '<='",
+    "why": "A range written the way it is on paper, which Java refuses. The error message is the lesson."
+  },
+  "ch03-expressions-and-operators#16": {
+    "stdin": [
+      "150"
+    ]
+  },
+  "ch03-expressions-and-operators#17": {
+    "stdin": [
+      "250",
+      "8"
+    ]
+  },
+  "ch03-expressions-and-operators#20": {
+    "stdin": [
+      "70",
+      "85",
+      "96"
+    ]
+  },
+  "ch03-expressions-and-operators#21": {
+    "stdin": [
+      "87"
+    ]
+  },
+  "ch03-expressions-and-operators-practice#1": {
+    "stdin": [
+      "5",
+      "3"
+    ]
+  },
+  "ch03-expressions-and-operators-practice#2": {
+    "stdin": [
+      "5",
+      "3"
+    ]
+  },
+  "ch03-expressions-and-operators-practice#3": {
+    "stdin": [
+      "5",
+      "3"
+    ]
+  },
+  "ch03-expressions-and-operators-practice#4": {
+    "stdin": [
+      "5",
+      "3"
+    ]
+  },
+  "ch03-expressions-and-operators-practice#5": {
+    "stdin": [
+      "5",
+      "3"
+    ]
+  },
+  "ch03-expressions-and-operators-practice#6": {
+    "stdin": [
+      "5",
+      "3"
+    ]
+  },
+  "ch03-expressions-and-operators-practice#7": {
+    "stdin": [
+      "5",
+      "3"
+    ]
+  },
+  "ch03-expressions-and-operators-practice#8": {
+    "stdin": [
+      "5",
+      "3"
+    ]
   }
 }

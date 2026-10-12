@@ -187,5 +187,331 @@
       }
     ],
     "starter": "void main() {\n    // Three questions, then the whole plan.\n}\n"
+  },
+  "ch03-expressions-and-operators#16": {
+    "kind": "input",
+    "runs": [
+      {
+        "typed": [
+          "150"
+        ],
+        "numbers": [
+          "2",
+          "30"
+        ]
+      },
+      {
+        "typed": [
+          "75"
+        ],
+        "numbers": [
+          "1",
+          "15"
+        ]
+      }
+    ],
+    "starter": "void main() {\n    // Ask for the minutes; print hours and minutes.\n}\n"
+  },
+  "ch03-expressions-and-operators#17": {
+    "kind": "input",
+    "runs": [
+      {
+        "typed": [
+          "250",
+          "8"
+        ],
+        "numbers": [
+          "20",
+          "270"
+        ]
+      },
+      {
+        "typed": [
+          "19.99",
+          "8"
+        ],
+        "numbers": [
+          "1.60",
+          "21.59"
+        ]
+      }
+    ],
+    "starter": "void main() {\n    // Price and tax rate in; tax and total out.\n}\n"
+  },
+  "ch03-expressions-and-operators#18": {
+    "kind": "output",
+    "expected": "####################\n####################\n####################\n####################\n####################",
+    "starter": "void main() {\n    // Five rows of 20 # characters.\n}\n"
+  },
+  "ch03-expressions-and-operators#19": {
+    "kind": "predict"
+  },
+  "ch03-expressions-and-operators#20": {
+    "kind": "input",
+    "runs": [
+      {
+        "typed": [
+          "70",
+          "85",
+          "96"
+        ],
+        "numbers": [
+          "83.7"
+        ]
+      },
+      {
+        "typed": [
+          "88",
+          "92",
+          "79"
+        ],
+        "numbers": [
+          "86.3"
+        ]
+      }
+    ],
+    "starter": "void main() {\n    // Three scores in; their average out.\n}\n"
+  },
+  "ch03-expressions-and-operators-practice#1": {
+    "kind": "input",
+    "runs": [
+      {
+        "typed": [
+          "5",
+          "3"
+        ],
+        "numbers": [
+          "15"
+        ]
+      },
+      {
+        "typed": [
+          "4",
+          "2"
+        ],
+        "numbers": [
+          "8"
+        ]
+      }
+    ],
+    "starter": "void main() {\n    // Two questions, then the slices needed.\n}\n"
+  },
+  "ch03-expressions-and-operators-practice#2": {
+    "kind": "input",
+    "runs": [
+      {
+        "typed": [
+          "5",
+          "3"
+        ],
+        "numbers": [
+          "2"
+        ]
+      },
+      {
+        "typed": [
+          "4",
+          "2"
+        ],
+        "numbers": [
+          "1"
+        ]
+      }
+    ],
+    "starter": "void main() {\n    int people = Integer.parseInt(IO.readln(\"How many people? \").strip());\n    int each = Integer.parseInt(IO.readln(\"Slices each? \").strip());\n    // Then the whole pizzas to order.\n}\n"
+  },
+  "ch03-expressions-and-operators-practice#3": {
+    "kind": "input",
+    "runs": [
+      {
+        "typed": [
+          "5",
+          "3"
+        ],
+        "numbers": [
+          "1"
+        ]
+      },
+      {
+        "typed": [
+          "3",
+          "3"
+        ],
+        "numbers": [
+          "7"
+        ]
+      },
+      {
+        "typed": [
+          "4",
+          "2"
+        ],
+        "numbers": [
+          "0"
+        ]
+      }
+    ],
+    "starter": "void main() {\n    int people = Integer.parseInt(IO.readln(\"How many people? \").strip());\n    int each = Integer.parseInt(IO.readln(\"Slices each? \").strip());\n    // Then the slices left over.\n}\n"
+  },
+  "ch03-expressions-and-operators-practice#4": {
+    "kind": "input",
+    "runs": [
+      {
+        "typed": [
+          "5",
+          "3"
+        ],
+        "numbers": [
+          "27"
+        ]
+      },
+      {
+        "typed": [
+          "4",
+          "2"
+        ],
+        "numbers": [
+          "13.50"
+        ]
+      }
+    ],
+    "starter": "void main() {\n    int people = Integer.parseInt(IO.readln(\"How many people? \").strip());\n    int each = Integer.parseInt(IO.readln(\"Slices each? \").strip());\n    // Then the cost, to two places.\n}\n"
+  },
+  "ch03-expressions-and-operators-practice#5": {
+    "kind": "input",
+    "runs": [
+      {
+        "typed": [
+          "5",
+          "3"
+        ],
+        "numbers": [
+          "5.40"
+        ]
+      },
+      {
+        "typed": [
+          "7",
+          "2"
+        ],
+        "numbers": [
+          "3.86"
+        ]
+      },
+      {
+        "typed": [
+          "8",
+          "4"
+        ],
+        "numbers": [
+          "6.75"
+        ]
+      }
+    ],
+    "starter": "void main() {\n    int people = Integer.parseInt(IO.readln(\"How many people? \").strip());\n    int each = Integer.parseInt(IO.readln(\"Slices each? \").strip());\n    // Then each person's share.\n}\n"
+  },
+  "ch03-expressions-and-operators-practice#6": {
+    "kind": "input",
+    "runs": [
+      {
+        "typed": [
+          "5",
+          "3"
+        ],
+        "contains": "false"
+      },
+      {
+        "typed": [
+          "4",
+          "2"
+        ],
+        "contains": "true"
+      }
+    ],
+    "starter": "void main() {\n    int people = Integer.parseInt(IO.readln(\"How many people? \").strip());\n    int each = Integer.parseInt(IO.readln(\"Slices each? \").strip());\n    // Then: would one pizza have done?\n}\n"
+  },
+  "ch03-expressions-and-operators-practice#7": {
+    "kind": "input",
+    "runs": [
+      {
+        "typed": [
+          "5",
+          "3"
+        ],
+        "numbers": [
+          "31.05",
+          "6.21"
+        ]
+      },
+      {
+        "typed": [
+          "7",
+          "2"
+        ],
+        "numbers": [
+          "31.05",
+          "4.44"
+        ]
+      },
+      {
+        "typed": [
+          "8",
+          "4"
+        ],
+        "numbers": [
+          "62.10",
+          "7.76"
+        ]
+      }
+    ],
+    "starter": "void main() {\n    int people = Integer.parseInt(IO.readln(\"How many people? \").strip());\n    int each = Integer.parseInt(IO.readln(\"Slices each? \").strip());\n    // Then the delivery total and each share.\n}\n"
+  },
+  "ch03-expressions-and-operators-practice#8": {
+    "kind": "input",
+    "runs": [
+      {
+        "typed": [
+          "5",
+          "3"
+        ],
+        "numbers": [
+          "15",
+          "2",
+          "1",
+          "27",
+          "31.05",
+          "6.21"
+        ]
+      },
+      {
+        "typed": [
+          "7",
+          "2"
+        ],
+        "numbers": [
+          "14",
+          "2",
+          "2",
+          "27",
+          "31.05",
+          "4.44"
+        ]
+      },
+      {
+        "typed": [
+          "8",
+          "4"
+        ],
+        "numbers": [
+          "32",
+          "4",
+          "0",
+          "54.00",
+          "62.10",
+          "7.76"
+        ]
+      }
+    ],
+    "starter": "void main() {\n    // Two questions, then the whole order.\n}\n"
   }
 }
