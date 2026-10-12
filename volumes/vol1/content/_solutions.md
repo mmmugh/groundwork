@@ -7101,3 +7101,1256 @@ void main() {
     IO.println(warningMessages(lines));
 }
 ```
+
+## ch09-maps-and-sets#16
+
+Try It 1: a capital looked up in a map.
+
+```java
+// Looks up the capital of a country the user types.
+
+void main() {
+    Map<String, String> capitals = new LinkedHashMap<>();
+    capitals.put("France", "Paris");
+    capitals.put("Japan", "Tokyo");
+    capitals.put("Egypt", "Cairo");
+    capitals.put("Brazil", "Brasilia");
+    capitals.put("Canada", "Ottawa");
+
+    String country = IO.readln("Enter a country: ").strip();
+
+    if (capitals.containsKey(country)) {
+        IO.println("The capital of " + country + " is "
+                + capitals.get(country) + ".");
+    } else {
+        IO.println("I don't have that country.");
+    }
+}
+```
+
+`containsKey` asks before `get` does, so a country the map does not have gets the message rather than `null`. `strip()` takes off any spaces typed around the country.
+
+```java
+void main() {
+    Map<String, String> capitals = new TreeMap<>();
+    capitals.put("France", "Paris");
+    capitals.put("Japan", "Tokyo");
+    capitals.put("Egypt", "Cairo");
+    capitals.put("Brazil", "Brasilia");
+    capitals.put("Canada", "Ottawa");
+
+    String country = IO.readln("Country: ").strip();
+    IO.println(capitals.getOrDefault(country, "I don't have that country."));
+}
+```
+
+The second answer lets `getOrDefault` supply the message as its default, so one line does both the lookup and the refusal; it prints the capital alone.
+
+### mistake
+
+No test before `get`: a missing country prints `null` as its capital.
+
+```java
+void main() {
+    Map<String, String> capitals = new LinkedHashMap<>();
+    capitals.put("France", "Paris");
+    capitals.put("Japan", "Tokyo");
+    capitals.put("Egypt", "Cairo");
+    capitals.put("Brazil", "Brasilia");
+    capitals.put("Canada", "Ottawa");
+
+    String country = IO.readln("Enter a country: ").strip();
+    IO.println("The capital of " + country + " is " + capitals.get(country) + ".");
+}
+```
+
+A typo in a key: `put` makes an entry for `Canda`, and Canada is never found.
+
+```java
+void main() {
+    Map<String, String> capitals = new LinkedHashMap<>();
+    capitals.put("France", "Paris");
+    capitals.put("Japan", "Tokyo");
+    capitals.put("Egypt", "Cairo");
+    capitals.put("Brazil", "Brasilia");
+    capitals.put("Canda", "Ottawa");
+
+    String country = IO.readln("Enter a country: ").strip();
+
+    if (capitals.containsKey(country)) {
+        IO.println("The capital of " + country + " is " + capitals.get(country) + ".");
+    } else {
+        IO.println("I don't have that country.");
+    }
+}
+```
+
+## ch09-maps-and-sets#17
+
+Try It 2: letter counts in the order the letters first appear.
+
+```java
+// Counts the letters of a word, in the order they first appear.
+
+void main() {
+    String word = IO.readln("Enter a word: ").strip();
+
+    Map<Character, Integer> counts = new LinkedHashMap<>();
+    for (int i = 0; i < word.length(); i++) {
+        char letter = word.charAt(i);
+        counts.put(letter, counts.getOrDefault(letter, 0) + 1);
+    }
+
+    for (char letter : counts.keySet()) {
+        IO.println(letter + ": " + counts.get(letter));
+    }
+}
+```
+
+This is the counting pattern from the chapter: `getOrDefault(letter, 0) + 1` handles a first sighting and a repeat with the same line. A `LinkedHashMap` keeps the letters in the order they were first put in, which is the order they first appear in the word, and `char letter` takes each `Character` key as a `char`.
+
+```java
+void main() {
+    String word = IO.readln("Word: ").strip();
+
+    Map<String, Integer> counts = new LinkedHashMap<>();
+    for (int i = 0; i < word.length(); i++) {
+        String letter = word.substring(i, i + 1);
+        if (counts.containsKey(letter)) {
+            counts.put(letter, counts.get(letter) + 1);
+        } else {
+            counts.put(letter, 1);
+        }
+    }
+
+    for (String letter : counts.keySet()) {
+        IO.println(letter + ": " + counts.get(letter));
+    }
+}
+```
+
+The second answer keeps each letter as a one-letter `String` and asks `containsKey` before counting: the `if` that `getOrDefault` saves.
+
+### mistake
+
+A `HashMap` promises no order, and prints `banana`'s letters as a, b, n rather than in the order they first appear:
+
+```java
+void main() {
+    String word = IO.readln("Enter a word: ").strip();
+
+    Map<Character, Integer> counts = new HashMap<>();
+    for (int i = 0; i < word.length(); i++) {
+        char letter = word.charAt(i);
+        counts.put(letter, counts.getOrDefault(letter, 0) + 1);
+    }
+
+    for (char letter : counts.keySet()) {
+        IO.println(letter + ": " + counts.get(letter));
+    }
+}
+```
+
+Putting 1 every time counts every letter once, however often it appears:
+
+```java
+void main() {
+    String word = IO.readln("Enter a word: ").strip();
+
+    Map<Character, Integer> counts = new LinkedHashMap<>();
+    for (int i = 0; i < word.length(); i++) {
+        counts.put(word.charAt(i), 1);
+    }
+
+    for (char letter : counts.keySet()) {
+        IO.println(letter + ": " + counts.get(letter));
+    }
+}
+```
+
+## ch09-maps-and-sets#18
+
+Try It 3: two lists compared with sets.
+
+```java
+// Compares two lists of names with sets.
+
+void main() {
+    ArrayList<String> first = new ArrayList<>(List.of("Ada", "Grace", "Alan", "Katherine"));
+    ArrayList<String> second = new ArrayList<>(List.of("Grace", "Alan", "Margaret"));
+
+    Set<String> both = new LinkedHashSet<>(first);
+    both.retainAll(second);
+
+    Set<String> firstOnly = new LinkedHashSet<>(first);
+    firstOnly.removeAll(second);
+
+    Set<String> everyone = new LinkedHashSet<>(first);
+    everyone.addAll(second);
+
+    IO.println("In both lists: " + both);
+    IO.println("Only in the first list: " + firstOnly);
+    IO.println("Everyone: " + everyone);
+}
+```
+
+Each group starts as a copy of the first list, made into a `LinkedHashSet` so it keeps the names in the order they first appear; then `retainAll`, `removeAll` or `addAll` does the rest, exactly as the chapter's band and chorus do.
+
+```java
+void main() {
+    ArrayList<String> first = new ArrayList<>(List.of("Ada", "Grace", "Alan", "Katherine"));
+    ArrayList<String> second = new ArrayList<>(List.of("Grace", "Alan", "Margaret"));
+
+    ArrayList<String> both = new ArrayList<>();
+    ArrayList<String> firstOnly = new ArrayList<>();
+    for (String name : first) {
+        if (second.contains(name)) {
+            both.add(name);
+        } else {
+            firstOnly.add(name);
+        }
+    }
+
+    ArrayList<String> everyone = new ArrayList<>(first);
+    for (String name : second) {
+        if (!everyone.contains(name)) {
+            everyone.add(name);
+        }
+    }
+
+    IO.println(both);
+    IO.println(firstOnly);
+    IO.println(everyone);
+}
+```
+
+The second answer uses no sets: `contains` on the second list sorts each name of the first into one group or the other, and everyone is the first list plus each name of the second that it does not already hold.
+
+### mistake
+
+No copies: `retainAll` changes the one set, so the names only in the first list are already gone when `removeAll` looks for them.
+
+```java
+void main() {
+    ArrayList<String> first = new ArrayList<>(List.of("Ada", "Grace", "Alan", "Katherine"));
+    ArrayList<String> second = new ArrayList<>(List.of("Grace", "Alan", "Margaret"));
+
+    Set<String> names = new LinkedHashSet<>(first);
+    names.retainAll(second);
+    IO.println("In both lists: " + names);
+
+    names.removeAll(second);
+    IO.println("Only in the first list: " + names);
+
+    names.addAll(second);
+    IO.println("Everyone: " + names);
+}
+```
+
+`HashSet`s keep no promised order, so the groups do not come out in the order the names first appear:
+
+```java
+void main() {
+    ArrayList<String> first = new ArrayList<>(List.of("Ada", "Grace", "Alan", "Katherine"));
+    ArrayList<String> second = new ArrayList<>(List.of("Grace", "Alan", "Margaret"));
+
+    Set<String> both = new HashSet<>(first);
+    both.retainAll(second);
+
+    Set<String> firstOnly = new HashSet<>(first);
+    firstOnly.removeAll(second);
+
+    Set<String> everyone = new HashSet<>(first);
+    everyone.addAll(second);
+
+    IO.println("In both lists: " + both);
+    IO.println("Only in the first list: " + firstOnly);
+    IO.println("Everyone: " + everyone);
+}
+```
+
+## ch09-maps-and-sets#19
+
+Try It 4: `invert`.
+
+```java
+Map<String, String> invert(Map<String, String> map) {
+    Map<String, String> inverted = new LinkedHashMap<>();
+    for (String key : map.keySet()) {
+        inverted.put(map.get(key), key);
+    }
+    return inverted;
+}
+
+void main() {
+    Map<String, String> spanish = new LinkedHashMap<>();
+    spanish.put("one", "uno");
+    spanish.put("two", "dos");
+    IO.println(invert(spanish));
+}
+```
+
+Each value becomes a key of the new map, leading back to the key it came from. The method builds a new map and leaves the one it is handed as it was. If two keys share a value, the new map keeps only one of them: `put` replaces, so the last key the loop reaches wins.
+
+```java
+Map<String, String> invert(Map<String, String> map) {
+    Map<String, String> inverted = new HashMap<>();
+    for (Map.Entry<String, String> entry : map.entrySet()) {
+        inverted.put(entry.getValue(), entry.getKey());
+    }
+    return inverted;
+}
+
+void main() {
+    Map<String, String> spanish = new LinkedHashMap<>();
+    spanish.put("one", "uno");
+    IO.println(invert(spanish));
+}
+```
+
+The second answer walks the entries, each key with its value, and fills a `HashMap`. Check compares maps by their keys and values, so the order it keeps makes no difference.
+
+### mistake
+
+Copying instead of swapping: each key still leads to its own value.
+
+```java
+Map<String, String> invert(Map<String, String> map) {
+    Map<String, String> inverted = new LinkedHashMap<>();
+    for (String key : map.keySet()) {
+        inverted.put(key, map.get(key));
+    }
+    return inverted;
+}
+
+void main() {
+    Map<String, String> spanish = new LinkedHashMap<>();
+    spanish.put("one", "uno");
+    IO.println(invert(spanish));
+}
+```
+
+`inverted = map` makes a second variable for the same map, not a new one, so the method changes the map it is handed; a `Map.of` map cannot change, and stops the method with an exception.
+
+```java
+Map<String, String> invert(Map<String, String> map) {
+    Map<String, String> inverted = map;
+    for (String key : map.keySet()) {
+        inverted.put(map.get(key), key);
+    }
+    return inverted;
+}
+
+void main() {
+    Map<String, String> spanish = Map.of("one", "uno");
+    IO.println(invert(spanish));
+}
+```
+
+## ch09-maps-and-sets#20
+
+Try It 5: a roster from a map of maps.
+
+```java
+// A roster of students, each with a grade level and a favorite subject.
+
+void main() {
+    Map<String, String> ada = new LinkedHashMap<>();
+    ada.put("grade", "9");
+    ada.put("subject", "Math");
+
+    Map<String, String> grace = new LinkedHashMap<>();
+    grace.put("grade", "10");
+    grace.put("subject", "Science");
+
+    Map<String, String> alan = new LinkedHashMap<>();
+    alan.put("grade", "9");
+    alan.put("subject", "History");
+
+    Map<String, Map<String, String>> students = new LinkedHashMap<>();
+    students.put("Ada", ada);
+    students.put("Grace", grace);
+    students.put("Alan", alan);
+
+    IO.println(String.format("%-10s%-8s%s", "Name", "Grade", "Favorite Subject"));
+    for (String name : students.keySet()) {
+        Map<String, String> info = students.get(name);
+        IO.println(String.format("%-10s%-8s%s",
+                name, info.get("grade"), info.get("subject")));
+    }
+}
+```
+
+Each student's facts live in a map of their own, and the outer map leads from a name to it, as the chapter's `students.get("Ada").get("score")` does. The grade level is stored as text, because every value in a map has the map's one value type, and the `LinkedHashMap`s keep the students in the order they were put in.
+
+```java
+void main() {
+    Map<String, Integer> grades = new LinkedHashMap<>();
+    Map<String, String> subjects = new LinkedHashMap<>();
+
+    grades.put("Ada", 9);
+    subjects.put("Ada", "Math");
+    grades.put("Grace", 10);
+    subjects.put("Grace", "Science");
+    grades.put("Alan", 9);
+    subjects.put("Alan", "History");
+
+    for (String name : grades.keySet()) {
+        IO.println(name + ", grade " + grades.get(name) + ", likes " + subjects.get(name));
+    }
+}
+```
+
+The second answer keeps two maps with the same keys instead of a map of maps, so each fact keeps its own type: the grade level is an `Integer`.
+
+### mistake
+
+One inner map for all three students: every `put` changes the same map, so each name leads to Alan's facts.
+
+```java
+void main() {
+    Map<String, String> info = new LinkedHashMap<>();
+    Map<String, Map<String, String>> students = new LinkedHashMap<>();
+
+    info.put("grade", "9");
+    info.put("subject", "Math");
+    students.put("Ada", info);
+
+    info.put("grade", "10");
+    info.put("subject", "Science");
+    students.put("Grace", info);
+
+    info.put("grade", "9");
+    info.put("subject", "History");
+    students.put("Alan", info);
+
+    for (String name : students.keySet()) {
+        Map<String, String> facts = students.get(name);
+        IO.println(name + " " + facts.get("grade") + " " + facts.get("subject"));
+    }
+}
+```
+
+A `HashMap` for the roster promises no order, and lists Grace first:
+
+```java
+void main() {
+    Map<String, String> ada = new LinkedHashMap<>();
+    ada.put("grade", "9");
+    ada.put("subject", "Math");
+
+    Map<String, String> grace = new LinkedHashMap<>();
+    grace.put("grade", "10");
+    grace.put("subject", "Science");
+
+    Map<String, String> alan = new LinkedHashMap<>();
+    alan.put("grade", "9");
+    alan.put("subject", "History");
+
+    Map<String, Map<String, String>> students = new HashMap<>();
+    students.put("Ada", ada);
+    students.put("Grace", grace);
+    students.put("Alan", alan);
+
+    for (String name : students.keySet()) {
+        Map<String, String> info = students.get(name);
+        IO.println(name + " " + info.get("grade") + " " + info.get("subject"));
+    }
+}
+```
+
+## ch09-maps-and-sets#21
+
+Try It 6: the words that appear more than once.
+
+```java
+// Prints the words that appear more than once.
+
+void main() {
+    String[] words = {"cat", "dog", "cat", "bird", "dog", "cat", "fish"};
+
+    Map<String, Integer> counts = new LinkedHashMap<>();
+    for (String word : words) {
+        counts.put(word, counts.getOrDefault(word, 0) + 1);
+    }
+
+    for (String word : counts.keySet()) {
+        if (counts.get(word) > 1) {
+            IO.println(word);
+        }
+    }
+}
+```
+
+The same counting pattern as exercise 2, then a loop over the keys picks out the words counted more than once. The `LinkedHashMap` keeps the words in the order they first appear, and each key is there once, so each repeated word prints once.
+
+```java
+void main() {
+    ArrayList<String> words = new ArrayList<>(List.of("cat", "dog", "cat", "bird", "dog", "cat", "fish"));
+
+    Set<String> printed = new HashSet<>();
+    for (String word : words) {
+        if (Collections.frequency(words, word) > 1 && !printed.contains(word)) {
+            IO.println(word);
+            printed.add(word);
+        }
+    }
+}
+```
+
+The second answer counts with Chapter 7's `Collections.frequency` and keeps a set of the words it has printed already, so none prints twice.
+
+### mistake
+
+Printing a word each time it turns up again prints `cat` twice:
+
+```java
+void main() {
+    String[] words = {"cat", "dog", "cat", "bird", "dog", "cat", "fish"};
+
+    ArrayList<String> seen = new ArrayList<>();
+    for (String word : words) {
+        if (seen.contains(word)) {
+            IO.println(word);
+        }
+        seen.add(word);
+    }
+}
+```
+
+`>= 1` is true of every word, so all four print:
+
+```java
+void main() {
+    String[] words = {"cat", "dog", "cat", "bird", "dog", "cat", "fish"};
+
+    Map<String, Integer> counts = new LinkedHashMap<>();
+    for (String word : words) {
+        counts.put(word, counts.getOrDefault(word, 0) + 1);
+    }
+
+    for (String word : counts.keySet()) {
+        if (counts.get(word) >= 1) {
+            IO.println(word);
+        }
+    }
+}
+```
+
+## ch09-maps-and-sets#22
+
+Try It 7: the most common character.
+
+```java
+// Finds the most common character in a sentence, ignoring spaces.
+
+void main() {
+    String sentence = IO.readln("Enter a sentence: ");
+
+    Map<Character, Integer> counts = new LinkedHashMap<>();
+    for (int i = 0; i < sentence.length(); i++) {
+        char c = sentence.charAt(i);
+        if (c != ' ') {
+            counts.put(c, counts.getOrDefault(c, 0) + 1);
+        }
+    }
+
+    char mostCommon = ' ';
+    int most = 0;
+    for (char c : counts.keySet()) {
+        if (counts.get(c) > most) {
+            mostCommon = c;
+            most = counts.get(c);
+        }
+    }
+
+    IO.println("The most common character is '" + mostCommon
+            + "', appearing " + most + " times.");
+}
+```
+
+Spaces are left out before anything is counted. The second loop keeps the character with the highest count so far; `most` can start at 0 because every character in the map was counted at least once.
+
+```java
+void main() {
+    String sentence = IO.readln("Sentence: ");
+
+    Map<Character, Integer> counts = new HashMap<>();
+    for (int i = 0; i < sentence.length(); i++) {
+        char c = sentence.charAt(i);
+        if (c != ' ') {
+            counts.put(c, counts.getOrDefault(c, 0) + 1);
+        }
+    }
+
+    ArrayList<Map.Entry<Character, Integer>> ranked = new ArrayList<>(counts.entrySet());
+    ranked.sort(Comparator.comparing((Map.Entry<Character, Integer> e) -> e.getValue())
+            .reversed());
+    Map.Entry<Character, Integer> top = ranked.get(0);
+    IO.println(top.getKey() + " appears " + top.getValue() + " times");
+}
+```
+
+The second answer sorts the entries by count, largest first, with the chapter's comparator, and takes the first.
+
+### mistake
+
+Counting the spaces too: in `to be or not to be` the space is the most common character.
+
+```java
+void main() {
+    String sentence = IO.readln("Enter a sentence: ");
+
+    Map<Character, Integer> counts = new LinkedHashMap<>();
+    for (int i = 0; i < sentence.length(); i++) {
+        char c = sentence.charAt(i);
+        counts.put(c, counts.getOrDefault(c, 0) + 1);
+    }
+
+    char mostCommon = ' ';
+    int most = 0;
+    for (char c : counts.keySet()) {
+        if (counts.get(c) > most) {
+            mostCommon = c;
+            most = counts.get(c);
+        }
+    }
+
+    IO.println("The most common character is '" + mostCommon
+            + "', appearing " + most + " times.");
+}
+```
+
+An `if` without braces controls only the line after it, so `mostCommon` is set on every pass and ends as the last character counted:
+
+```java
+void main() {
+    String sentence = IO.readln("Enter a sentence: ");
+
+    Map<Character, Integer> counts = new LinkedHashMap<>();
+    for (int i = 0; i < sentence.length(); i++) {
+        char c = sentence.charAt(i);
+        if (c != ' ') {
+            counts.put(c, counts.getOrDefault(c, 0) + 1);
+        }
+    }
+
+    char mostCommon = ' ';
+    int most = 0;
+    for (char c : counts.keySet()) {
+        if (counts.get(c) > most)
+            most = counts.get(c);
+            mostCommon = c;
+    }
+
+    IO.println("The most common character is '" + mostCommon
+            + "', appearing " + most + " times.");
+}
+```
+
+## ch09-maps-and-sets-practice#1
+
+```java
+int countOf(Map<String, Integer> register, String item) {
+    return register.getOrDefault(item, 0);
+}
+
+void main() {
+    Map<String, Integer> register = new LinkedHashMap<>();
+    register.put("umbrella", 3);
+    register.put("phone", 1);
+    register.put("scarf", 2);
+    IO.println(countOf(register, "phone"));
+    IO.println(countOf(register, "hat"));
+}
+```
+
+`getOrDefault` with a default of 0 answers for something that was never handed in. `get` alone gives back `null` for it, and `null` is not an `int`.
+
+```java
+int countOf(Map<String, Integer> register, String item) {
+    if (register.containsKey(item)) {
+        return register.get(item);
+    }
+    return 0;
+}
+
+void main() {
+    Map<String, Integer> register = new LinkedHashMap<>();
+    register.put("umbrella", 3);
+    IO.println(countOf(register, "umbrella"));
+}
+```
+
+The second answer asks `containsKey` first and returns 0 for an item that is not held.
+
+### mistake
+
+`get` alone: for something never handed in it gives back `null`, which is not an `int`, so the method stops with an exception.
+
+```java
+int countOf(Map<String, Integer> register, String item) {
+    return register.get(item);
+}
+
+void main() {
+    Map<String, Integer> register = new LinkedHashMap<>();
+    register.put("umbrella", 3);
+    IO.println(countOf(register, "umbrella"));
+}
+```
+
+Answering whether the item is held, not how many:
+
+```java
+int countOf(Map<String, Integer> register, String item) {
+    if (register.containsKey(item)) {
+        return 1;
+    }
+    return 0;
+}
+
+void main() {
+    Map<String, Integer> register = new LinkedHashMap<>();
+    register.put("umbrella", 3);
+    IO.println(countOf(register, "umbrella"));
+}
+```
+
+## ch09-maps-and-sets-practice#2
+
+```java
+int totalItems(Map<String, Integer> register) {
+    int total = 0;
+    for (int count : register.values()) {
+        total += count;
+    }
+    return total;
+}
+
+void main() {
+    Map<String, Integer> register = new LinkedHashMap<>();
+    register.put("umbrella", 3);
+    register.put("phone", 1);
+    register.put("scarf", 2);
+    IO.println(totalItems(register));
+}
+```
+
+`values()` gives the counts, so adding them gives every object in the office. `size()` is how many kinds of thing are held, which is a different number and looks plausible until someone hands in a second umbrella.
+
+```java
+int totalItems(Map<String, Integer> register) {
+    int total = 0;
+    for (String item : register.keySet()) {
+        total += register.get(item);
+    }
+    return total;
+}
+
+void main() {
+    Map<String, Integer> register = new LinkedHashMap<>();
+    register.put("umbrella", 3);
+    register.put("hat", 5);
+    IO.println(totalItems(register));
+}
+```
+
+The second answer loops over the names and looks up each one's count.
+
+### mistake
+
+`size()` counts the kinds of thing, 3, not the objects, 6:
+
+```java
+int totalItems(Map<String, Integer> register) {
+    return register.size();
+}
+
+void main() {
+    Map<String, Integer> register = new LinkedHashMap<>();
+    register.put("umbrella", 3);
+    IO.println(totalItems(register));
+}
+```
+
+Adding 1 for each name counts the names again:
+
+```java
+int totalItems(Map<String, Integer> register) {
+    int total = 0;
+    for (String item : register.keySet()) {
+        total++;
+    }
+    return total;
+}
+
+void main() {
+    Map<String, Integer> register = new LinkedHashMap<>();
+    register.put("umbrella", 3);
+    IO.println(totalItems(register));
+}
+```
+
+## ch09-maps-and-sets-practice#3
+
+```java
+Map<String, Integer> addItem(Map<String, Integer> register, String item) {
+    Map<String, Integer> updated = new LinkedHashMap<>(register);
+    updated.put(item, updated.getOrDefault(item, 0) + 1);
+    return updated;
+}
+
+void main() {
+    Map<String, Integer> register = new LinkedHashMap<>();
+    register.put("umbrella", 3);
+    register.put("phone", 1);
+    register.put("scarf", 2);
+    IO.println(addItem(register, "hat"));
+    IO.println(register);
+}
+```
+
+The copy is changed and handed back, and the register itself is left as it was. `getOrDefault(item, 0) + 1` covers both cases at once: a new item starts from 0, an existing one carries on.
+
+```java
+Map<String, Integer> addItem(Map<String, Integer> register, String item) {
+    Map<String, Integer> updated = new TreeMap<>(register);
+    if (updated.containsKey(item)) {
+        updated.put(item, updated.get(item) + 1);
+    } else {
+        updated.put(item, 1);
+    }
+    return updated;
+}
+
+void main() {
+    Map<String, Integer> register = new LinkedHashMap<>();
+    register.put("phone", 1);
+    IO.println(addItem(register, "phone"));
+}
+```
+
+The second answer copies into a `TreeMap` and asks `containsKey` first. Check compares maps by their keys and values, so the kind of copy makes no difference.
+
+### mistake
+
+Putting 1 for every item loses the ones already there: a second phone still counts as one.
+
+```java
+Map<String, Integer> addItem(Map<String, Integer> register, String item) {
+    Map<String, Integer> updated = new LinkedHashMap<>(register);
+    updated.put(item, 1);
+    return updated;
+}
+
+void main() {
+    Map<String, Integer> register = new LinkedHashMap<>();
+    register.put("phone", 1);
+    IO.println(addItem(register, "phone"));
+}
+```
+
+Changing the register it is handed instead of a copy: a `Map.of` register cannot change, and the method stops with an exception.
+
+```java
+Map<String, Integer> addItem(Map<String, Integer> register, String item) {
+    register.put(item, register.getOrDefault(item, 0) + 1);
+    return register;
+}
+
+void main() {
+    Map<String, Integer> register = new LinkedHashMap<>();
+    register.put("phone", 1);
+    IO.println(addItem(register, "phone"));
+}
+```
+
+## ch09-maps-and-sets-practice#4
+
+```java
+Map<String, Integer> removeItem(Map<String, Integer> register, String item) {
+    Map<String, Integer> updated = new LinkedHashMap<>(register);
+    if (!updated.containsKey(item)) {
+        return updated;
+    }
+    int left = updated.get(item) - 1;
+    if (left == 0) {
+        updated.remove(item);
+    } else {
+        updated.put(item, left);
+    }
+    return updated;
+}
+
+void main() {
+    Map<String, Integer> register = new LinkedHashMap<>();
+    register.put("umbrella", 3);
+    register.put("phone", 1);
+    register.put("scarf", 2);
+    IO.println(removeItem(register, "phone"));
+    IO.println(removeItem(register, "umbrella"));
+}
+```
+
+One fewer, and the entry disappears only when the count reaches zero. An item that is not held comes back unchanged, in the copy.
+
+```java
+Map<String, Integer> removeItem(Map<String, Integer> register, String item) {
+    Map<String, Integer> updated = new HashMap<>();
+    for (String name : register.keySet()) {
+        int count = register.get(name);
+        if (name.equals(item)) {
+            count--;
+        }
+        if (count > 0) {
+            updated.put(name, count);
+        }
+    }
+    return updated;
+}
+
+void main() {
+    Map<String, Integer> register = new LinkedHashMap<>();
+    register.put("umbrella", 3);
+    register.put("phone", 1);
+    IO.println(removeItem(register, "phone"));
+}
+```
+
+The second answer builds the new register entry by entry, one fewer for the item claimed, and leaves out any entry that reaches zero.
+
+### mistake
+
+Removing the entry outright hands back all three umbrellas to someone who claimed one:
+
+```java
+Map<String, Integer> removeItem(Map<String, Integer> register, String item) {
+    Map<String, Integer> updated = new LinkedHashMap<>(register);
+    updated.remove(item);
+    return updated;
+}
+
+void main() {
+    Map<String, Integer> register = new LinkedHashMap<>();
+    register.put("umbrella", 3);
+    IO.println(removeItem(register, "umbrella"));
+}
+```
+
+`==` asks whether two `String`s are the same object, and an item name made while the program runs is a different object from the register's, so nothing is claimed:
+
+```java
+Map<String, Integer> removeItem(Map<String, Integer> register, String item) {
+    Map<String, Integer> updated = new HashMap<>();
+    for (String name : register.keySet()) {
+        int count = register.get(name);
+        if (name == item) {
+            count--;
+        }
+        if (count > 0) {
+            updated.put(name, count);
+        }
+    }
+    return updated;
+}
+
+void main() {
+    Map<String, Integer> register = new LinkedHashMap<>();
+    register.put("phone", 1);
+    IO.println(removeItem(register, " phone".strip()));
+}
+```
+
+One fewer, but the last phone leaves an entry of 0 behind:
+
+```java
+Map<String, Integer> removeItem(Map<String, Integer> register, String item) {
+    Map<String, Integer> updated = new LinkedHashMap<>(register);
+    if (updated.containsKey(item)) {
+        updated.put(item, updated.get(item) - 1);
+    }
+    return updated;
+}
+
+void main() {
+    Map<String, Integer> register = new LinkedHashMap<>();
+    register.put("phone", 1);
+    IO.println(removeItem(register, "phone"));
+}
+```
+
+## ch09-maps-and-sets-practice#5
+
+```java
+ArrayList<String> sortedItems(Map<String, Integer> register) {
+    ArrayList<String> names = new ArrayList<>(register.keySet());
+    Collections.sort(names);
+    return names;
+}
+
+void main() {
+    Map<String, Integer> register = new LinkedHashMap<>();
+    register.put("umbrella", 3);
+    register.put("phone", 1);
+    register.put("scarf", 2);
+    IO.println(sortedItems(register));
+}
+```
+
+`keySet()` gives the names, a new `ArrayList` holds them, and `Collections.sort` puts them in alphabetical order. The register's own order is no help: the cases' `Map.of` registers keep no order at all.
+
+```java
+ArrayList<String> sortedItems(Map<String, Integer> register) {
+    Map<String, Integer> sorted = new TreeMap<>(register);
+    return new ArrayList<>(sorted.keySet());
+}
+
+void main() {
+    Map<String, Integer> register = new LinkedHashMap<>();
+    register.put("umbrella", 3);
+    register.put("phone", 1);
+    IO.println(sortedItems(register));
+}
+```
+
+The second answer copies the register into a `TreeMap`, which keeps its keys sorted, and lists them.
+
+### mistake
+
+Sorting the names by their counts, not alphabetically:
+
+```java
+ArrayList<String> sortedItems(Map<String, Integer> register) {
+    ArrayList<Map.Entry<String, Integer>> entries = new ArrayList<>(register.entrySet());
+    entries.sort(Comparator.comparing(e -> e.getValue()));
+
+    ArrayList<String> names = new ArrayList<>();
+    for (Map.Entry<String, Integer> entry : entries) {
+        names.add(entry.getKey());
+    }
+    return names;
+}
+
+void main() {
+    Map<String, Integer> register = new LinkedHashMap<>();
+    register.put("umbrella", 3);
+    register.put("phone", 1);
+    IO.println(sortedItems(register));
+}
+```
+
+## ch09-maps-and-sets-practice#6
+
+```java
+String busiest(Map<String, Integer> register) {
+    String best = null;
+    for (String item : register.keySet()) {
+        if (best == null || register.get(item) > register.get(best)) {
+            best = item;
+        }
+    }
+    return best;
+}
+
+void main() {
+    Map<String, Integer> register = new LinkedHashMap<>();
+    register.put("umbrella", 3);
+    register.put("phone", 1);
+    register.put("scarf", 2);
+    IO.println(busiest(register));
+}
+```
+
+`best` starts as `null`, no item yet, and an item replaces it only with a higher count. Comparing the names themselves, with `compareTo`, would give the last name alphabetically instead: the zebra case is there to catch exactly that.
+
+```java
+String busiest(Map<String, Integer> register) {
+    ArrayList<Map.Entry<String, Integer>> ranked = new ArrayList<>(register.entrySet());
+    ranked.sort(Comparator.comparing((Map.Entry<String, Integer> e) -> e.getValue())
+            .reversed());
+    return ranked.get(0).getKey();
+}
+
+void main() {
+    Map<String, Integer> register = new LinkedHashMap<>();
+    register.put("hat", 9);
+    register.put("zebra", 2);
+    IO.println(busiest(register));
+}
+```
+
+The second answer sorts the entries by count, largest first, and takes the first entry's name.
+
+### mistake
+
+Comparing the names, not their counts, gives the last name alphabetically:
+
+```java
+String busiest(Map<String, Integer> register) {
+    String best = null;
+    for (String item : register.keySet()) {
+        if (best == null || item.compareTo(best) > 0) {
+            best = item;
+        }
+    }
+    return best;
+}
+
+void main() {
+    Map<String, Integer> register = new LinkedHashMap<>();
+    register.put("hat", 9);
+    register.put("zebra", 2);
+    IO.println(busiest(register));
+}
+```
+
+Sorting without `.reversed()` puts the fewest first:
+
+```java
+String busiest(Map<String, Integer> register) {
+    ArrayList<Map.Entry<String, Integer>> ranked = new ArrayList<>(register.entrySet());
+    ranked.sort(Comparator.comparing(e -> e.getValue()));
+    return ranked.get(0).getKey();
+}
+
+void main() {
+    Map<String, Integer> register = new LinkedHashMap<>();
+    register.put("hat", 9);
+    register.put("zebra", 2);
+    IO.println(busiest(register));
+}
+```
+
+## ch09-maps-and-sets-practice#7
+
+```java
+ArrayList<String> inBoth(ArrayList<String> left, ArrayList<String> right) {
+    Set<String> both = new TreeSet<>(left);
+    both.retainAll(new HashSet<>(right));
+    return new ArrayList<>(both);
+}
+
+void main() {
+    ArrayList<String> left = new ArrayList<>(List.of("umbrella", "phone"));
+    ArrayList<String> right = new ArrayList<>(List.of("phone", "hat"));
+    IO.println(inBoth(left, right));
+}
+```
+
+A `TreeSet` of the first list holds each name once, sorted, and `retainAll` keeps only the names the second has too. The repeated `a` collapses because a set holds one of each.
+
+```java
+ArrayList<String> inBoth(ArrayList<String> left, ArrayList<String> right) {
+    ArrayList<String> both = new ArrayList<>();
+    for (String item : left) {
+        if (right.contains(item) && !both.contains(item)) {
+            both.add(item);
+        }
+    }
+    Collections.sort(both);
+    return both;
+}
+
+void main() {
+    ArrayList<String> left = new ArrayList<>(List.of("a", "a", "b"));
+    ArrayList<String> right = new ArrayList<>(List.of("b", "a"));
+    IO.println(inBoth(left, right));
+}
+```
+
+The second answer uses lists alone: each name of the first list that the second has, added once, then sorted.
+
+### mistake
+
+`addAll` gives everything either list has, not what both have:
+
+```java
+ArrayList<String> inBoth(ArrayList<String> left, ArrayList<String> right) {
+    Set<String> both = new TreeSet<>(left);
+    both.addAll(right);
+    return new ArrayList<>(both);
+}
+
+void main() {
+    ArrayList<String> left = new ArrayList<>(List.of("umbrella", "phone"));
+    ArrayList<String> right = new ArrayList<>(List.of("phone", "hat"));
+    IO.println(inBoth(left, right));
+}
+```
+
+No set: a name the first list repeats is added twice.
+
+```java
+ArrayList<String> inBoth(ArrayList<String> left, ArrayList<String> right) {
+    ArrayList<String> both = new ArrayList<>();
+    for (String item : left) {
+        if (right.contains(item)) {
+            both.add(item);
+        }
+    }
+    Collections.sort(both);
+    return both;
+}
+
+void main() {
+    ArrayList<String> left = new ArrayList<>(List.of("a", "a", "b"));
+    ArrayList<String> right = new ArrayList<>(List.of("b", "a"));
+    IO.println(inBoth(left, right));
+}
+```
+
+## ch09-maps-and-sets-practice#8
+
+```java
+Map<String, Integer> registerFrom(ArrayList<String> found) {
+    Map<String, Integer> register = new LinkedHashMap<>();
+    for (String item : found) {
+        register.put(item, register.getOrDefault(item, 0) + 1);
+    }
+    return register;
+}
+
+void main() {
+    ArrayList<String> found = new ArrayList<>(List.of("hat", "scarf", "hat"));
+    IO.println(registerFrom(found));
+}
+```
+
+The same `getOrDefault(item, 0) + 1` as step 3, now in a loop. This is the counting pattern, and it turns up everywhere once you have seen it.
+
+```java
+Map<String, Integer> registerFrom(ArrayList<String> found) {
+    Map<String, Integer> register = new TreeMap<>();
+    for (String item : found) {
+        register.put(item, Collections.frequency(found, item));
+    }
+    return register;
+}
+
+void main() {
+    ArrayList<String> found = new ArrayList<>(List.of("a", "a", "a"));
+    IO.println(registerFrom(found));
+}
+```
+
+The second answer asks Chapter 7's `Collections.frequency` how many times each item appears in the list; putting the same count again for a repeated item changes nothing.
+
+### mistake
+
+Putting 1 for every item counts each kind once, however many were handed in:
+
+```java
+Map<String, Integer> registerFrom(ArrayList<String> found) {
+    Map<String, Integer> register = new LinkedHashMap<>();
+    for (String item : found) {
+        register.put(item, 1);
+    }
+    return register;
+}
+
+void main() {
+    ArrayList<String> found = new ArrayList<>(List.of("hat", "scarf", "hat"));
+    IO.println(registerFrom(found));
+}
+```

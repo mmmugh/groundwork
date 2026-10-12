@@ -1,0 +1,163 @@
+GROUNDWORK
+Chapter 9 - Maps and Sets
+
+ANSWER KEY
+
+
+VOCABULARY
+----------
+
+ 1. A ____ stores a connection between a key and a value directly, so a
+    lookup doesn't depend on two arrays staying in the same order.
+
+      ANSWER: map
+
+ 2. In scores.put("Ada", 88), "Ada" is the ____, which you look things up
+    by, and 88 is the ____ it leads to.
+
+      ANSWER: key
+      ANSWER: value
+
+ 3. A ____ is a collection with no duplicates, best suited to answering
+    one question: is this thing in here?
+
+      ANSWER: set
+
+ 4. A ____ is a small method with no name, such as e -> e.getValue(),
+    often passed to Comparator.comparing to sort a list.
+
+      ANSWER: lambda
+
+
+READING CODE
+------------
+
+ 5. What does this print?
+
+        Map<String, Integer> scores = new LinkedHashMap<>();
+        scores.put("Ada", 88);
+        scores.put("Grace", 92);
+        scores.put("Alan", 45);
+        scores.put("Ada", 91);
+        IO.println(scores);
+
+      ANSWER: {Ada=91, Grace=92, Alan=45}
+
+ 6. What does this print?
+
+        Map<String, Integer> scores = new LinkedHashMap<>();
+        scores.put("Ada", 88);
+        IO.println(scores.get("Grace"));
+        IO.println(scores.getOrDefault("Grace", 0));
+
+      ANSWER: null
+          0
+
+ 7. What does this print?
+
+        String text = "a b a c b a";
+        Map<String, Integer> counts = new LinkedHashMap<>();
+        for (String word : text.split(" ")) {
+            counts.put(word, counts.getOrDefault(word, 0) + 1);
+        }
+        IO.println(counts);
+
+      ANSWER: {a=3, b=2, c=1}
+
+ 8. What does this print?
+
+        Map<String, Integer> scores = new LinkedHashMap<>();
+        scores.put("Ada", 88);
+        scores.put("Grace", 92);
+        scores.put("Alan", 45);
+        String top = null;
+        for (String name : scores.keySet()) {
+            if (top == null || scores.get(name) > scores.get(top)) {
+                top = name;
+            }
+        }
+        IO.println(top);
+
+      ANSWER: Grace
+
+ 9. What does this print?
+
+        Set<String> band = Set.of("Ada", "Grace", "Alan");
+        Set<String> chorus = Set.of("Grace", "Alan", "Katherine");
+        Set<String> both = new HashSet<>(band);
+        both.retainAll(chorus);
+        IO.println(both.size());
+        Set<String> bandOnly = new HashSet<>(band);
+        bandOnly.removeAll(chorus);
+        IO.println(bandOnly.contains("Ada"));
+
+      ANSWER: 2
+          true
+
+10. What does this print?
+
+        Map<String, String> ada = new LinkedHashMap<>();
+        ada.put("score", "88");
+        ada.put("grade", "B");
+        Map<String, String> grace = new LinkedHashMap<>();
+        grace.put("score", "92");
+        grace.put("grade", "A");
+        Map<String, Map<String, String>> students =
+                new LinkedHashMap<>();
+        students.put("Ada", ada);
+        students.put("Grace", grace);
+        for (String name : students.keySet()) {
+            Map<String, String> info = students.get(name);
+            String score = info.get("score");
+            String grade = info.get("grade");
+            IO.println(name + ": " + score + " (" + grade + ")");
+        }
+
+      ANSWER: Ada: 88 (B)
+          Grace: 92 (A)
+
+
+WRITING CODE
+------------
+
+11. Complete the line so that it prints 0 instead of null for a key the
+    map does not have:
+    Map<String, Integer> scores = new LinkedHashMap<>();
+    scores.put("Ada", 88);
+    IO.println(scores.____("Grace", 0)); // 0
+
+      ANSWER: getOrDefault
+
+12. Complete the line so that it takes the "Alan" entry out of the map
+    entirely:
+    // scores is {Ada=88, Grace=92, Alan=45}
+    scores.____("Alan");
+    IO.println(scores); // {Ada=88, Grace=92}
+
+      ANSWER: remove
+
+13. Complete the line so that it removes the duplicates and keeps the
+    numbers sorted:
+    ArrayList<Integer> numbers = new ArrayList<>(List.of(9, 30, 9, 20));
+    Set<Integer> unique = new ____<>(numbers);
+    IO.println(unique); // [9, 20, 30]
+
+      ANSWER: TreeSet
+
+
+WHY IT WORKS
+------------
+
+14. counts.getOrDefault(word, 0) gives back the current count, or ____ the
+    very first time a word is seen, so counts.put(word,
+    counts.getOrDefault(word, 0) + 1) works whether or not the key already
+    ____.
+
+      ANSWER: 0
+      ANSWER: exists (is there or is present is also right)
+
+15. A loop over scores.keySet() hands you the ____ only; scores.____()
+    hands you each key and its value together, as an entry.
+
+      ANSWER: keys
+      ANSWER: entrySet

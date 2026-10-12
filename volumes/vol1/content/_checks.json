@@ -2415,5 +2415,371 @@
       ]
     ],
     "starter": "ArrayList<String> warningMessages(ArrayList<String> lines) {\n    return new ArrayList<>();\n}\n\nvoid main() {\n    ArrayList<String> lines = new ArrayList<>();\n    lines.add(\"WARN|14:03|Disk usage at 91 percent\");\n    lines.add(\"INFO|09:15|Backup finished\");\n    lines.add(\"warn|08:00|  Fan speed low  \");\n    IO.println(warningMessages(lines));\n}\n"
+  },
+  "ch09-maps-and-sets#16": {
+    "kind": "input",
+    "runs": [
+      {
+        "typed": [
+          "Japan"
+        ],
+        "contains": "Tokyo"
+      },
+      {
+        "typed": [
+          "Canada"
+        ],
+        "contains": "Ottawa"
+      },
+      {
+        "typed": [
+          "Peru"
+        ],
+        "contains": "have that country"
+      }
+    ],
+    "starter": "void main() {\n    // Five capitals in a map; look one up.\n}\n"
+  },
+  "ch09-maps-and-sets#17": {
+    "kind": "input",
+    "runs": [
+      {
+        "typed": [
+          "banana"
+        ],
+        "words": [
+          "b",
+          "1",
+          "a",
+          "3",
+          "n",
+          "2"
+        ]
+      },
+      {
+        "typed": [
+          "letter"
+        ],
+        "words": [
+          "l",
+          "1",
+          "e",
+          "2",
+          "t",
+          "2",
+          "r",
+          "1"
+        ]
+      }
+    ],
+    "starter": "void main() {\n    // Ask for a word; count each letter.\n}\n"
+  },
+  "ch09-maps-and-sets#18": {
+    "kind": "input",
+    "runs": [
+      {
+        "typed": [],
+        "words": [
+          "Grace",
+          "Alan",
+          "Ada",
+          "Katherine",
+          "Ada",
+          "Grace",
+          "Alan",
+          "Katherine",
+          "Margaret"
+        ]
+      }
+    ],
+    "starter": "void main() {\n    ArrayList<String> first = new ArrayList<>(List.of(\"Ada\", \"Grace\", \"Alan\", \"Katherine\"));\n    ArrayList<String> second = new ArrayList<>(List.of(\"Grace\", \"Alan\", \"Margaret\"));\n    // In both, only in the first, everyone.\n}\n"
+  },
+  "ch09-maps-and-sets#19": {
+    "kind": "method",
+    "name": "invert",
+    "returns": "Map<String, String>",
+    "params": [
+      "Map<String, String>"
+    ],
+    "cases": [
+      [
+        "Map.of(\"one\", \"uno\", \"two\", \"dos\")",
+        "Map.of(\"uno\", \"one\", \"dos\", \"two\")"
+      ],
+      [
+        "Map.of(\"a\", \"z\")",
+        "Map.of(\"z\", \"a\")"
+      ],
+      [
+        "Map.of()",
+        "Map.of()"
+      ]
+    ],
+    "starter": "Map<String, String> invert(Map<String, String> map) {\n    return new HashMap<>();\n}\n\nvoid main() {\n    Map<String, String> spanish = new LinkedHashMap<>();\n    spanish.put(\"one\", \"uno\");\n    spanish.put(\"two\", \"dos\");\n    IO.println(invert(spanish));\n}\n"
+  },
+  "ch09-maps-and-sets#20": {
+    "kind": "input",
+    "runs": [
+      {
+        "typed": [],
+        "words": [
+          "Ada",
+          "9",
+          "Math",
+          "Grace",
+          "10",
+          "Science",
+          "Alan",
+          "9",
+          "History"
+        ]
+      }
+    ],
+    "starter": "void main() {\n    // Three students and a roster.\n}\n"
+  },
+  "ch09-maps-and-sets#21": {
+    "kind": "output",
+    "expected": "cat\ndog",
+    "starter": "void main() {\n    String[] words = {\"cat\", \"dog\", \"cat\", \"bird\", \"dog\", \"cat\", \"fish\"};\n    // Each repeated word, once.\n}\n"
+  },
+  "ch09-maps-and-sets#22": {
+    "kind": "input",
+    "runs": [
+      {
+        "typed": [
+          "hello world"
+        ],
+        "words": [
+          "l",
+          "3"
+        ]
+      },
+      {
+        "typed": [
+          "to be or not to be"
+        ],
+        "words": [
+          "o",
+          "4"
+        ]
+      }
+    ],
+    "starter": "void main() {\n    // Ask for a sentence; print its most common character.\n}\n"
+  },
+  "ch09-maps-and-sets-practice#1": {
+    "kind": "method",
+    "name": "countOf",
+    "returns": "int",
+    "params": [
+      "Map<String, Integer>",
+      "String"
+    ],
+    "cases": [
+      [
+        "Map.of(\"umbrella\", 3, \"phone\", 1, \"scarf\", 2), \"phone\"",
+        "1"
+      ],
+      [
+        "Map.of(\"umbrella\", 3, \"phone\", 1, \"scarf\", 2), \"umbrella\"",
+        "3"
+      ],
+      [
+        "Map.of(\"umbrella\", 3, \"phone\", 1, \"scarf\", 2), \"hat\"",
+        "0"
+      ],
+      [
+        "Map.of(), \"hat\"",
+        "0"
+      ]
+    ],
+    "starter": "int countOf(Map<String, Integer> register, String item) {\n    return 0;\n}\n\nvoid main() {\n    Map<String, Integer> register = new LinkedHashMap<>();\n    register.put(\"umbrella\", 3);\n    register.put(\"phone\", 1);\n    register.put(\"scarf\", 2);\n    IO.println(countOf(register, \"phone\"));\n    IO.println(countOf(register, \"hat\"));\n}\n"
+  },
+  "ch09-maps-and-sets-practice#2": {
+    "kind": "method",
+    "name": "totalItems",
+    "returns": "int",
+    "params": [
+      "Map<String, Integer>"
+    ],
+    "cases": [
+      [
+        "Map.of(\"umbrella\", 3, \"phone\", 1, \"scarf\", 2)",
+        "6"
+      ],
+      [
+        "Map.of()",
+        "0"
+      ],
+      [
+        "Map.of(\"hat\", 5)",
+        "5"
+      ]
+    ],
+    "starter": "int totalItems(Map<String, Integer> register) {\n    return 0;\n}\n\nvoid main() {\n    Map<String, Integer> register = new LinkedHashMap<>();\n    register.put(\"umbrella\", 3);\n    register.put(\"phone\", 1);\n    register.put(\"scarf\", 2);\n    IO.println(totalItems(register));\n}\n"
+  },
+  "ch09-maps-and-sets-practice#3": {
+    "kind": "method",
+    "name": "addItem",
+    "returns": "Map<String, Integer>",
+    "params": [
+      "Map<String, Integer>",
+      "String"
+    ],
+    "cases": [
+      [
+        "Map.of(\"umbrella\", 3, \"phone\", 1, \"scarf\", 2), \"hat\"",
+        "Map.of(\"umbrella\", 3, \"phone\", 1, \"scarf\", 2, \"hat\", 1)"
+      ],
+      [
+        "Map.of(\"umbrella\", 3, \"phone\", 1, \"scarf\", 2), \"phone\"",
+        "Map.of(\"umbrella\", 3, \"phone\", 2, \"scarf\", 2)"
+      ],
+      [
+        "Map.of(), \"hat\"",
+        "Map.of(\"hat\", 1)"
+      ]
+    ],
+    "starter": "Map<String, Integer> addItem(Map<String, Integer> register, String item) {\n    return new HashMap<>();\n}\n\nvoid main() {\n    Map<String, Integer> register = new LinkedHashMap<>();\n    register.put(\"umbrella\", 3);\n    register.put(\"phone\", 1);\n    register.put(\"scarf\", 2);\n    IO.println(addItem(register, \"hat\"));\n    IO.println(register);\n}\n"
+  },
+  "ch09-maps-and-sets-practice#4": {
+    "kind": "method",
+    "name": "removeItem",
+    "returns": "Map<String, Integer>",
+    "params": [
+      "Map<String, Integer>",
+      "String"
+    ],
+    "cases": [
+      [
+        "Map.of(\"umbrella\", 3, \"phone\", 1, \"scarf\", 2), \"phone\"",
+        "Map.of(\"umbrella\", 3, \"scarf\", 2)"
+      ],
+      [
+        "Map.of(\"umbrella\", 3, \"phone\", 1, \"scarf\", 2), \"umbrella\"",
+        "Map.of(\"umbrella\", 2, \"phone\", 1, \"scarf\", 2)"
+      ],
+      [
+        "Map.of(\"umbrella\", 3, \"phone\", 1, \"scarf\", 2), \"hat\"",
+        "Map.of(\"umbrella\", 3, \"phone\", 1, \"scarf\", 2)"
+      ],
+      [
+        "Map.of(), \"hat\"",
+        "Map.of()"
+      ],
+      [
+        "Map.of(\"umbrella\", 3, \"phone\", 1, \"scarf\", 2), \" phone\".strip()",
+        "Map.of(\"umbrella\", 3, \"scarf\", 2)"
+      ]
+    ],
+    "starter": "Map<String, Integer> removeItem(Map<String, Integer> register, String item) {\n    return new HashMap<>();\n}\n\nvoid main() {\n    Map<String, Integer> register = new LinkedHashMap<>();\n    register.put(\"umbrella\", 3);\n    register.put(\"phone\", 1);\n    register.put(\"scarf\", 2);\n    IO.println(removeItem(register, \"phone\"));\n    IO.println(removeItem(register, \"umbrella\"));\n}\n"
+  },
+  "ch09-maps-and-sets-practice#5": {
+    "kind": "method",
+    "name": "sortedItems",
+    "returns": "ArrayList<String>",
+    "params": [
+      "Map<String, Integer>"
+    ],
+    "cases": [
+      [
+        "Map.of(\"umbrella\", 3, \"phone\", 1, \"scarf\", 2)",
+        "new ArrayList<>(List.of(\"phone\", \"scarf\", \"umbrella\"))"
+      ],
+      [
+        "Map.of()",
+        "new ArrayList<>()"
+      ],
+      [
+        "Map.of(\"b\", 1, \"a\", 1)",
+        "new ArrayList<>(List.of(\"a\", \"b\"))"
+      ],
+      [
+        "Map.of(\"umbrella\", 3, \"phone\", 1, \"scarf\", 2, \"hat\", 5, \"glove\", 4, \"book\", 7)",
+        "new ArrayList<>(List.of(\"book\", \"glove\", \"hat\", \"phone\", \"scarf\", \"umbrella\"))"
+      ]
+    ],
+    "starter": "ArrayList<String> sortedItems(Map<String, Integer> register) {\n    return new ArrayList<>();\n}\n\nvoid main() {\n    Map<String, Integer> register = new LinkedHashMap<>();\n    register.put(\"umbrella\", 3);\n    register.put(\"phone\", 1);\n    register.put(\"scarf\", 2);\n    IO.println(sortedItems(register));\n}\n"
+  },
+  "ch09-maps-and-sets-practice#6": {
+    "kind": "method",
+    "name": "busiest",
+    "returns": "String",
+    "params": [
+      "Map<String, Integer>"
+    ],
+    "cases": [
+      [
+        "Map.of(\"umbrella\", 3, \"phone\", 1, \"scarf\", 2)",
+        "\"umbrella\""
+      ],
+      [
+        "Map.of(\"hat\", 9, \"zebra\", 2)",
+        "\"hat\""
+      ],
+      [
+        "Map.of(\"a\", 1)",
+        "\"a\""
+      ],
+      [
+        "Map.of(\"phone\", 1, \"scarf\", 4, \"umbrella\", 3)",
+        "\"scarf\""
+      ]
+    ],
+    "starter": "String busiest(Map<String, Integer> register) {\n    return \"\";\n}\n\nvoid main() {\n    Map<String, Integer> register = new LinkedHashMap<>();\n    register.put(\"umbrella\", 3);\n    register.put(\"phone\", 1);\n    register.put(\"scarf\", 2);\n    IO.println(busiest(register));\n}\n"
+  },
+  "ch09-maps-and-sets-practice#7": {
+    "kind": "method",
+    "name": "inBoth",
+    "returns": "ArrayList<String>",
+    "params": [
+      "ArrayList<String>",
+      "ArrayList<String>"
+    ],
+    "cases": [
+      [
+        "new ArrayList<>(List.of(\"umbrella\", \"phone\")), new ArrayList<>(List.of(\"phone\", \"hat\"))",
+        "new ArrayList<>(List.of(\"phone\"))"
+      ],
+      [
+        "new ArrayList<>(List.of(\"a\")), new ArrayList<>(List.of(\"b\"))",
+        "new ArrayList<>()"
+      ],
+      [
+        "new ArrayList<>(List.of(\"a\", \"a\", \"b\")), new ArrayList<>(List.of(\"b\", \"a\"))",
+        "new ArrayList<>(List.of(\"a\", \"b\"))"
+      ],
+      [
+        "new ArrayList<>(List.of(\"scarf\", \"hat\", \"phone\")), new ArrayList<>(List.of(\"phone\", \"scarf\"))",
+        "new ArrayList<>(List.of(\"phone\", \"scarf\"))"
+      ],
+      [
+        "new ArrayList<>(List.of(\"umbrella\", \"phone\")), new ArrayList<>(List.of(\" phone\".strip(), \"hat\"))",
+        "new ArrayList<>(List.of(\"phone\"))"
+      ]
+    ],
+    "starter": "ArrayList<String> inBoth(ArrayList<String> left, ArrayList<String> right) {\n    return new ArrayList<>();\n}\n\nvoid main() {\n    ArrayList<String> left = new ArrayList<>(List.of(\"umbrella\", \"phone\"));\n    ArrayList<String> right = new ArrayList<>(List.of(\"phone\", \"hat\"));\n    IO.println(inBoth(left, right));\n}\n"
+  },
+  "ch09-maps-and-sets-practice#8": {
+    "kind": "method",
+    "name": "registerFrom",
+    "returns": "Map<String, Integer>",
+    "params": [
+      "ArrayList<String>"
+    ],
+    "cases": [
+      [
+        "new ArrayList<>(List.of(\"hat\", \"scarf\", \"hat\"))",
+        "Map.of(\"hat\", 2, \"scarf\", 1)"
+      ],
+      [
+        "new ArrayList<>()",
+        "Map.of()"
+      ],
+      [
+        "new ArrayList<>(List.of(\"a\", \"a\", \"a\"))",
+        "Map.of(\"a\", 3)"
+      ]
+    ],
+    "starter": "Map<String, Integer> registerFrom(ArrayList<String> found) {\n    return new HashMap<>();\n}\n\nvoid main() {\n    ArrayList<String> found = new ArrayList<>(List.of(\"hat\", \"scarf\", \"hat\"));\n    IO.println(registerFrom(found));\n}\n"
   }
 }

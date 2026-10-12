@@ -429,5 +429,24 @@
     "stdin": [
       "the quick brown fox"
     ]
+  },
+  "ch09-maps-and-sets#14": {
+    "varies": true,
+    "why": "Set.of and Map.of promise no order, and the JDK picks a new one each time a program starts, so a run may print these items in another order than the one shown."
+  },
+  "ch09-maps-and-sets#16": {
+    "stdin": [
+      "Japan"
+    ]
+  },
+  "ch09-maps-and-sets#17": {
+    "stdin": [
+      "banana"
+    ]
+  },
+  "ch09-maps-and-sets#22": {
+    "stdin": [
+      "hello world"
+    ]
   }
 }
