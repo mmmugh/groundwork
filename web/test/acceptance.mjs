@@ -82,6 +82,10 @@ const REVEALS_AT_LOAD = () => Object.fromEntries([...document.querySelectorAll("
 // Bounds on a wait, so a box that never settles fails instead of hanging; the page's own limit is 5 s a run.
 const RUN_MS = 30_000, CHECK_MS = 60_000;
 // A phone's 390 px (Firefox has no isMobile: a desktop window 390 px wide), as web/test/scratchpad.mjs opens it.
+// A screenshot is at most 32,767 pixels on a side in Firefox, and in WebKit on Linux, and a chapter at 390 px wide comes
+// close (chapter 7's page is about 32,500 on the Mac and was over the limit on the CI's Linux fonts): a page taller than
+// one tile is saved in tiles, the first under the page's own name, the rest as <name>-2.png and on (result.shots).
+const SHOT_TILE = 16000;
 const PHONE = (engine) => ({ viewport: { width: 390, height: 844 }, ...(engine === "firefox" ? {} : { isMobile: true }) });
 
 const args = process.argv.slice(2);
@@ -406,7 +410,16 @@ async function acceptPage(engine, pageSlug, dir, report) {
       } catch (err) { expect(`${r.id}: could be run to the end`, false, String(err).slice(0, 300)); }
     }
     wide.push(...await t.page.evaluate(OVERFLOW, engine === "firefox"));
-    await t.page.screenshot({ path: path.join(dir, result.shot), fullPage: true });
+    const size = await t.page.evaluate(() => ({ width: document.documentElement.scrollWidth,
+      height: document.documentElement.scrollHeight }));
+    result.shots = [];
+    for (let y = 0; y < size.height || y === 0; y += SHOT_TILE) {
+      const shot = y === 0 ? result.shot : result.shot.replace(/\.png$/, `-${y / SHOT_TILE + 1}.png`);
+      const clip = size.height > SHOT_TILE
+        ? { clip: { x: 0, y, width: size.width, height: Math.min(SHOT_TILE, size.height - y) } } : {};
+      await t.page.screenshot({ path: path.join(dir, shot), fullPage: true, ...clip });
+      result.shots.push(shot);
+    }
   } catch (err) { expect("the page could be driven to the end", false, String(err).slice(0, 300)); }
   expect("nothing scrolls sideways at 390 px, with every verdict, revealed solution and output shown", wide.length === 0, [...new Set(wide)]);
   expect("no request left the page's origin", t.offsite.length === 0, t.offsite);
