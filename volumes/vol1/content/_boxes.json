@@ -457,5 +457,9 @@
     "stdin": [
       "Omar"
     ]
+  },
+  "ch12-recursion-and-problem-solving#2": {
+    "raises": "java.lang.StackOverflowError",
+    "why": "This recursion never reaches its base case, so it calls itself until Java runs out of room and stops the program. It crashes on purpose: the error is the lesson."
   }
 }

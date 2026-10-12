@@ -11541,3 +11541,1393 @@ void main() {
     IO.println(leaderboardLines(results));
 }
 ```
+
+## ch12-recursion-and-problem-solving#11
+
+Try It 1: `power`, recursively.
+
+```java
+/// Returns base to the power exponent, recursively.
+int power(int base, int exponent) {
+    if (exponent == 0) {
+        return 1;
+    }
+    return base * power(base, exponent - 1);
+}
+
+void main() {
+    IO.println(power(2, 10));
+    IO.println(power(5, 0));
+}
+```
+
+Each call multiplies in one more `base` and asks for a power one smaller, until the exponent reaches 0, where the answer is 1 with no call at all. `power(2, 10)` makes eleven calls, for the exponents 10 down to 0.
+
+```java
+int power(int base, int exponent) {
+    if (exponent == 0) {
+        return 1;
+    }
+    int half = power(base, exponent / 2);
+    if (exponent % 2 == 0) {
+        return half * half;
+    }
+    return half * half * base;
+}
+
+void main() {
+    IO.println(power(3, 3));
+}
+```
+
+The second answer halves the exponent instead of taking one away: 2 to the 10th is 2 to the 5th, squared. It makes far fewer calls, about log n of them, Chapter 11's logarithm again; an odd exponent needs one more `base`.
+
+### mistake
+
+Returning `base` at exponent 0 multiplies in one `base` too many, so `power(2, 10)` comes out 2048:
+
+```java
+int power(int base, int exponent) {
+    if (exponent == 0) {
+        return base;
+    }
+    return base * power(base, exponent - 1);
+}
+
+void main() {
+    IO.println(power(2, 10));
+}
+```
+
+A base case of 0 makes every answer 0, since everything is multiplied by it at the bottom:
+
+```java
+int power(int base, int exponent) {
+    if (exponent == 0) {
+        return 0;
+    }
+    return base * power(base, exponent - 1);
+}
+
+void main() {
+    IO.println(power(2, 10));
+}
+```
+
+## ch12-recursion-and-problem-solving#12
+
+Try It 2: down, then back up.
+
+```java
+/// Prints n down to 1, then 1 back up to n.
+void countDownUp(int n) {
+    if (n <= 0) {
+        return;
+    }
+    IO.println(n);
+    countDownUp(n - 1);
+    IO.println(n);
+}
+
+void main() {
+    countDownUp(3);
+}
+```
+
+Each call prints its `n` on the way down, before the recursive call, and again on the way back up, after that call returns. `countDownUp(1)` prints 1, calls `countDownUp(0)`, which does nothing, and prints 1 again: that is why the 1 appears twice.
+
+```java
+void countDownUp(int n) {
+    if (n > 0) {
+        IO.println(n);
+        countDownUp(n - 1);
+        IO.println(n);
+    }
+}
+
+void main() {
+    countDownUp(3);
+}
+```
+
+The second answer has no `return`: the whole body sits inside `if (n > 0)`, so a call with 0 does nothing.
+
+### mistake
+
+Printing only before the call counts down and never comes back up:
+
+```java
+void countDownUp(int n) {
+    if (n <= 0) {
+        return;
+    }
+    IO.println(n);
+    countDownUp(n - 1);
+}
+
+void main() {
+    countDownUp(3);
+}
+```
+
+Stopping at 1, with a base case of its own, prints the 1 only once:
+
+```java
+void countDownUp(int n) {
+    if (n == 1) {
+        IO.println(1);
+        return;
+    }
+    IO.println(n);
+    countDownUp(n - 1);
+    IO.println(n);
+}
+
+void main() {
+    countDownUp(3);
+}
+```
+
+## ch12-recursion-and-problem-solving#13
+
+Try It 3: the sum of the digits.
+
+```java
+/// Returns the sum of the digits of n, recursively.
+int digitSum(int n) {
+    if (n < 10) {
+        return n;
+    }
+    return n % 10 + digitSum(n / 10);
+}
+
+void main() {
+    IO.println(digitSum(1234));
+}
+```
+
+`n % 10` is the last digit and `n / 10` is the number with that digit taken off, Chapter 3's way of splitting a quantity into units. A number below 10 is a single digit, which is its own sum.
+
+```java
+int digitSum(int n) {
+    if (n == 0) {
+        return 0;
+    }
+    int lastDigit = n % 10;
+    int rest = n / 10;
+    return lastDigit + digitSum(rest);
+}
+
+void main() {
+    IO.println(digitSum(99));
+}
+```
+
+The second answer goes all the way down to 0, whose digit sum is 0, and names the two pieces before adding them.
+
+### mistake
+
+Returning 0 for a single digit loses the first digit, so `digitSum(1234)` comes out 9:
+
+```java
+int digitSum(int n) {
+    if (n < 10) {
+        return 0;
+    }
+    return n % 10 + digitSum(n / 10);
+}
+
+void main() {
+    IO.println(digitSum(1234));
+}
+```
+
+Swapping `/` and `%` adds the rest of the number, not its digits: 127.
+
+```java
+int digitSum(int n) {
+    if (n < 10) {
+        return n;
+    }
+    return n / 10 + digitSum(n % 10);
+}
+
+void main() {
+    IO.println(digitSum(1234));
+}
+```
+
+## ch12-recursion-and-problem-solving#14
+
+Try It 4: a palindrome, recursively.
+
+```java
+/// Returns whether text reads the same forward and backward.
+boolean isPalindrome(String text) {
+    if (text.length() <= 1) {
+        return true;
+    }
+    if (text.charAt(0) != text.charAt(text.length() - 1)) {
+        return false;
+    }
+    return isPalindrome(text.substring(1, text.length() - 1));
+}
+
+void main() {
+    IO.println(isPalindrome("racecar"));
+    IO.println(isPalindrome("hello"));
+}
+```
+
+Text of length 0 or 1 is a palindrome with nothing to check. Otherwise the first and last characters must match, and then what lies between them must be a palindrome too: `text.substring(1, text.length() - 1)` is that middle, the text with both ends taken off. Two `char`s compare safely with `!=`.
+
+```java
+boolean isPalindrome(String text) {
+    if (text.length() < 2) {
+        return true;
+    }
+    char first = text.charAt(0);
+    char last = text.charAt(text.length() - 1);
+    return first == last && isPalindrome(text.substring(1, text.length() - 1));
+}
+
+void main() {
+    IO.println(isPalindrome("abba"));
+}
+```
+
+The second answer joins the two tests with `&&`, which stops at a false left side, so the recursive call happens only when the ends match.
+
+### mistake
+
+Checking the ends alone calls "abca" a palindrome:
+
+```java
+boolean isPalindrome(String text) {
+    if (text.length() <= 1) {
+        return true;
+    }
+    return text.charAt(0) == text.charAt(text.length() - 1);
+}
+
+void main() {
+    IO.println(isPalindrome("abca"));
+}
+```
+
+With only one letter as the base case, nothing stops empty text, and `charAt(0)` on it throws a `StringIndexOutOfBoundsException`; "abba" comes down to empty text too:
+
+```java
+boolean isPalindrome(String text) {
+    if (text.length() == 1) {
+        return true;
+    }
+    if (text.charAt(0) != text.charAt(text.length() - 1)) {
+        return false;
+    }
+    return isPalindrome(text.substring(1, text.length() - 1));
+}
+
+void main() {
+    IO.println(isPalindrome("abba"));
+}
+```
+
+Lowering the case first calls "Racecar" a palindrome, which Try It 4 says it is not:
+
+```java
+boolean isPalindrome(String text) {
+    String lower = text.toLowerCase();
+    if (lower.length() <= 1) {
+        return true;
+    }
+    if (lower.charAt(0) != lower.charAt(lower.length() - 1)) {
+        return false;
+    }
+    return isPalindrome(lower.substring(1, lower.length() - 1));
+}
+
+void main() {
+    IO.println(isPalindrome("Racecar"));
+}
+```
+
+## ch12-recursion-and-problem-solving#15
+
+Try It 5: counting an item, with an index.
+
+```java
+/// Returns how many times target appears in items.
+int countItem(int[] items, int target) {
+    return countItem(items, target, 0);
+}
+
+/// Counts target in items from index start to the end.
+int countItem(int[] items, int target, int start) {
+    if (start == items.length) {
+        return 0;
+    }
+    int rest = countItem(items, target, start + 1);
+    if (items[start] == target) {
+        return 1 + rest;
+    }
+    return rest;
+}
+
+void main() {
+    IO.println(countItem(new int[] {1, 2, 1, 1}, 1));
+}
+```
+
+The two-parameter `countItem` starts the count at index 0, and the three-parameter one counts from `start` to the end. Past the last item there is nothing left to count; otherwise the answer is the count of the rest, plus one when the item at `start` is the target.
+
+```java
+int countItem(int[] items, int target) {
+    return countItem(items, target, items.length - 1);
+}
+
+int countItem(int[] items, int target, int end) {
+    if (end < 0) {
+        return 0;
+    }
+    int here = items[end] == target ? 1 : 0;
+    return here + countItem(items, target, end - 1);
+}
+
+void main() {
+    IO.println(countItem(new int[] {4, 1, 4}, 4));
+}
+```
+
+The second answer walks from the end instead, its index counting down until it passes 0, and adds 1 or 0 with a conditional expression.
+
+### mistake
+
+Starting at index 1 skips the first item:
+
+```java
+int countItem(int[] items, int target) {
+    return countItem(items, target, 1);
+}
+
+int countItem(int[] items, int target, int start) {
+    if (start >= items.length) {
+        return 0;
+    }
+    int rest = countItem(items, target, start + 1);
+    if (items[start] == target) {
+        return 1 + rest;
+    }
+    return rest;
+}
+
+void main() {
+    IO.println(countItem(new int[] {1, 2, 1, 1}, 1));
+}
+```
+
+Making the recursive call without using what it returns counts the first item alone; javac cannot catch this one, because the method still returns a value:
+
+```java
+int countItem(int[] items, int target) {
+    return countItem(items, target, 0);
+}
+
+int countItem(int[] items, int target, int start) {
+    if (start == items.length) {
+        return 0;
+    }
+    int count = 0;
+    if (items[start] == target) {
+        count++;
+    }
+    countItem(items, target, start + 1);
+    return count;
+}
+
+void main() {
+    IO.println(countItem(new int[] {1, 2, 1, 1}, 1));
+}
+```
+
+## ch12-recursion-and-problem-solving#16
+
+Try It 6: Euclid's algorithm.
+
+```java
+/// Returns the greatest common divisor of a and b, by Euclid's algorithm.
+int gcd(int a, int b) {
+    if (b == 0) {
+        return a;
+    }
+    return gcd(b, a % b);
+}
+
+void main() {
+    IO.println(gcd(12, 8));
+}
+```
+
+Each call replaces the pair with `b` and `a % b`, until the second number is 0; the first is then the GCD. `gcd(12, 8)` becomes `gcd(8, 4)`, then `gcd(4, 0)`, which is 4.
+
+```java
+int gcd(int a, int b) {
+    return b == 0 ? a : gcd(b, a % b);
+}
+
+void main() {
+    IO.println(gcd(48, 18));
+}
+```
+
+The second answer writes the same two cases as one conditional expression.
+
+### mistake
+
+Returning `b` at the bottom returns the 0:
+
+```java
+int gcd(int a, int b) {
+    if (b == 0) {
+        return b;
+    }
+    return gcd(b, a % b);
+}
+
+void main() {
+    IO.println(gcd(12, 8));
+}
+```
+
+Stopping when `a % b` is 0 works until `b` is 0 itself, and then `% 0` throws an `ArithmeticException`:
+
+```java
+int gcd(int a, int b) {
+    if (a % b == 0) {
+        return b;
+    }
+    return gcd(b, a % b);
+}
+
+void main() {
+    IO.println(gcd(10, 0));
+}
+```
+
+## ch12-recursion-and-problem-solving#17
+
+Try It 7: the Towers of Hanoi.
+
+```java
+/// Prints the moves that take n disks from one peg to another.
+void hanoi(int n, String from, String to, String spare) {
+    if (n == 0) {
+        return;
+    }
+    hanoi(n - 1, from, spare, to);
+    IO.println("Move disk " + n + " from " + from + " to " + to);
+    hanoi(n - 1, spare, to, from);
+}
+
+void main() {
+    hanoi(3, "A", "C", "B");
+}
+```
+
+To move n disks, move the n - 1 above the largest out of the way, onto the spare peg; move the largest; then move the n - 1 back on top of it. Each of those moves of n - 1 disks is the same puzzle, smaller, with the pegs swapping parts, and moving 0 disks is doing nothing: the base case. Three disks take seven moves, and n disks take 2ⁿ - 1.
+
+```java
+void hanoi(int n, String from, String to, String spare) {
+    if (n == 1) {
+        IO.println("Move disk 1 from " + from + " to " + to);
+        return;
+    }
+    hanoi(n - 1, from, spare, to);
+    IO.println("Move disk " + n + " from " + from + " to " + to);
+    hanoi(n - 1, spare, to, from);
+}
+
+void main() {
+    hanoi(3, "A", "C", "B");
+}
+```
+
+The second answer stops at one disk and moves it directly, instead of stopping at none.
+
+### mistake
+
+Swapping `to` and `spare` in the first call sends the smaller disks to the wrong peg, and the moves come out wrong:
+
+```java
+void hanoi(int n, String from, String to, String spare) {
+    if (n == 0) {
+        return;
+    }
+    hanoi(n - 1, from, to, spare);
+    IO.println("Move disk " + n + " from " + from + " to " + to);
+    hanoi(n - 1, spare, to, from);
+}
+
+void main() {
+    hanoi(3, "A", "C", "B");
+}
+```
+
+Leaving out the second call never moves the smaller disks back on top: three moves, not seven.
+
+```java
+void hanoi(int n, String from, String to, String spare) {
+    if (n == 0) {
+        return;
+    }
+    hanoi(n - 1, from, spare, to);
+    IO.println("Move disk " + n + " from " + from + " to " + to);
+}
+
+void main() {
+    hanoi(3, "A", "C", "B");
+}
+```
+
+## ch12-recursion-and-problem-solving-practice#1
+
+```java
+record Folder(String name, List<Integer> files, List<Folder> folders) {}
+
+int totalSize(Folder folder) {
+    int size = 0;
+    for (int file : folder.files()) {
+        size += file;
+    }
+    for (Folder inner : folder.folders()) {
+        size += totalSize(inner);
+    }
+    return size;
+}
+
+void main() {
+    Folder root = new Folder("root", List.of(10, 20), List.of(
+            new Folder("docs", List.of(100), List.of()),
+            new Folder("images", List.of(300, 40), List.of(
+                    new Folder("raw", List.of(1000), List.of())))));
+    IO.println(totalSize(root));
+}
+```
+
+Its own files, plus whatever each folder inside reports. No base case is written out: a folder with no folders inside simply never enters the second loop.
+
+```java
+record Folder(String name, List<Integer> files, List<Folder> folders) {}
+
+int sum(List<Integer> numbers) {
+    int total = 0;
+    for (int number : numbers) {
+        total += number;
+    }
+    return total;
+}
+
+int totalSize(Folder folder) {
+    int size = sum(folder.files());
+    for (Folder inner : folder.folders()) {
+        size = size + totalSize(inner);
+    }
+    return size;
+}
+
+void main() {
+    IO.println(totalSize(new Folder("docs", List.of(100), List.of())));
+}
+```
+
+The second answer gives the adding-up of a folder's own files a method of its own.
+
+### mistake
+
+Calling `totalSize(inner)` without adding what it returns throws each folder's total away, and `root` comes out 30:
+
+```java
+record Folder(String name, List<Integer> files, List<Folder> folders) {}
+
+int totalSize(Folder folder) {
+    int size = 0;
+    for (int file : folder.files()) {
+        size += file;
+    }
+    for (Folder inner : folder.folders()) {
+        totalSize(inner);
+    }
+    return size;
+}
+
+void main() {
+    Folder root = new Folder("root", List.of(10, 20), List.of(
+            new Folder("docs", List.of(100), List.of()),
+            new Folder("images", List.of(300, 40), List.of(
+                    new Folder("raw", List.of(1000), List.of())))));
+    IO.println(totalSize(root));
+}
+```
+
+Adding the files one level down, and no further, misses `raw`:
+
+```java
+record Folder(String name, List<Integer> files, List<Folder> folders) {}
+
+int totalSize(Folder folder) {
+    int size = 0;
+    for (int file : folder.files()) {
+        size += file;
+    }
+    for (Folder inner : folder.folders()) {
+        for (int file : inner.files()) {
+            size += file;
+        }
+    }
+    return size;
+}
+
+void main() {
+    Folder root = new Folder("root", List.of(10, 20), List.of(
+            new Folder("docs", List.of(100), List.of()),
+            new Folder("images", List.of(300, 40), List.of(
+                    new Folder("raw", List.of(1000), List.of())))));
+    IO.println(totalSize(root));
+}
+```
+
+## ch12-recursion-and-problem-solving-practice#2
+
+```java
+record Folder(String name, List<Integer> files, List<Folder> folders) {}
+
+int fileCount(Folder folder) {
+    int count = folder.files().size();
+    for (Folder inner : folder.folders()) {
+        count += fileCount(inner);
+    }
+    return count;
+}
+
+void main() {
+    Folder root = new Folder("root", List.of(10, 20), List.of(
+            new Folder("docs", List.of(100), List.of()),
+            new Folder("images", List.of(300, 40), List.of(
+                    new Folder("raw", List.of(1000), List.of())))));
+    IO.println(fileCount(root));
+}
+```
+
+The same shape as step 1, with `size()` in place of adding the sizes up. Most recursive methods over a tree look like this.
+
+```java
+record Folder(String name, List<Integer> files, List<Folder> folders) {}
+
+int fileCount(Folder folder) {
+    int count = 0;
+    for (int file : folder.files()) {
+        count++;
+    }
+    for (Folder inner : folder.folders()) {
+        count = count + fileCount(inner);
+    }
+    return count;
+}
+
+void main() {
+    IO.println(fileCount(new Folder("docs", List.of(100), List.of())));
+}
+```
+
+The second answer counts its own files with a loop, one at a time.
+
+### mistake
+
+Making the recursive call without adding its result counts the folder's own files alone:
+
+```java
+record Folder(String name, List<Integer> files, List<Folder> folders) {}
+
+int fileCount(Folder folder) {
+    int count = folder.files().size();
+    for (Folder inner : folder.folders()) {
+        fileCount(inner);
+    }
+    return count;
+}
+
+void main() {
+    Folder root = new Folder("root", List.of(10, 20), List.of(
+            new Folder("docs", List.of(100), List.of()),
+            new Folder("images", List.of(300, 40), List.of(
+                    new Folder("raw", List.of(1000), List.of())))));
+    IO.println(fileCount(root));
+}
+```
+
+Counting the files one level down, and no further, misses `raw`:
+
+```java
+record Folder(String name, List<Integer> files, List<Folder> folders) {}
+
+int fileCount(Folder folder) {
+    int count = folder.files().size();
+    for (Folder inner : folder.folders()) {
+        count += inner.files().size();
+    }
+    return count;
+}
+
+void main() {
+    Folder root = new Folder("root", List.of(10, 20), List.of(
+            new Folder("docs", List.of(100), List.of()),
+            new Folder("images", List.of(300, 40), List.of(
+                    new Folder("raw", List.of(1000), List.of())))));
+    IO.println(fileCount(root));
+}
+```
+
+## ch12-recursion-and-problem-solving-practice#3
+
+```java
+record Folder(String name, List<Integer> files, List<Folder> folders) {}
+
+int depth(Folder folder) {
+    int deepest = 0;
+    for (Folder inner : folder.folders()) {
+        int innerDepth = depth(inner);
+        if (innerDepth > deepest) {
+            deepest = innerDepth;
+        }
+    }
+    return 1 + deepest;
+}
+
+void main() {
+    Folder root = new Folder("root", List.of(10, 20), List.of(
+            new Folder("docs", List.of(100), List.of()),
+            new Folder("images", List.of(300, 40), List.of(
+                    new Folder("raw", List.of(1000), List.of())))));
+    IO.println(depth(root));
+}
+```
+
+One for this folder, plus the deepest of what is inside—not how many are inside. On this tree those two happen to agree everywhere, so Check's wide and deep cases are there to pull them apart.
+
+```java
+record Folder(String name, List<Integer> files, List<Folder> folders) {}
+
+int depth(Folder folder) {
+    int result = 1;
+    for (Folder inner : folder.folders()) {
+        if (depth(inner) + 1 > result) {
+            result = depth(inner) + 1;
+        }
+    }
+    return result;
+}
+
+void main() {
+    IO.println(depth(new Folder("docs", List.of(100), List.of())));
+}
+```
+
+The second answer starts at 1, for a folder with nothing inside, and keeps any folder inside whose depth plus one beats it.
+
+### mistake
+
+Counting the folders inside, rather than how deep they go, gets this tree right by luck and a wide folder wrong:
+
+```java
+record Folder(String name, List<Integer> files, List<Folder> folders) {}
+
+int depth(Folder folder) {
+    return 1 + folder.folders().size();
+}
+
+void main() {
+    Folder root = new Folder("root", List.of(10, 20), List.of(
+            new Folder("docs", List.of(100), List.of()),
+            new Folder("images", List.of(300, 40), List.of(
+                    new Folder("raw", List.of(1000), List.of())))));
+    IO.println(depth(root));
+}
+```
+
+Adding the depths of the folders inside, instead of taking the deepest, gives `root` 4:
+
+```java
+record Folder(String name, List<Integer> files, List<Folder> folders) {}
+
+int depth(Folder folder) {
+    int deepest = 0;
+    for (Folder inner : folder.folders()) {
+        deepest += depth(inner);
+    }
+    return 1 + deepest;
+}
+
+void main() {
+    Folder root = new Folder("root", List.of(10, 20), List.of(
+            new Folder("docs", List.of(100), List.of()),
+            new Folder("images", List.of(300, 40), List.of(
+                    new Folder("raw", List.of(1000), List.of())))));
+    IO.println(depth(root));
+}
+```
+
+## ch12-recursion-and-problem-solving-practice#4
+
+```java
+record Folder(String name, List<Integer> files, List<Folder> folders) {}
+
+ArrayList<String> folderNames(Folder folder) {
+    ArrayList<String> names = new ArrayList<>();
+    names.add(folder.name());
+    for (Folder inner : folder.folders()) {
+        names.addAll(folderNames(inner));
+    }
+    return names;
+}
+
+void main() {
+    Folder root = new Folder("root", List.of(10, 20), List.of(
+            new Folder("docs", List.of(100), List.of()),
+            new Folder("images", List.of(300, 40), List.of(
+                    new Folder("raw", List.of(1000), List.of())))));
+    IO.println(folderNames(root));
+}
+```
+
+This folder first, then each subtree in full: `addAll` puts every name a folder inside gives back on the end. The version that lists only the folders one level down misses `raw` entirely.
+
+```java
+record Folder(String name, List<Integer> files, List<Folder> folders) {}
+
+ArrayList<String> folderNames(Folder folder) {
+    ArrayList<String> names = new ArrayList<>();
+    collectNames(folder, names);
+    return names;
+}
+
+void collectNames(Folder folder, ArrayList<String> names) {
+    names.add(folder.name());
+    for (Folder inner : folder.folders()) {
+        collectNames(inner, names);
+    }
+}
+
+void main() {
+    IO.println(folderNames(new Folder("docs", List.of(100), List.of())));
+}
+```
+
+The second answer hands one list down through every call, as `fibFast` handed down its map, and each call adds its name to it.
+
+### mistake
+
+Listing the folders one level down, and no further, misses `raw`:
+
+```java
+record Folder(String name, List<Integer> files, List<Folder> folders) {}
+
+ArrayList<String> folderNames(Folder folder) {
+    ArrayList<String> names = new ArrayList<>();
+    names.add(folder.name());
+    for (Folder inner : folder.folders()) {
+        names.add(inner.name());
+    }
+    return names;
+}
+
+void main() {
+    Folder root = new Folder("root", List.of(10, 20), List.of(
+            new Folder("docs", List.of(100), List.of()),
+            new Folder("images", List.of(300, 40), List.of(
+                    new Folder("raw", List.of(1000), List.of())))));
+    IO.println(folderNames(root));
+}
+```
+
+Adding the folder's own name after its subtrees puts `root` last:
+
+```java
+record Folder(String name, List<Integer> files, List<Folder> folders) {}
+
+ArrayList<String> folderNames(Folder folder) {
+    ArrayList<String> names = new ArrayList<>();
+    for (Folder inner : folder.folders()) {
+        names.addAll(folderNames(inner));
+    }
+    names.add(folder.name());
+    return names;
+}
+
+void main() {
+    Folder root = new Folder("root", List.of(10, 20), List.of(
+            new Folder("docs", List.of(100), List.of()),
+            new Folder("images", List.of(300, 40), List.of(
+                    new Folder("raw", List.of(1000), List.of())))));
+    IO.println(folderNames(root));
+}
+```
+
+## ch12-recursion-and-problem-solving-practice#5
+
+```java
+record Folder(String name, List<Integer> files, List<Folder> folders) {}
+
+int fileCount(Folder folder) {
+    int count = folder.files().size();
+    for (Folder inner : folder.folders()) {
+        count += fileCount(inner);
+    }
+    return count;
+}
+
+int largestFile(Folder folder) {
+    int biggest = 0;
+    for (int size : folder.files()) {
+        if (size > biggest) {
+            biggest = size;
+        }
+    }
+    for (Folder inner : folder.folders()) {
+        int innerBiggest = largestFile(inner);
+        if (innerBiggest > biggest) {
+            biggest = innerBiggest;
+        }
+    }
+    return biggest;
+}
+
+void main() {
+    Folder root = new Folder("root", List.of(10, 20), List.of(
+            new Folder("docs", List.of(100), List.of()),
+            new Folder("images", List.of(300, 40), List.of(
+                    new Folder("raw", List.of(1000), List.of())))));
+    if (fileCount(root) > 0) {
+        IO.println(largestFile(root));
+    } else {
+        IO.println("No files");
+    }
+}
+```
+
+Start at 0, and let every file of its own and every folder's answer beat it. A folder inside with no files answers 0, which beats nothing. Starting at 0 is safe because the caller has checked that a file exists somewhere: a tree with no files would answer 0 as well, the same as a tree whose only file is empty, and only the caller's `fileCount(root) > 0` tells those apart.
+
+```java
+record Folder(String name, List<Integer> files, List<Folder> folders) {}
+
+int largestFile(Folder folder) {
+    int biggest = 0;
+    for (Folder inner : folder.folders()) {
+        int candidate = largestFile(inner);
+        biggest = candidate > biggest ? candidate : biggest;
+    }
+    for (int size : folder.files()) {
+        biggest = size > biggest ? size : biggest;
+    }
+    return biggest;
+}
+
+void main() {
+    IO.println(largestFile(new Folder("docs", List.of(100), List.of())));
+}
+```
+
+The second answer asks the folders inside first, then looks at its own files, and keeps the bigger value with a conditional expression.
+
+### mistake
+
+Looking only at its own files finds 20 for `root`:
+
+```java
+record Folder(String name, List<Integer> files, List<Folder> folders) {}
+
+int largestFile(Folder folder) {
+    int biggest = 0;
+    for (int size : folder.files()) {
+        if (size > biggest) {
+            biggest = size;
+        }
+    }
+    return biggest;
+}
+
+void main() {
+    Folder root = new Folder("root", List.of(10, 20), List.of(
+            new Folder("docs", List.of(100), List.of()),
+            new Folder("images", List.of(300, 40), List.of(
+                    new Folder("raw", List.of(1000), List.of())))));
+    IO.println(largestFile(root));
+}
+```
+
+Looking one level down, and no further, finds 300 for `root` and misses `raw`'s 1000:
+
+```java
+record Folder(String name, List<Integer> files, List<Folder> folders) {}
+
+int largestFile(Folder folder) {
+    int biggest = 0;
+    for (int size : folder.files()) {
+        if (size > biggest) {
+            biggest = size;
+        }
+    }
+    for (Folder inner : folder.folders()) {
+        for (int size : inner.files()) {
+            if (size > biggest) {
+                biggest = size;
+            }
+        }
+    }
+    return biggest;
+}
+
+void main() {
+    Folder root = new Folder("root", List.of(10, 20), List.of(
+            new Folder("docs", List.of(100), List.of()),
+            new Folder("images", List.of(300, 40), List.of(
+                    new Folder("raw", List.of(1000), List.of())))));
+    IO.println(largestFile(root));
+}
+```
+
+## ch12-recursion-and-problem-solving-practice#6
+
+```java
+record Folder(String name, List<Integer> files, List<Folder> folders) {}
+
+Folder findFolder(Folder folder, String name) {
+    if (folder.name().equals(name)) {
+        return folder;
+    }
+    for (Folder inner : folder.folders()) {
+        Folder found = findFolder(inner, name);
+        if (found != null) {
+            return found;
+        }
+    }
+    return null;
+}
+
+void main() {
+    Folder root = new Folder("root", List.of(10, 20), List.of(
+            new Folder("docs", List.of(100), List.of()),
+            new Folder("images", List.of(300, 40), List.of(
+                    new Folder("raw", List.of(1000), List.of())))));
+    IO.println(findFolder(root, "raw"));
+    IO.println(findFolder(root, "nowhere"));
+}
+```
+
+Stop as soon as something is found, and keep looking otherwise: `null` from a folder inside means "not in there," so the loop goes on to the next one. Names compare with `.equals`. Checking only the folders one level down finds `docs` and `images` but never `raw`, which is two levels down.
+
+```java
+record Folder(String name, List<Integer> files, List<Folder> folders) {}
+
+Folder findFolder(Folder folder, String name) {
+    Folder found = null;
+    if (folder.name().equals(name)) {
+        found = folder;
+    }
+    for (Folder inner : folder.folders()) {
+        if (found == null) {
+            found = findFolder(inner, name);
+        }
+    }
+    return found;
+}
+
+void main() {
+    IO.println(findFolder(new Folder("docs", List.of(100), List.of()), "docs"));
+}
+```
+
+The second answer keeps what it has found in a variable that starts as `null`, and searches a folder inside only while the variable still holds `null`.
+
+### mistake
+
+Returning whatever the first folder inside answers stops after `docs`, and never reaches `images` or `raw`:
+
+```java
+record Folder(String name, List<Integer> files, List<Folder> folders) {}
+
+Folder findFolder(Folder folder, String name) {
+    if (folder.name().equals(name)) {
+        return folder;
+    }
+    for (Folder inner : folder.folders()) {
+        return findFolder(inner, name);
+    }
+    return null;
+}
+
+void main() {
+    Folder root = new Folder("root", List.of(10, 20), List.of(
+            new Folder("docs", List.of(100), List.of()),
+            new Folder("images", List.of(300, 40), List.of(
+                    new Folder("raw", List.of(1000), List.of())))));
+    IO.println(findFolder(root, "raw"));
+}
+```
+
+Comparing names with `==` asks whether they are the same object, so a name made while the program runs is never found:
+
+```java
+record Folder(String name, List<Integer> files, List<Folder> folders) {}
+
+Folder findFolder(Folder folder, String name) {
+    if (folder.name() == name) {
+        return folder;
+    }
+    for (Folder inner : folder.folders()) {
+        Folder found = findFolder(inner, name);
+        if (found != null) {
+            return found;
+        }
+    }
+    return null;
+}
+
+void main() {
+    Folder root = new Folder("root", List.of(10, 20), List.of(
+            new Folder("docs", List.of(100), List.of()),
+            new Folder("images", List.of(300, 40), List.of(
+                    new Folder("raw", List.of(1000), List.of())))));
+    IO.println(findFolder(root, " raw".strip()));
+}
+```
+
+## ch12-recursion-and-problem-solving-practice#7
+
+```java
+record Folder(String name, List<Integer> files, List<Folder> folders) {}
+
+ArrayList<Integer> allSizes(Folder folder) {
+    ArrayList<Integer> sizes = new ArrayList<>(folder.files());
+    for (Folder inner : folder.folders()) {
+        sizes.addAll(allSizes(inner));
+    }
+    return sizes;
+}
+
+void main() {
+    Folder root = new Folder("root", List.of(10, 20), List.of(
+            new Folder("docs", List.of(100), List.of()),
+            new Folder("images", List.of(300, 40), List.of(
+                    new Folder("raw", List.of(1000), List.of())))));
+    IO.println(allSizes(root));
+}
+```
+
+`new ArrayList<>(folder.files())` copies the folder's own sizes into a new list that can grow; the folder's own list, made by `List.of`, cannot, and should not. Then each folder inside adds its sizes on the end, in step 4's order.
+
+```java
+record Folder(String name, List<Integer> files, List<Folder> folders) {}
+
+ArrayList<Integer> allSizes(Folder folder) {
+    ArrayList<Integer> sizes = new ArrayList<>();
+    addSizes(folder, sizes);
+    return sizes;
+}
+
+void addSizes(Folder folder, ArrayList<Integer> sizes) {
+    for (int size : folder.files()) {
+        sizes.add(size);
+    }
+    for (Folder inner : folder.folders()) {
+        addSizes(inner, sizes);
+    }
+}
+
+void main() {
+    IO.println(allSizes(new Folder("docs", List.of(100), List.of())));
+}
+```
+
+The second answer hands one list down through every call and adds each size to it.
+
+### mistake
+
+Adding the folders inside before the folder's own files puts the sizes in another order:
+
+```java
+record Folder(String name, List<Integer> files, List<Folder> folders) {}
+
+ArrayList<Integer> allSizes(Folder folder) {
+    ArrayList<Integer> sizes = new ArrayList<>();
+    for (Folder inner : folder.folders()) {
+        sizes.addAll(allSizes(inner));
+    }
+    sizes.addAll(folder.files());
+    return sizes;
+}
+
+void main() {
+    Folder root = new Folder("root", List.of(10, 20), List.of(
+            new Folder("docs", List.of(100), List.of()),
+            new Folder("images", List.of(300, 40), List.of(
+                    new Folder("raw", List.of(1000), List.of())))));
+    IO.println(allSizes(root));
+}
+```
+
+Copying the files one level down, and no further, misses `raw`:
+
+```java
+record Folder(String name, List<Integer> files, List<Folder> folders) {}
+
+ArrayList<Integer> allSizes(Folder folder) {
+    ArrayList<Integer> sizes = new ArrayList<>(folder.files());
+    for (Folder inner : folder.folders()) {
+        sizes.addAll(inner.files());
+    }
+    return sizes;
+}
+
+void main() {
+    Folder root = new Folder("root", List.of(10, 20), List.of(
+            new Folder("docs", List.of(100), List.of()),
+            new Folder("images", List.of(300, 40), List.of(
+                    new Folder("raw", List.of(1000), List.of())))));
+    IO.println(allSizes(root));
+}
+```
+
+## ch12-recursion-and-problem-solving-practice#8
+
+```java
+record Folder(String name, List<Integer> files, List<Folder> folders) {}
+
+int totalSize(Folder folder) {
+    int size = 0;
+    for (int file : folder.files()) {
+        size += file;
+    }
+    for (Folder inner : folder.folders()) {
+        size += totalSize(inner);
+    }
+    return size;
+}
+
+ArrayList<String> sizeReport(Folder folder) {
+    ArrayList<String> lines = new ArrayList<>();
+    lines.add(folder.name() + ": " + totalSize(folder));
+    for (Folder inner : folder.folders()) {
+        lines.addAll(sizeReport(inner));
+    }
+    return lines;
+}
+
+void main() {
+    Folder root = new Folder("root", List.of(10, 20), List.of(
+            new Folder("docs", List.of(100), List.of()),
+            new Folder("images", List.of(300, 40), List.of(
+                    new Folder("raw", List.of(1000), List.of())))));
+    for (String line : sizeReport(root)) {
+        IO.println(line);
+    }
+}
+```
+
+Two recursions working together: `sizeReport` walks the tree, and `totalSize` walks each subtree again to add it up. Slow on a big tree, and perfectly clear on this one.
+
+```java
+record Folder(String name, List<Integer> files, List<Folder> folders) {}
+
+int totalSize(Folder folder) {
+    int size = 0;
+    for (int file : folder.files()) {
+        size += file;
+    }
+    for (Folder inner : folder.folders()) {
+        size += totalSize(inner);
+    }
+    return size;
+}
+
+ArrayList<String> sizeReport(Folder folder) {
+    ArrayList<String> lines = new ArrayList<>();
+    report(folder, lines);
+    return lines;
+}
+
+void report(Folder folder, ArrayList<String> lines) {
+    lines.add(folder.name() + ": " + totalSize(folder));
+    for (Folder inner : folder.folders()) {
+        report(inner, lines);
+    }
+}
+
+void main() {
+    IO.println(sizeReport(new Folder("docs", List.of(100), List.of())));
+}
+```
+
+The second answer hands one list of lines down through every call.
+
+### mistake
+
+Reporting each folder's own files, rather than its total from step 1, gives `root: 30`:
+
+```java
+record Folder(String name, List<Integer> files, List<Folder> folders) {}
+
+ArrayList<String> sizeReport(Folder folder) {
+    ArrayList<String> lines = new ArrayList<>();
+    int own = 0;
+    for (int file : folder.files()) {
+        own += file;
+    }
+    lines.add(folder.name() + ": " + own);
+    for (Folder inner : folder.folders()) {
+        lines.addAll(sizeReport(inner));
+    }
+    return lines;
+}
+
+void main() {
+    Folder root = new Folder("root", List.of(10, 20), List.of(
+            new Folder("docs", List.of(100), List.of()),
+            new Folder("images", List.of(300, 40), List.of(
+                    new Folder("raw", List.of(1000), List.of())))));
+    IO.println(sizeReport(root));
+}
+```
+
+Reporting the folders one level down, and no further, leaves `raw` out:
+
+```java
+record Folder(String name, List<Integer> files, List<Folder> folders) {}
+
+int totalSize(Folder folder) {
+    int size = 0;
+    for (int file : folder.files()) {
+        size += file;
+    }
+    for (Folder inner : folder.folders()) {
+        size += totalSize(inner);
+    }
+    return size;
+}
+
+ArrayList<String> sizeReport(Folder folder) {
+    ArrayList<String> lines = new ArrayList<>();
+    lines.add(folder.name() + ": " + totalSize(folder));
+    for (Folder inner : folder.folders()) {
+        lines.add(inner.name() + ": " + totalSize(inner));
+    }
+    return lines;
+}
+
+void main() {
+    Folder root = new Folder("root", List.of(10, 20), List.of(
+            new Folder("docs", List.of(100), List.of()),
+            new Folder("images", List.of(300, 40), List.of(
+                    new Folder("raw", List.of(1000), List.of())))));
+    IO.println(sizeReport(root));
+}
+```

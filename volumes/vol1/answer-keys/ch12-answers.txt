@@ -1,0 +1,195 @@
+GROUNDWORK
+Chapter 12 - Recursion and Problem Solving
+
+ANSWER KEY
+
+
+VOCABULARY
+----------
+
+ 1. A ____ method is one that calls itself, as long as it always calls
+    itself on a smaller version of the problem and knows when to stop.
+
+      ANSWER: recursive
+
+ 2. The ____ is a version of the problem small enough to answer outright,
+    with no further call.
+
+      ANSWER: base case
+
+ 3. The ____ calls the method again on a smaller input and builds the
+    answer from the result.
+
+      ANSWER: recursive case
+
+ 4. Recursion is not a loop that goes around; it is a ____ of unfinished
+    work that unwinds.
+
+      ANSWER: stack
+
+ 5. Remembering answers already computed, so they are never recalculated,
+    is a technique called ____.
+
+      ANSWER: memoization
+
+
+READING CODE
+------------
+
+ 6. What does this print?
+
+        int factorial(int n) {
+            if (n <= 1) {
+                return 1;
+            }
+            return n * factorial(n - 1);
+        }
+
+        void main() {
+            IO.println(factorial(5));
+        }
+
+      ANSWER: 120
+
+ 7. What does this print?
+
+        String reverse(String text) {
+            if (text.length() <= 1) {
+                return text;
+            }
+            return reverse(text.substring(1)) + text.charAt(0);
+        }
+
+        void main() {
+            IO.println(reverse("recursion"));
+        }
+
+      ANSWER: noisrucer
+
+ 8. What does this print?
+
+        void countdown(int n) {
+            if (n <= 0) {
+                IO.println("Liftoff.");
+                return;
+            }
+            IO.println(n);
+            countdown(n - 1);
+        }
+
+        void main() {
+            countdown(3);
+        }
+
+      ANSWER: 3
+          2
+          1
+          Liftoff.
+
+ 9. What does this print?
+
+        int factorialTraced(int n) {
+            return factorialTraced(n, 0);
+        }
+
+        int factorialTraced(int n, int depth) {
+            String indent = "  ".repeat(depth);
+            IO.println(indent + "factorial(" + n + ") called");
+
+            if (n <= 1) {
+                IO.println(indent + "base case, returning 1");
+                return 1;
+            }
+
+            int result = n * factorialTraced(n - 1, depth + 1);
+            IO.println(indent + "returning " + n + " * factorial("
+                    + (n - 1) + ") = " + result);
+            return result;
+        }
+
+        void main() {
+            factorialTraced(2);
+        }
+
+      ANSWER: factorial(2) called
+            factorial(1) called
+            base case, returning 1
+          returning 2 * factorial(1) = 2
+
+10. What does this print?
+
+        int fib(int n) {
+            if (n <= 1) {
+                return n;
+            }
+            return fib(n - 1) + fib(n - 2);
+        }
+
+        void main() {
+            for (int i = 0; i < 6; i++) {
+                IO.println(fib(i));
+            }
+        }
+
+      ANSWER: 0
+          1
+          1
+          2
+          3
+          5
+
+
+WRITING CODE
+------------
+
+11. Complete the base case, which stops the recursion:
+    int factorial(int n) {
+        if (n <= 1) {
+            return ____;
+        }
+
+      ANSWER: 1
+
+12. Complete the recursive case:
+    int factorial(int n) {
+        if (n <= 1) {
+            return 1;
+        }
+        return n * ____(n - 1);
+
+      ANSWER: factorial
+
+13. Complete the line that computes and stores a new Fibonacci value:
+    long fibFast(int n, Map<Integer, Long> memo) {
+        if (memo.containsKey(n)) {
+            return memo.get(n);
+        }
+        if (n <= 1) {
+            return n;
+        }
+        memo.put(n, fibFast(n - 1, memo)
+                + ____(n - 2, memo));
+
+      ANSWER: fibFast
+
+
+WHY IT WORKS
+------------
+
+14. factorial(n) crashes with a StackOverflowError when the recursive
+    case never moves toward the ____, so n never becomes small enough to
+    stop.
+
+      ANSWER: base case
+
+15. fib(30) makes about 2.7 million calls because the slow recursive
+    Fibonacci method ____ the same values over and over instead of
+    remembering them.
+
+      ANSWER: recomputes
+
+16. In factorialTraced(4), nothing is actually multiplied until the
+    bottom is reached, because each level of the recursion is ____,
+    holding its own n, for the level below to finish.
+
+      ANSWER: waiting

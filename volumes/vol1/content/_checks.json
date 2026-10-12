@@ -3525,5 +3525,414 @@
       ]
     ],
     "starter": "record Result(String name, double seconds) {}\n\n// Bring in ranked from step 2 here.\n\nArrayList<String> leaderboardLines(ArrayList<Result> results) {\n    return new ArrayList<>();\n}\n\nvoid main() {\n    ArrayList<Result> results = new ArrayList<>(List.of(\n            new Result(\"Nadia\", 58.2),\n            new Result(\"Omar\", 61.0),\n            new Result(\"Priya\", 57.4),\n            new Result(\"Quinn\", 63.5)));\n    for (String line : leaderboardLines(results)) {\n        IO.println(line);\n    }\n}\n"
+  },
+  "ch12-recursion-and-problem-solving#11": {
+    "kind": "method",
+    "name": "power",
+    "returns": "int",
+    "params": [
+      "int",
+      "int"
+    ],
+    "cases": [
+      [
+        "2, 10",
+        "1024"
+      ],
+      [
+        "5, 0",
+        "1"
+      ],
+      [
+        "3, 3",
+        "27"
+      ],
+      [
+        "7, 1",
+        "7"
+      ],
+      [
+        "10, 4",
+        "10000"
+      ]
+    ],
+    "starter": "int power(int base, int exponent) {\n    return 0;\n}\n\nvoid main() {\n    IO.println(power(2, 10));\n    IO.println(power(5, 0));\n}\n"
+  },
+  "ch12-recursion-and-problem-solving#12": {
+    "kind": "output",
+    "expected": "3\n2\n1\n1\n2\n3",
+    "starter": "void countDownUp(int n) {\n    // Down to 1, then back up.\n}\n\nvoid main() {\n    countDownUp(3);\n}\n"
+  },
+  "ch12-recursion-and-problem-solving#13": {
+    "kind": "method",
+    "name": "digitSum",
+    "returns": "int",
+    "params": [
+      "int"
+    ],
+    "cases": [
+      [
+        "1234",
+        "10"
+      ],
+      [
+        "0",
+        "0"
+      ],
+      [
+        "9",
+        "9"
+      ],
+      [
+        "1000",
+        "1"
+      ],
+      [
+        "99",
+        "18"
+      ]
+    ],
+    "starter": "int digitSum(int n) {\n    return 0;\n}\n\nvoid main() {\n    IO.println(digitSum(1234));\n}\n"
+  },
+  "ch12-recursion-and-problem-solving#14": {
+    "kind": "method",
+    "name": "isPalindrome",
+    "returns": "boolean",
+    "params": [
+      "String"
+    ],
+    "cases": [
+      [
+        "\"racecar\"",
+        "true"
+      ],
+      [
+        "\"hello\"",
+        "false"
+      ],
+      [
+        "\"a\"",
+        "true"
+      ],
+      [
+        "\"\"",
+        "true"
+      ],
+      [
+        "\"abba\"",
+        "true"
+      ],
+      [
+        "\"abca\"",
+        "false"
+      ],
+      [
+        "\"Racecar\"",
+        "false"
+      ]
+    ],
+    "starter": "boolean isPalindrome(String text) {\n    return false;\n}\n\nvoid main() {\n    IO.println(isPalindrome(\"racecar\"));\n    IO.println(isPalindrome(\"hello\"));\n}\n"
+  },
+  "ch12-recursion-and-problem-solving#15": {
+    "kind": "method",
+    "name": "countItem",
+    "returns": "int",
+    "params": [
+      "int[]",
+      "int"
+    ],
+    "cases": [
+      [
+        "new int[] {1, 2, 1, 1}, 1",
+        "3"
+      ],
+      [
+        "new int[] {}, 5",
+        "0"
+      ],
+      [
+        "new int[] {1, 2}, 3",
+        "0"
+      ],
+      [
+        "new int[] {7}, 7",
+        "1"
+      ],
+      [
+        "new int[] {4, 1, 4}, 4",
+        "2"
+      ]
+    ],
+    "starter": "int countItem(int[] items, int target) {\n    return 0;\n}\n\nvoid main() {\n    IO.println(countItem(new int[] {1, 2, 1, 1}, 1));\n}\n"
+  },
+  "ch12-recursion-and-problem-solving#16": {
+    "kind": "method",
+    "name": "gcd",
+    "returns": "int",
+    "params": [
+      "int",
+      "int"
+    ],
+    "cases": [
+      [
+        "12, 8",
+        "4"
+      ],
+      [
+        "7, 13",
+        "1"
+      ],
+      [
+        "10, 0",
+        "10"
+      ],
+      [
+        "48, 18",
+        "6"
+      ],
+      [
+        "0, 9",
+        "9"
+      ]
+    ],
+    "starter": "int gcd(int a, int b) {\n    return 0;\n}\n\nvoid main() {\n    IO.println(gcd(12, 8));\n}\n"
+  },
+  "ch12-recursion-and-problem-solving#17": {
+    "kind": "output",
+    "expected": "Move disk 1 from A to C\nMove disk 2 from A to B\nMove disk 1 from C to B\nMove disk 3 from A to C\nMove disk 1 from B to A\nMove disk 2 from B to C\nMove disk 1 from A to C",
+    "starter": "void hanoi(int n, String from, String to, String spare) {\n    // Print each move.\n}\n\nvoid main() {\n    hanoi(3, \"A\", \"C\", \"B\");\n}\n"
+  },
+  "ch12-recursion-and-problem-solving-practice#1": {
+    "kind": "method",
+    "name": "totalSize",
+    "returns": "int",
+    "params": [
+      "Folder"
+    ],
+    "cases": [
+      [
+        "new Folder(\"root\", List.of(10, 20), List.of(new Folder(\"docs\", List.of(100), List.of()), new Folder(\"images\", List.of(300, 40), List.of(new Folder(\"raw\", List.of(1000), List.of())))))",
+        "1470"
+      ],
+      [
+        "new Folder(\"images\", List.of(300, 40), List.of(new Folder(\"raw\", List.of(1000), List.of())))",
+        "1340"
+      ],
+      [
+        "new Folder(\"docs\", List.of(100), List.of())",
+        "100"
+      ],
+      [
+        "new Folder(\"empty\", List.of(), List.of())",
+        "0"
+      ]
+    ],
+    "starter": "record Folder(String name, List<Integer> files, List<Folder> folders) {}\n\nint totalSize(Folder folder) {\n    return 0;\n}\n\nvoid main() {\n    Folder root = new Folder(\"root\", List.of(10, 20), List.of(\n            new Folder(\"docs\", List.of(100), List.of()),\n            new Folder(\"images\", List.of(300, 40), List.of(\n                    new Folder(\"raw\", List.of(1000), List.of())))));\n    IO.println(totalSize(root));\n}\n"
+  },
+  "ch12-recursion-and-problem-solving-practice#2": {
+    "kind": "method",
+    "name": "fileCount",
+    "returns": "int",
+    "params": [
+      "Folder"
+    ],
+    "cases": [
+      [
+        "new Folder(\"root\", List.of(10, 20), List.of(new Folder(\"docs\", List.of(100), List.of()), new Folder(\"images\", List.of(300, 40), List.of(new Folder(\"raw\", List.of(1000), List.of())))))",
+        "6"
+      ],
+      [
+        "new Folder(\"images\", List.of(300, 40), List.of(new Folder(\"raw\", List.of(1000), List.of())))",
+        "3"
+      ],
+      [
+        "new Folder(\"empty\", List.of(), List.of())",
+        "0"
+      ],
+      [
+        "new Folder(\"a\", List.of(), List.of(new Folder(\"b\", List.of(), List.of())))",
+        "0"
+      ]
+    ],
+    "starter": "record Folder(String name, List<Integer> files, List<Folder> folders) {}\n\nint fileCount(Folder folder) {\n    return 0;\n}\n\nvoid main() {\n    Folder root = new Folder(\"root\", List.of(10, 20), List.of(\n            new Folder(\"docs\", List.of(100), List.of()),\n            new Folder(\"images\", List.of(300, 40), List.of(\n                    new Folder(\"raw\", List.of(1000), List.of())))));\n    IO.println(fileCount(root));\n}\n"
+  },
+  "ch12-recursion-and-problem-solving-practice#3": {
+    "kind": "method",
+    "name": "depth",
+    "returns": "int",
+    "params": [
+      "Folder"
+    ],
+    "cases": [
+      [
+        "new Folder(\"root\", List.of(10, 20), List.of(new Folder(\"docs\", List.of(100), List.of()), new Folder(\"images\", List.of(300, 40), List.of(new Folder(\"raw\", List.of(1000), List.of())))))",
+        "3"
+      ],
+      [
+        "new Folder(\"images\", List.of(300, 40), List.of(new Folder(\"raw\", List.of(1000), List.of())))",
+        "2"
+      ],
+      [
+        "new Folder(\"docs\", List.of(100), List.of())",
+        "1"
+      ],
+      [
+        "new Folder(\"empty\", List.of(), List.of())",
+        "1"
+      ],
+      [
+        "new Folder(\"wide\", List.of(), List.of(new Folder(\"x\", List.of(), List.of()), new Folder(\"y\", List.of(), List.of()), new Folder(\"z\", List.of(), List.of())))",
+        "2"
+      ],
+      [
+        "new Folder(\"d1\", List.of(), List.of(new Folder(\"d2\", List.of(), List.of(new Folder(\"d3\", List.of(), List.of(new Folder(\"d4\", List.of(), List.of())))))))",
+        "4"
+      ]
+    ],
+    "starter": "record Folder(String name, List<Integer> files, List<Folder> folders) {}\n\nint depth(Folder folder) {\n    return 0;\n}\n\nvoid main() {\n    Folder root = new Folder(\"root\", List.of(10, 20), List.of(\n            new Folder(\"docs\", List.of(100), List.of()),\n            new Folder(\"images\", List.of(300, 40), List.of(\n                    new Folder(\"raw\", List.of(1000), List.of())))));\n    IO.println(depth(root));\n}\n"
+  },
+  "ch12-recursion-and-problem-solving-practice#4": {
+    "kind": "method",
+    "name": "folderNames",
+    "returns": "ArrayList<String>",
+    "params": [
+      "Folder"
+    ],
+    "cases": [
+      [
+        "new Folder(\"root\", List.of(10, 20), List.of(new Folder(\"docs\", List.of(100), List.of()), new Folder(\"images\", List.of(300, 40), List.of(new Folder(\"raw\", List.of(1000), List.of())))))",
+        "new ArrayList<>(List.of(\"root\", \"docs\", \"images\", \"raw\"))"
+      ],
+      [
+        "new Folder(\"images\", List.of(300, 40), List.of(new Folder(\"raw\", List.of(1000), List.of())))",
+        "new ArrayList<>(List.of(\"images\", \"raw\"))"
+      ],
+      [
+        "new Folder(\"empty\", List.of(), List.of())",
+        "new ArrayList<>(List.of(\"empty\"))"
+      ]
+    ],
+    "starter": "record Folder(String name, List<Integer> files, List<Folder> folders) {}\n\nArrayList<String> folderNames(Folder folder) {\n    return new ArrayList<>();\n}\n\nvoid main() {\n    Folder root = new Folder(\"root\", List.of(10, 20), List.of(\n            new Folder(\"docs\", List.of(100), List.of()),\n            new Folder(\"images\", List.of(300, 40), List.of(\n                    new Folder(\"raw\", List.of(1000), List.of())))));\n    IO.println(folderNames(root));\n}\n"
+  },
+  "ch12-recursion-and-problem-solving-practice#5": {
+    "kind": "method",
+    "name": "largestFile",
+    "returns": "int",
+    "params": [
+      "Folder"
+    ],
+    "cases": [
+      [
+        "new Folder(\"root\", List.of(10, 20), List.of(new Folder(\"docs\", List.of(100), List.of()), new Folder(\"images\", List.of(300, 40), List.of(new Folder(\"raw\", List.of(1000), List.of())))))",
+        "1000"
+      ],
+      [
+        "new Folder(\"images\", List.of(300, 40), List.of(new Folder(\"raw\", List.of(1000), List.of())))",
+        "1000"
+      ],
+      [
+        "new Folder(\"docs\", List.of(100), List.of())",
+        "100"
+      ],
+      [
+        "new Folder(\"a\", List.of(), List.of(new Folder(\"b\", List.of(7), List.of())))",
+        "7"
+      ],
+      [
+        "new Folder(\"c\", List.of(5), List.of(new Folder(\"d\", List.of(), List.of())))",
+        "5"
+      ],
+      [
+        "new Folder(\"zero\", List.of(0), List.of())",
+        "0"
+      ]
+    ],
+    "starter": "record Folder(String name, List<Integer> files, List<Folder> folders) {}\n\nint largestFile(Folder folder) {\n    return 0;\n}\n\nvoid main() {\n    Folder root = new Folder(\"root\", List.of(10, 20), List.of(\n            new Folder(\"docs\", List.of(100), List.of()),\n            new Folder(\"images\", List.of(300, 40), List.of(\n                    new Folder(\"raw\", List.of(1000), List.of())))));\n    IO.println(largestFile(root));\n}\n"
+  },
+  "ch12-recursion-and-problem-solving-practice#6": {
+    "kind": "method",
+    "name": "findFolder",
+    "returns": "Folder",
+    "params": [
+      "Folder",
+      "String"
+    ],
+    "cases": [
+      [
+        "new Folder(\"root\", List.of(10, 20), List.of(new Folder(\"docs\", List.of(100), List.of()), new Folder(\"images\", List.of(300, 40), List.of(new Folder(\"raw\", List.of(1000), List.of()))))), \"raw\"",
+        "new Folder(\"raw\", List.of(1000), List.of())"
+      ],
+      [
+        "new Folder(\"root\", List.of(10, 20), List.of(new Folder(\"docs\", List.of(100), List.of()), new Folder(\"images\", List.of(300, 40), List.of(new Folder(\"raw\", List.of(1000), List.of()))))), \"root\"",
+        "new Folder(\"root\", List.of(10, 20), List.of(new Folder(\"docs\", List.of(100), List.of()), new Folder(\"images\", List.of(300, 40), List.of(new Folder(\"raw\", List.of(1000), List.of())))))"
+      ],
+      [
+        "new Folder(\"root\", List.of(10, 20), List.of(new Folder(\"docs\", List.of(100), List.of()), new Folder(\"images\", List.of(300, 40), List.of(new Folder(\"raw\", List.of(1000), List.of()))))), \"docs\"",
+        "new Folder(\"docs\", List.of(100), List.of())"
+      ],
+      [
+        "new Folder(\"root\", List.of(10, 20), List.of(new Folder(\"docs\", List.of(100), List.of()), new Folder(\"images\", List.of(300, 40), List.of(new Folder(\"raw\", List.of(1000), List.of()))))), \"images\"",
+        "new Folder(\"images\", List.of(300, 40), List.of(new Folder(\"raw\", List.of(1000), List.of())))"
+      ],
+      [
+        "new Folder(\"root\", List.of(10, 20), List.of(new Folder(\"docs\", List.of(100), List.of()), new Folder(\"images\", List.of(300, 40), List.of(new Folder(\"raw\", List.of(1000), List.of()))))), \"nowhere\"",
+        "null"
+      ],
+      [
+        "new Folder(\"empty\", List.of(), List.of()), \"raw\"",
+        "null"
+      ],
+      [
+        "new Folder(\"root\", List.of(10, 20), List.of(new Folder(\"docs\", List.of(100), List.of()), new Folder(\"images\", List.of(300, 40), List.of(new Folder(\"raw\", List.of(1000), List.of()))))), \" raw\".strip()",
+        "new Folder(\"raw\", List.of(1000), List.of())"
+      ]
+    ],
+    "starter": "record Folder(String name, List<Integer> files, List<Folder> folders) {}\n\nFolder findFolder(Folder folder, String name) {\n    return null;\n}\n\nvoid main() {\n    Folder root = new Folder(\"root\", List.of(10, 20), List.of(\n            new Folder(\"docs\", List.of(100), List.of()),\n            new Folder(\"images\", List.of(300, 40), List.of(\n                    new Folder(\"raw\", List.of(1000), List.of())))));\n    IO.println(findFolder(root, \"raw\"));\n    IO.println(findFolder(root, \"nowhere\"));\n}\n"
+  },
+  "ch12-recursion-and-problem-solving-practice#7": {
+    "kind": "method",
+    "name": "allSizes",
+    "returns": "ArrayList<Integer>",
+    "params": [
+      "Folder"
+    ],
+    "cases": [
+      [
+        "new Folder(\"root\", List.of(10, 20), List.of(new Folder(\"docs\", List.of(100), List.of()), new Folder(\"images\", List.of(300, 40), List.of(new Folder(\"raw\", List.of(1000), List.of())))))",
+        "new ArrayList<>(List.of(10, 20, 100, 300, 40, 1000))"
+      ],
+      [
+        "new Folder(\"images\", List.of(300, 40), List.of(new Folder(\"raw\", List.of(1000), List.of())))",
+        "new ArrayList<>(List.of(300, 40, 1000))"
+      ],
+      [
+        "new Folder(\"empty\", List.of(), List.of())",
+        "new ArrayList<>()"
+      ]
+    ],
+    "starter": "record Folder(String name, List<Integer> files, List<Folder> folders) {}\n\nArrayList<Integer> allSizes(Folder folder) {\n    return new ArrayList<>();\n}\n\nvoid main() {\n    Folder root = new Folder(\"root\", List.of(10, 20), List.of(\n            new Folder(\"docs\", List.of(100), List.of()),\n            new Folder(\"images\", List.of(300, 40), List.of(\n                    new Folder(\"raw\", List.of(1000), List.of())))));\n    IO.println(allSizes(root));\n}\n"
+  },
+  "ch12-recursion-and-problem-solving-practice#8": {
+    "kind": "method",
+    "name": "sizeReport",
+    "returns": "ArrayList<String>",
+    "params": [
+      "Folder"
+    ],
+    "cases": [
+      [
+        "new Folder(\"root\", List.of(10, 20), List.of(new Folder(\"docs\", List.of(100), List.of()), new Folder(\"images\", List.of(300, 40), List.of(new Folder(\"raw\", List.of(1000), List.of())))))",
+        "new ArrayList<>(List.of(\"root: 1470\", \"docs: 100\", \"images: 1340\", \"raw: 1000\"))"
+      ],
+      [
+        "new Folder(\"images\", List.of(300, 40), List.of(new Folder(\"raw\", List.of(1000), List.of())))",
+        "new ArrayList<>(List.of(\"images: 1340\", \"raw: 1000\"))"
+      ],
+      [
+        "new Folder(\"empty\", List.of(), List.of())",
+        "new ArrayList<>(List.of(\"empty: 0\"))"
+      ]
+    ],
+    "starter": "record Folder(String name, List<Integer> files, List<Folder> folders) {}\n\n// Bring in totalSize from step 1 here.\n\nArrayList<String> sizeReport(Folder folder) {\n    return new ArrayList<>();\n}\n\nvoid main() {\n    Folder root = new Folder(\"root\", List.of(10, 20), List.of(\n            new Folder(\"docs\", List.of(100), List.of()),\n            new Folder(\"images\", List.of(300, 40), List.of(\n                    new Folder(\"raw\", List.of(1000), List.of())))));\n    for (String line : sizeReport(root)) {\n        IO.println(line);\n    }\n}\n"
   }
 }
