@@ -169,5 +169,115 @@
       "5",
       "3"
     ]
+  },
+  "ch04-making-decisions#4": {
+    "stdin": [
+      "15"
+    ]
+  },
+  "ch04-making-decisions#5": {
+    "stdin": [
+      "85"
+    ]
+  },
+  "ch04-making-decisions#9": {
+    "compileError": "incompatible types: String cannot be converted to boolean",
+    "why": "A String used as a condition, which javac refuses. The error message is the lesson."
+  },
+  "ch04-making-decisions#10": {
+    "stdin": [
+      "Ada"
+    ]
+  },
+  "ch04-making-decisions#11": {
+    "stdin": [
+      "three"
+    ]
+  },
+  "ch04-making-decisions#12": {
+    "stdin": [
+      "12.50"
+    ]
+  },
+  "ch04-making-decisions#13": {
+    "stdin": [
+      "5"
+    ]
+  },
+  "ch04-making-decisions#14": {
+    "stdin": [
+      "2024"
+    ]
+  },
+  "ch04-making-decisions#15": {
+    "stdin": [
+      "3",
+      "8"
+    ]
+  },
+  "ch04-making-decisions#16": {
+    "stdin": [
+      "2"
+    ]
+  },
+  "ch04-making-decisions#18": {
+    "stdin": [
+      "85"
+    ]
+  },
+  "ch04-making-decisions#19": {
+    "stdin": [
+      "70",
+      "Tuesday"
+    ]
+  },
+  "ch04-making-decisions-practice#1": {
+    "stdin": [
+      "12.5"
+    ]
+  },
+  "ch04-making-decisions-practice#2": {
+    "stdin": [
+      "12.5"
+    ]
+  },
+  "ch04-making-decisions-practice#3": {
+    "stdin": [
+      "20"
+    ]
+  },
+  "ch04-making-decisions-practice#4": {
+    "stdin": [
+      "6000"
+    ]
+  },
+  "ch04-making-decisions-practice#5": {
+    "stdin": [
+      "97"
+    ]
+  },
+  "ch04-making-decisions-practice#6": {
+    "stdin": [
+      "10",
+      "20",
+      "6000",
+      "98"
+    ]
+  },
+  "ch04-making-decisions-practice#7": {
+    "stdin": [
+      "10",
+      "20",
+      "1500",
+      "98"
+    ]
+  },
+  "ch04-making-decisions-practice#8": {
+    "stdin": [
+      "12.5",
+      "20",
+      "6000",
+      "98"
+    ]
   }
 }

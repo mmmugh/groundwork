@@ -513,5 +513,545 @@
       }
     ],
     "starter": "void main() {\n    // Two questions, then the whole order.\n}\n"
+  },
+  "ch04-making-decisions#13": {
+    "kind": "input",
+    "runs": [
+      {
+        "typed": [
+          "5"
+        ],
+        "words": [
+          "positive"
+        ]
+      },
+      {
+        "typed": [
+          "-5"
+        ],
+        "words": [
+          "negative"
+        ]
+      },
+      {
+        "typed": [
+          "0"
+        ],
+        "words": [
+          "zero"
+        ]
+      }
+    ],
+    "starter": "void main() {\n    // Ask for a number: positive, negative or zero?\n}\n"
+  },
+  "ch04-making-decisions#14": {
+    "kind": "input",
+    "runs": [
+      {
+        "typed": [
+          "2024"
+        ],
+        "contains": "is a leap year"
+      },
+      {
+        "typed": [
+          "2023"
+        ],
+        "contains": "is not a leap year"
+      },
+      {
+        "typed": [
+          "1900"
+        ],
+        "contains": "is not a leap year"
+      },
+      {
+        "typed": [
+          "2000"
+        ],
+        "contains": "is a leap year"
+      }
+    ],
+    "starter": "void main() {\n    // Ask for a year: is it a leap year?\n}\n"
+  },
+  "ch04-making-decisions#15": {
+    "kind": "input",
+    "runs": [
+      {
+        "typed": [
+          "3",
+          "8"
+        ],
+        "numbers": [
+          "8"
+        ]
+      },
+      {
+        "typed": [
+          "9",
+          "4"
+        ],
+        "numbers": [
+          "9"
+        ]
+      },
+      {
+        "typed": [
+          "5",
+          "5"
+        ],
+        "words": [
+          "equal"
+        ]
+      }
+    ],
+    "starter": "void main() {\n    // Ask for two numbers; print the larger.\n}\n"
+  },
+  "ch04-making-decisions#16": {
+    "kind": "input",
+    "runs": [
+      {
+        "typed": [
+          "2"
+        ],
+        "numbers": [
+          "28"
+        ]
+      },
+      {
+        "typed": [
+          "4"
+        ],
+        "numbers": [
+          "30"
+        ]
+      },
+      {
+        "typed": [
+          "1"
+        ],
+        "numbers": [
+          "31"
+        ]
+      },
+      {
+        "typed": [
+          "11"
+        ],
+        "numbers": [
+          "30"
+        ]
+      },
+      {
+        "typed": [
+          "6"
+        ],
+        "numbers": [
+          "30"
+        ]
+      },
+      {
+        "typed": [
+          "9"
+        ],
+        "numbers": [
+          "30"
+        ]
+      },
+      {
+        "typed": [
+          "12"
+        ],
+        "numbers": [
+          "31"
+        ]
+      }
+    ],
+    "starter": "void main() {\n    // Ask for a month number; print its days.\n}\n"
+  },
+  "ch04-making-decisions#17": {
+    "kind": "predict"
+  },
+  "ch04-making-decisions#18": {
+    "kind": "input",
+    "runs": [
+      {
+        "typed": [
+          "85"
+        ],
+        "contains": "earns a B"
+      },
+      {
+        "typed": [
+          "105"
+        ],
+        "words": [
+          "between",
+          "0",
+          "and",
+          "100"
+        ]
+      },
+      {
+        "typed": [
+          "-5"
+        ],
+        "words": [
+          "between",
+          "0",
+          "and",
+          "100"
+        ]
+      },
+      {
+        "typed": [
+          "100"
+        ],
+        "contains": "earns a A"
+      },
+      {
+        "typed": [
+          "0"
+        ],
+        "contains": "earns a F"
+      }
+    ],
+    "starter": "void main() {\n    int score = Integer.parseInt(IO.readln(\"Test score: \").strip());\n    // Reject a score below 0 or above 100 first.\n    String grade;\n\n    if (score >= 90) {\n        grade = \"A\";\n    } else if (score >= 80) {\n        grade = \"B\";\n    } else if (score >= 70) {\n        grade = \"C\";\n    } else if (score >= 60) {\n        grade = \"D\";\n    } else {\n        grade = \"F\";\n    }\n\n    IO.println(\"Score \" + score + \" earns a \" + grade + \".\");\n}\n"
+  },
+  "ch04-making-decisions-practice#1": {
+    "kind": "input",
+    "runs": [
+      {
+        "typed": [
+          "12.5"
+        ],
+        "contains": "Wind: 12.5 mph"
+      },
+      {
+        "typed": [
+          "7.46"
+        ],
+        "contains": "Wind: 7.5 mph"
+      }
+    ],
+    "starter": "void main() {\n    // Ask for the wind speed; print it back.\n}\n"
+  },
+  "ch04-making-decisions-practice#2": {
+    "kind": "input",
+    "runs": [
+      {
+        "typed": [
+          "12.5"
+        ],
+        "contains": "Wind: OK"
+      },
+      {
+        "typed": [
+          "30"
+        ],
+        "contains": "Wind: TOO STRONG"
+      }
+    ],
+    "starter": "void main() {\n    double wind = Double.parseDouble(IO.readln(\"Wind speed in mph? \").strip());\n    // Then judge it.\n}\n"
+  },
+  "ch04-making-decisions-practice#3": {
+    "kind": "input",
+    "runs": [
+      {
+        "typed": [
+          "20"
+        ],
+        "contains": "Temperature: OK"
+      },
+      {
+        "typed": [
+          "2"
+        ],
+        "contains": "Temperature: OK"
+      },
+      {
+        "typed": [
+          "36"
+        ],
+        "contains": "Temperature: OUT OF RANGE"
+      },
+      {
+        "typed": [
+          "35"
+        ],
+        "contains": "Temperature: OK"
+      },
+      {
+        "typed": [
+          "1"
+        ],
+        "contains": "Temperature: OUT OF RANGE"
+      }
+    ],
+    "starter": "void main() {\n    // Ask for the temperature: is it in range?\n}\n"
+  },
+  "ch04-making-decisions-practice#4": {
+    "kind": "input",
+    "runs": [
+      {
+        "typed": [
+          "6000"
+        ],
+        "contains": "Ceiling: CLEAR"
+      },
+      {
+        "typed": [
+          "2000"
+        ],
+        "contains": "Ceiling: MARGINAL"
+      },
+      {
+        "typed": [
+          "1999"
+        ],
+        "contains": "Ceiling: TOO LOW"
+      },
+      {
+        "typed": [
+          "5000"
+        ],
+        "contains": "Ceiling: CLEAR"
+      }
+    ],
+    "starter": "void main() {\n    // Ask for the ceiling; sort it into a band.\n}\n"
+  },
+  "ch04-making-decisions-practice#5": {
+    "kind": "input",
+    "runs": [
+      {
+        "typed": [
+          "97"
+        ],
+        "contains": "Fuel: 97%"
+      },
+      {
+        "typed": [
+          "full"
+        ],
+        "contains": "Fuel: NOT A NUMBER"
+      },
+      {
+        "typed": [
+          "42"
+        ],
+        "contains": "Fuel: 42%"
+      }
+    ],
+    "starter": "void main() {\n    // Ask for the fuel, and do not trust it.\n}\n"
+  },
+  "ch04-making-decisions-practice#6": {
+    "kind": "input",
+    "runs": [
+      {
+        "typed": [
+          "10",
+          "20",
+          "6000",
+          "98"
+        ],
+        "contains": "LAUNCH: GO"
+      },
+      {
+        "typed": [
+          "35",
+          "20",
+          "6000",
+          "98"
+        ],
+        "contains": "LAUNCH: NO GO"
+      },
+      {
+        "typed": [
+          "10",
+          "20",
+          "6000",
+          "full"
+        ],
+        "contains": "LAUNCH: NO GO"
+      },
+      {
+        "typed": [
+          "10",
+          "2",
+          "2000",
+          "95"
+        ],
+        "contains": "LAUNCH: GO"
+      },
+      {
+        "typed": [
+          "10",
+          "20",
+          "6000",
+          "94"
+        ],
+        "contains": "LAUNCH: NO GO"
+      },
+      {
+        "typed": [
+          "10",
+          "1",
+          "6000",
+          "98"
+        ],
+        "contains": "LAUNCH: NO GO"
+      },
+      {
+        "typed": [
+          "10",
+          "20",
+          "1999",
+          "98"
+        ],
+        "contains": "LAUNCH: NO GO"
+      }
+    ],
+    "starter": "void main() {\n    double wind = Double.parseDouble(IO.readln(\"Wind speed in mph? \").strip());\n    double temperature = Double.parseDouble(IO.readln(\"Temperature in C? \").strip());\n    double ceiling = Double.parseDouble(IO.readln(\"Cloud ceiling in feet? \").strip());\n    String typed = IO.readln(\"Fuel percentage? \");\n    // Then one verdict line.\n}\n"
+  },
+  "ch04-making-decisions-practice#7": {
+    "kind": "input",
+    "runs": [
+      {
+        "typed": [
+          "10",
+          "20",
+          "1500",
+          "98"
+        ],
+        "contains": "HOLD: ceiling"
+      },
+      {
+        "typed": [
+          "31",
+          "20",
+          "1500",
+          "90"
+        ],
+        "contains": "HOLD: wind"
+      },
+      {
+        "typed": [
+          "10",
+          "40",
+          "6000",
+          "98"
+        ],
+        "contains": "HOLD: temperature"
+      },
+      {
+        "typed": [
+          "10",
+          "20",
+          "6000",
+          "90"
+        ],
+        "contains": "HOLD: fuel"
+      },
+      {
+        "typed": [
+          "31",
+          "40",
+          "1500",
+          "90"
+        ],
+        "contains": "HOLD: wind"
+      },
+      {
+        "typed": [
+          "10",
+          "40",
+          "1500",
+          "90"
+        ],
+        "contains": "HOLD: temperature"
+      },
+      {
+        "typed": [
+          "10",
+          "20",
+          "1500",
+          "90"
+        ],
+        "contains": "HOLD: ceiling"
+      }
+    ],
+    "starter": "void main() {\n    double wind = Double.parseDouble(IO.readln(\"Wind speed in mph? \").strip());\n    double temperature = Double.parseDouble(IO.readln(\"Temperature in C? \").strip());\n    double ceiling = Double.parseDouble(IO.readln(\"Cloud ceiling in feet? \").strip());\n    String typed = IO.readln(\"Fuel percentage? \");\n    // Then the verdict, and why.\n}\n"
+  },
+  "ch04-making-decisions-practice#8": {
+    "kind": "input",
+    "runs": [
+      {
+        "typed": [
+          "12.5",
+          "20",
+          "6000",
+          "98"
+        ],
+        "words": [
+          "ok",
+          "ok",
+          "clear",
+          "98"
+        ],
+        "contains": "LAUNCH: GO"
+      },
+      {
+        "typed": [
+          "12.5",
+          "20",
+          "1500",
+          "98"
+        ],
+        "words": [
+          "too",
+          "low",
+          "no",
+          "go"
+        ],
+        "contains": "HOLD: ceiling"
+      },
+      {
+        "typed": [
+          "12.5",
+          "20",
+          "6000",
+          "full"
+        ],
+        "words": [
+          "not",
+          "a",
+          "number",
+          "no",
+          "go"
+        ],
+        "contains": "HOLD: fuel"
+      },
+      {
+        "typed": [
+          "31",
+          "40",
+          "3000",
+          "90"
+        ],
+        "words": [
+          "too",
+          "strong",
+          "out",
+          "of",
+          "range",
+          "marginal",
+          "90",
+          "no",
+          "go"
+        ],
+        "contains": "HOLD: wind"
+      }
+    ],
+    "starter": "void main() {\n    // Four readings, four status lines, the verdict.\n}\n"
   }
 }

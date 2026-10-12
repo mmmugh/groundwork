@@ -1,0 +1,175 @@
+GROUNDWORK
+Chapter 4 - Making Decisions
+
+ANSWER KEY
+
+
+VOCABULARY
+----------
+
+ 1. A ____ is an expression, written in parentheses after the if keyword,
+    that produces true or false.
+
+      ANSWER: condition
+
+ 2. The statements between a { and its }, which run only when the
+    condition is true, are called a ____.
+
+      ANSWER: block
+
+ 3. ____ (two words) lets you chain more than two possibilities together
+    in one decision.
+
+      ANSWER: else if
+
+ 4. In Java a condition must produce a ____ value, true or false, which is
+    why if (name) is a compile error when name is a String.
+
+      ANSWER: boolean
+
+
+READING CODE
+------------
+
+ 5. What does this print?
+
+        int score = 85;
+        String grade;
+
+        if (score >= 90) {
+            grade = "A";
+        } else if (score >= 80) {
+            grade = "B";
+        } else if (score >= 70) {
+            grade = "C";
+        } else if (score >= 60) {
+            grade = "D";
+        } else {
+            grade = "F";
+        }
+
+        IO.println("Score " + score + " earns a " + grade + ".");
+
+      ANSWER: Score 85 earns a B.
+
+ 6. What does this print?
+
+        int score = 95;
+        String grade;
+
+        if (score >= 60) {
+            grade = "D";
+        } else if (score >= 70) {
+            grade = "C";
+        } else if (score >= 90) {
+            grade = "A";
+        } else {
+            grade = "F";
+        }
+
+        IO.println(grade);
+
+      ANSWER: D
+
+ 7. What does this print?
+
+        String name = "";
+
+        if (!name.isEmpty()) {
+            IO.println("Hello, " + name + ".");
+        } else {
+            IO.println("Hello, stranger.");
+        }
+
+      ANSWER: Hello, stranger.
+
+ 8. What does this print?
+
+        boolean hasTicket = false;
+        int age = 20;
+
+        if (hasTicket) {
+            if (age >= 13) {
+                IO.println("Enjoy the show.");
+            } else {
+                IO.println("You need an adult with you.");
+            }
+        } else {
+            IO.println("Please buy a ticket first.");
+        }
+
+      ANSWER: Please buy a ticket first.
+
+ 9. What does this print?
+
+        int score = 45;
+
+        if (score >= 60)
+            IO.println("You passed.");
+            IO.println("Congratulations.");
+
+      ANSWER: Congratulations.
+
+
+WRITING CODE
+------------
+
+10. Complete this line so the age the user types is read as a whole
+    number:
+    int age = ____(IO.readln("Your age: ").strip());
+
+      ANSWER: Integer.parseInt
+
+11. Complete the catch so it handles the exception Integer.parseInt
+    throws when it cannot read the text:
+    try {
+        int tickets = Integer.parseInt(answer.strip());
+        IO.println("That will be $" + (tickets * 12) + ".");
+    } catch (____ e) {
+        IO.println("Please enter a whole number.");
+    }
+
+      ANSWER: NumberFormatException
+
+12. Complete this program so a price that is not a number is caught:
+    ____ {
+        double price = Double.parseDouble(answer.strip());
+        IO.println("With tax: $" + String.format("%.2f", price * 1.08));
+    } catch (NumberFormatException e) {
+        IO.println("That is not a number.");
+    }
+
+      ANSWER: try
+
+13. Complete this condition so the Tuesday discount applies only when
+    the price is greater than 0, never to a free ticket:
+    int discount = 0;
+    if (day.equals("tuesday") && price ____ 0) {
+        discount = 3;
+        price -= discount;
+    }
+
+      ANSWER: >
+
+
+WHY IT WORKS
+------------
+
+14. Java checks else if conditions in the order they are written and stops
+    at the first one that is ____, which is why a score of 95 in the
+    reordered chain gets the grade "____" instead of "A".
+
+      ANSWER: true
+      ANSWER: D
+
+15. The ticket program puts Integer.parseInt inside a try because, given
+    text such as three, it throws a NumberFormatException that would
+    otherwise ____.
+
+      ANSWER: stop the program
+
+16. name.isEmpty() gives back ____ for the empty string "", which is why
+    !name.isEmpty() is false and the program prints "Hello, stranger."
+    when the user presses Enter without typing anything.
+
+      ANSWER: true

@@ -1466,3 +1466,1029 @@ void main() {
     IO.println("Each of you:     " + String.format("%.2f", cost / people));
 }
 ```
+
+## ch04-making-decisions#13
+
+Try It 1: positive, negative, or zero.
+
+```java
+// Says whether a number is positive, negative, or zero.
+
+void main() {
+    double number = Double.parseDouble(IO.readln("Enter a number: ").strip());
+
+    if (number > 0) {
+        IO.println("The number is positive.");
+    } else if (number < 0) {
+        IO.println("The number is negative.");
+    } else {
+        IO.println("The number is zero.");
+    }
+}
+```
+
+Three possibilities make a chain of two conditions and an `else`. A number that is neither above zero nor below it can only be zero, so the last case needs no test of its own. `Double.parseDouble` reads `2.5` as well as `5`.
+
+```java
+void main() {
+    int n = Integer.parseInt(IO.readln("Number? ").strip());
+
+    if (n == 0) {
+        IO.println("zero");
+    } else {
+        if (n > 0) {
+            IO.println(n + " is positive");
+        } else {
+            IO.println(n + " is negative");
+        }
+    }
+}
+```
+
+The second answer tests for zero first and nests the other two cases inside its `else`, and reads whole numbers only.
+
+### mistake
+
+`>=` lets zero into the first branch, so zero comes out positive and the zero case never runs:
+
+```java
+void main() {
+    double number = Double.parseDouble(IO.readln("Enter a number: ").strip());
+
+    if (number >= 0) {
+        IO.println("The number is positive.");
+    } else if (number < 0) {
+        IO.println("The number is negative.");
+    } else {
+        IO.println("The number is zero.");
+    }
+}
+```
+
+Two cases where there are three, so zero comes out negative:
+
+```java
+void main() {
+    double number = Double.parseDouble(IO.readln("Enter a number: ").strip());
+
+    if (number > 0) {
+        IO.println("The number is positive.");
+    } else {
+        IO.println("The number is negative.");
+    }
+}
+```
+
+## ch04-making-decisions#14
+
+Try It 2: a leap year.
+
+```java
+// Asks for a year and reports whether it is a leap year.
+
+void main() {
+    int year = Integer.parseInt(IO.readln("Enter a year: ").strip());
+
+    if (year % 400 == 0) {
+        IO.println(year + " is a leap year.");
+    } else if (year % 100 == 0) {
+        IO.println(year + " is not a leap year.");
+    } else if (year % 4 == 0) {
+        IO.println(year + " is a leap year.");
+    } else {
+        IO.println(year + " is not a leap year.");
+    }
+}
+```
+
+The most specific rule (divisible by 400) goes first, exactly as this chapter warns: an `else if` chain stops at the first true condition, so order decides the outcome for overlapping cases. A remainder of 0 (`%`, Chapter 3) means the year divides evenly.
+
+```java
+void main() {
+    int year = Integer.parseInt(IO.readln("Year? ").strip());
+    boolean leap = false;
+
+    if (year % 4 == 0) {
+        leap = true;
+        if (year % 100 == 0) {
+            leap = year % 400 == 0;
+        }
+    }
+
+    if (leap) {
+        IO.println(year + " is a leap year");
+    } else {
+        IO.println(year + " is not a leap year");
+    }
+}
+```
+
+The second answer follows the rule in the order it is written, nesting the exception inside the rule, and keeps the answer in a `boolean` before printing one of two lines.
+
+### mistake
+
+The rules in the order the sentence gives them: every year divisible by 100 is also divisible by 4, so 1900 is caught by the first test and called a leap year.
+
+```java
+void main() {
+    int year = Integer.parseInt(IO.readln("Enter a year: ").strip());
+
+    if (year % 4 == 0) {
+        IO.println(year + " is a leap year.");
+    } else if (year % 100 == 0) {
+        IO.println(year + " is not a leap year.");
+    } else if (year % 400 == 0) {
+        IO.println(year + " is a leap year.");
+    } else {
+        IO.println(year + " is not a leap year.");
+    }
+}
+```
+
+The exception without its exception: 2000 is divisible by 400, and so a leap year, but this calls it not one.
+
+```java
+void main() {
+    int year = Integer.parseInt(IO.readln("Enter a year: ").strip());
+
+    if (year % 100 == 0) {
+        IO.println(year + " is not a leap year.");
+    } else if (year % 4 == 0) {
+        IO.println(year + " is a leap year.");
+    } else {
+        IO.println(year + " is not a leap year.");
+    }
+}
+```
+
+## ch04-making-decisions#15
+
+Try It 3: the larger of two numbers.
+
+```java
+// Asks for two numbers and prints the larger one.
+
+void main() {
+    double first = Double.parseDouble(IO.readln("First number: ").strip());
+    double second = Double.parseDouble(IO.readln("Second number: ").strip());
+
+    if (first > second) {
+        IO.println(first + " is larger.");
+    } else if (second > first) {
+        IO.println(second + " is larger.");
+    } else {
+        IO.println("The numbers are equal.");
+    }
+}
+```
+
+If neither number is larger than the other, they are equal, so the `else` needs no test of its own. A `double` prints with its decimal point, so typing 8 gives `8.0 is larger.`
+
+```java
+void main() {
+    int a = Integer.parseInt(IO.readln("First? ").strip());
+    int b = Integer.parseInt(IO.readln("Second? ").strip());
+
+    if (a == b) {
+        IO.println("Equal");
+    } else if (a > b) {
+        IO.println("Larger: " + a);
+    } else {
+        IO.println("Larger: " + b);
+    }
+}
+```
+
+The second answer handles the equal case first, and reads whole numbers.
+
+### mistake
+
+No equal case: when the two are the same, the `else` calls the second one larger.
+
+```java
+void main() {
+    double first = Double.parseDouble(IO.readln("First number: ").strip());
+    double second = Double.parseDouble(IO.readln("Second number: ").strip());
+
+    if (first > second) {
+        IO.println(first + " is larger.");
+    } else {
+        IO.println(second + " is larger.");
+    }
+}
+```
+
+## ch04-making-decisions#16
+
+Try It 4: the days in a month.
+
+```java
+// Asks for a month number and prints how many days it has.
+
+void main() {
+    int month = Integer.parseInt(IO.readln("Month number: ").strip());
+
+    if (month == 2) {
+        IO.println("28 days");
+    } else if (month == 4 || month == 6 || month == 9 || month == 11) {
+        IO.println("30 days");
+    } else {
+        IO.println("31 days");
+    }
+}
+```
+
+February is the one exception, so it goes first. The four 30-day months share one condition, joined with `||`, and every month left has 31 days.
+
+```java
+void main() {
+    int month = Integer.parseInt(IO.readln("Which month? ").strip());
+    int days = 31;
+
+    if (month == 2) {
+        days = 28;
+    }
+    if (month == 4 || month == 6 || month == 9 || month == 11) {
+        days = 30;
+    }
+
+    IO.println("That month has " + days + " days.");
+}
+```
+
+The second answer starts from the commonest answer, 31, and changes it only for the months that differ; two separate `if`s are safe here because no month passes both tests.
+
+### mistake
+
+November left out of the 30-day months, so it gets 31:
+
+```java
+void main() {
+    int month = Integer.parseInt(IO.readln("Month number: ").strip());
+
+    if (month == 2) {
+        IO.println("28 days");
+    } else if (month == 4 || month == 6 || month == 9) {
+        IO.println("30 days");
+    } else {
+        IO.println("31 days");
+    }
+}
+```
+
+## ch04-making-decisions#17
+
+Try It 5: a right prediction written another way (spaces at the end of the line and a blank line after it, which Check ignores).
+
+```text
+medium   
+
+```
+
+### mistake
+
+Stopping at the outer test: `x > 10` is true, but the inner `if` still decides, and 12 is not above 20.
+
+```text
+big
+```
+
+## ch04-making-decisions#18
+
+Try It 6: the grade program, rejecting impossible scores.
+
+```java
+// Grades a test score, rejecting impossible scores first.
+
+void main() {
+    int score = Integer.parseInt(IO.readln("Test score: ").strip());
+
+    if (score < 0 || score > 100) {
+        IO.println("Score must be between 0 and 100.");
+    } else {
+        String grade;
+        if (score >= 90) {
+            grade = "A";
+        } else if (score >= 80) {
+            grade = "B";
+        } else if (score >= 70) {
+            grade = "C";
+        } else if (score >= 60) {
+            grade = "D";
+        } else {
+            grade = "F";
+        }
+
+        IO.println("Score " + score + " earns a " + grade + ".");
+    }
+}
+```
+
+The validation wraps the whole original grading chain in an `else` block—the same "reject first, then work" shape as the chapter's own ticket kiosk. `String grade;` moves inside the `else` with the chain, since nothing outside it needs a grade.
+
+```java
+void main() {
+    int score = Integer.parseInt(IO.readln("Test score: ").strip());
+
+    if (score < 0) {
+        IO.println("Score must be between 0 and 100.");
+    } else if (score > 100) {
+        IO.println("Score must be between 0 and 100.");
+    } else if (score >= 90) {
+        IO.println("Score " + score + " earns a A.");
+    } else if (score >= 80) {
+        IO.println("Score " + score + " earns a B.");
+    } else if (score >= 70) {
+        IO.println("Score " + score + " earns a C.");
+    } else if (score >= 60) {
+        IO.println("Score " + score + " earns a D.");
+    } else {
+        IO.println("Score " + score + " earns a F.");
+    }
+}
+```
+
+The second answer makes the two rejections the first links of one long chain and prints the grade in each branch, with no `grade` variable.
+
+### mistake
+
+Only the top end checked, so a score of -5 still earns an F:
+
+```java
+void main() {
+    int score = Integer.parseInt(IO.readln("Test score: ").strip());
+
+    if (score > 100) {
+        IO.println("Score must be between 0 and 100.");
+    } else {
+        String grade;
+        if (score >= 90) {
+            grade = "A";
+        } else if (score >= 80) {
+            grade = "B";
+        } else if (score >= 70) {
+            grade = "C";
+        } else if (score >= 60) {
+            grade = "D";
+        } else {
+            grade = "F";
+        }
+
+        IO.println("Score " + score + " earns a " + grade + ".");
+    }
+}
+```
+
+`<=` and `>=` turn away 0 and 100, which are real scores:
+
+```java
+void main() {
+    int score = Integer.parseInt(IO.readln("Test score: ").strip());
+
+    if (score <= 0 || score >= 100) {
+        IO.println("Score must be between 0 and 100.");
+    } else {
+        String grade;
+        if (score >= 90) {
+            grade = "A";
+        } else if (score >= 80) {
+            grade = "B";
+        } else if (score >= 70) {
+            grade = "C";
+        } else if (score >= 60) {
+            grade = "D";
+        } else {
+            grade = "F";
+        }
+
+        IO.println("Score " + score + " earns a " + grade + ".");
+    }
+}
+```
+
+## ch04-making-decisions-practice#1
+
+```java
+void main() {
+    double wind = Double.parseDouble(IO.readln("Wind speed in mph? ").strip());
+    IO.println("Wind: " + String.format("%.1f", wind) + " mph");
+}
+```
+
+`Double.parseDouble` rather than `Integer.parseInt`, because a wind speed has a decimal point. `%.1f` keeps the display steady at one decimal place, whatever was typed: `7.46` shows as `7.5`, and `8` as `8.0`.
+
+```java
+void main() {
+    String answer = IO.readln("How windy, in mph? ");
+    double speed = Double.parseDouble(answer.strip());
+    IO.println(String.format("Wind: %.1f mph", speed));
+}
+```
+
+The second answer keeps the typed text in a variable before converting it, and puts the whole line in one format string.
+
+### mistake
+
+Reading a whole number: `Integer.parseInt` cannot read `12.5`, and the program stops with a `NumberFormatException`.
+
+```java
+void main() {
+    int wind = Integer.parseInt(IO.readln("Wind speed in mph? ").strip());
+    IO.println("Wind: " + wind + " mph");
+}
+```
+
+Joining the number as it is, with no format: `7.46` prints as `7.46`, not to one decimal place.
+
+```java
+void main() {
+    double wind = Double.parseDouble(IO.readln("Wind speed in mph? ").strip());
+    IO.println("Wind: " + wind + " mph");
+}
+```
+
+## ch04-making-decisions-practice#2
+
+```java
+void main() {
+    double wind = Double.parseDouble(IO.readln("Wind speed in mph? ").strip());
+
+    if (wind < 30) {
+        IO.println("Wind: OK");
+    } else {
+        IO.println("Wind: TOO STRONG");
+    }
+}
+```
+
+Under 30 means `<`, not `<=`. At exactly 30 the club stays on the ground.
+
+```java
+void main() {
+    double wind = Double.parseDouble(IO.readln("Wind speed in mph? ").strip());
+
+    if (wind >= 30) {
+        IO.println("Wind: TOO STRONG");
+    } else {
+        IO.println("Wind: OK");
+    }
+}
+```
+
+The second answer asks the opposite question, "too strong?", so its first branch is the refusal.
+
+### mistake
+
+`<=` lets exactly 30 through:
+
+```java
+void main() {
+    double wind = Double.parseDouble(IO.readln("Wind speed in mph? ").strip());
+
+    if (wind <= 30) {
+        IO.println("Wind: OK");
+    } else {
+        IO.println("Wind: TOO STRONG");
+    }
+}
+```
+
+## ch04-making-decisions-practice#3
+
+```java
+void main() {
+    double temperature = Double.parseDouble(IO.readln("Temperature in C? ").strip());
+
+    if (temperature >= 2 && temperature <= 35) {
+        IO.println("Temperature: OK");
+    } else {
+        IO.println("Temperature: OUT OF RANGE");
+    }
+}
+```
+
+Two comparisons joined with `&&`. Both ends count as safe, so both are `>=` and `<=`.
+
+```java
+void main() {
+    double temperature = Double.parseDouble(IO.readln("Temperature in C? ").strip());
+
+    if (temperature < 2 || temperature > 35) {
+        IO.println("Temperature: OUT OF RANGE");
+    } else {
+        IO.println("Temperature: OK");
+    }
+}
+```
+
+The second answer tests for the two ways out of range, joined with `||`, and the safe band is what is left.
+
+### mistake
+
+`>` and `<` leave both ends out, so exactly 2 degrees is called out of range:
+
+```java
+void main() {
+    double temperature = Double.parseDouble(IO.readln("Temperature in C? ").strip());
+
+    if (temperature > 2 && temperature < 35) {
+        IO.println("Temperature: OK");
+    } else {
+        IO.println("Temperature: OUT OF RANGE");
+    }
+}
+```
+
+`||` where `&&` belongs: every temperature is at least 2 or at most 35, so everything is OK.
+
+```java
+void main() {
+    double temperature = Double.parseDouble(IO.readln("Temperature in C? ").strip());
+
+    if (temperature >= 2 || temperature <= 35) {
+        IO.println("Temperature: OK");
+    } else {
+        IO.println("Temperature: OUT OF RANGE");
+    }
+}
+```
+
+## ch04-making-decisions-practice#4
+
+```java
+void main() {
+    double ceiling = Double.parseDouble(IO.readln("Cloud ceiling in feet? ").strip());
+
+    if (ceiling >= 5000) {
+        IO.println("Ceiling: CLEAR");
+    } else if (ceiling >= 2000) {
+        IO.println("Ceiling: MARGINAL");
+    } else {
+        IO.println("Ceiling: TOO LOW");
+    }
+}
+```
+
+The narrow test goes first. With 2000 tested before 5000, a clear sky reads as marginal and the CLEAR branch never runs.
+
+```java
+void main() {
+    double ceiling = Double.parseDouble(IO.readln("Cloud ceiling in feet? ").strip());
+
+    if (ceiling < 2000) {
+        IO.println("Ceiling: TOO LOW");
+    } else if (ceiling < 5000) {
+        IO.println("Ceiling: MARGINAL");
+    } else {
+        IO.println("Ceiling: CLEAR");
+    }
+}
+```
+
+The second answer climbs from the bottom band, with `<`, which puts the narrow test first just as well.
+
+### mistake
+
+The broad test first: 6000 feet passes `>= 2000` and is called marginal.
+
+```java
+void main() {
+    double ceiling = Double.parseDouble(IO.readln("Cloud ceiling in feet? ").strip());
+
+    if (ceiling >= 2000) {
+        IO.println("Ceiling: MARGINAL");
+    } else if (ceiling >= 5000) {
+        IO.println("Ceiling: CLEAR");
+    } else {
+        IO.println("Ceiling: TOO LOW");
+    }
+}
+```
+
+## ch04-making-decisions-practice#5
+
+```java
+void main() {
+    String typed = IO.readln("Fuel percentage? ");
+
+    try {
+        int fuel = Integer.parseInt(typed.strip());
+        IO.println("Fuel: " + fuel + "%");
+    } catch (NumberFormatException e) {
+        IO.println("Fuel: NOT A NUMBER");
+    }
+}
+```
+
+The conversion is the check: when `Integer.parseInt` cannot read what was typed, it throws, and the `catch` prints the warning. Without the `try`, `Integer.parseInt` on `full` would stop the program before it could print anything.
+
+```java
+void main() {
+    try {
+        IO.println("Fuel: " + Integer.parseInt(IO.readln("Fuel percentage? ").strip()) + "%");
+    } catch (NumberFormatException e) {
+        IO.println("Fuel: NOT A NUMBER");
+    }
+}
+```
+
+The second answer reads, converts and prints in one line, inside the `try`: if the conversion throws, the line prints nothing and the `catch` runs.
+
+### mistake
+
+No `try`: typing `full` stops the program with a `NumberFormatException`.
+
+```java
+void main() {
+    String typed = IO.readln("Fuel percentage? ");
+    int fuel = Integer.parseInt(typed.strip());
+    IO.println("Fuel: " + fuel + "%");
+}
+```
+
+`Double.parseDouble` for a whole-number percentage, so 97 prints as `Fuel: 97.0%`:
+
+```java
+void main() {
+    String typed = IO.readln("Fuel percentage? ");
+
+    try {
+        double fuel = Double.parseDouble(typed.strip());
+        IO.println("Fuel: " + fuel + "%");
+    } catch (NumberFormatException e) {
+        IO.println("Fuel: NOT A NUMBER");
+    }
+}
+```
+
+## ch04-making-decisions-practice#6
+
+```java
+void main() {
+    double wind = Double.parseDouble(IO.readln("Wind speed in mph? ").strip());
+    double temperature = Double.parseDouble(IO.readln("Temperature in C? ").strip());
+    double ceiling = Double.parseDouble(IO.readln("Cloud ceiling in feet? ").strip());
+    String typed = IO.readln("Fuel percentage? ");
+
+    boolean windOk = wind < 30;
+    boolean temperatureOk = temperature >= 2 && temperature <= 35;
+    boolean ceilingOk = ceiling >= 2000;
+    boolean fuelOk;
+    try {
+        fuelOk = Integer.parseInt(typed.strip()) >= 95;
+    } catch (NumberFormatException e) {
+        fuelOk = false;
+    }
+
+    if (windOk && temperatureOk && ceilingOk && fuelOk) {
+        IO.println("LAUNCH: GO");
+    } else {
+        IO.println("LAUNCH: NO GO");
+    }
+}
+```
+
+Naming each condition keeps the verdict line readable, and the names are reused in the next step. `fuelOk` is created with no value, and the `try` and the `catch` each give it one, as every branch of the grade chain gives `grade` one: fuel that is not a number is not safe.
+
+```java
+void main() {
+    double wind = Double.parseDouble(IO.readln("Wind speed in mph? ").strip());
+    double temperature = Double.parseDouble(IO.readln("Temperature in C? ").strip());
+    double ceiling = Double.parseDouble(IO.readln("Cloud ceiling in feet? ").strip());
+    String typed = IO.readln("Fuel percentage? ");
+
+    boolean go = wind < 30 && temperature >= 2 && temperature <= 35 && ceiling >= 2000;
+    try {
+        int fuel = Integer.parseInt(typed.strip());
+        if (fuel < 95) {
+            go = false;
+        }
+    } catch (NumberFormatException e) {
+        go = false;
+    }
+
+    if (go) {
+        IO.println("LAUNCH: GO");
+    } else {
+        IO.println("LAUNCH: NO GO");
+    }
+}
+```
+
+The second answer keeps one `boolean` for the whole verdict, and lets the fuel test turn it off.
+
+### mistake
+
+`||` where `&&` belongs: one safe reading is enough for a launch.
+
+```java
+void main() {
+    double wind = Double.parseDouble(IO.readln("Wind speed in mph? ").strip());
+    double temperature = Double.parseDouble(IO.readln("Temperature in C? ").strip());
+    double ceiling = Double.parseDouble(IO.readln("Cloud ceiling in feet? ").strip());
+    String typed = IO.readln("Fuel percentage? ");
+
+    boolean windOk = wind < 30;
+    boolean temperatureOk = temperature >= 2 && temperature <= 35;
+    boolean ceilingOk = ceiling >= 2000;
+    boolean fuelOk;
+    try {
+        fuelOk = Integer.parseInt(typed.strip()) >= 95;
+    } catch (NumberFormatException e) {
+        fuelOk = false;
+    }
+
+    if (windOk || temperatureOk || ceilingOk || fuelOk) {
+        IO.println("LAUNCH: GO");
+    } else {
+        IO.println("LAUNCH: NO GO");
+    }
+}
+```
+
+## ch04-making-decisions-practice#7
+
+```java
+void main() {
+    double wind = Double.parseDouble(IO.readln("Wind speed in mph? ").strip());
+    double temperature = Double.parseDouble(IO.readln("Temperature in C? ").strip());
+    double ceiling = Double.parseDouble(IO.readln("Cloud ceiling in feet? ").strip());
+    String typed = IO.readln("Fuel percentage? ");
+
+    boolean windOk = wind < 30;
+    boolean temperatureOk = temperature >= 2 && temperature <= 35;
+    boolean ceilingOk = ceiling >= 2000;
+    boolean fuelOk;
+    try {
+        fuelOk = Integer.parseInt(typed.strip()) >= 95;
+    } catch (NumberFormatException e) {
+        fuelOk = false;
+    }
+
+    if (windOk && temperatureOk && ceilingOk && fuelOk) {
+        IO.println("LAUNCH: GO");
+    } else {
+        IO.println("LAUNCH: NO GO");
+        if (!windOk) {
+            IO.println("HOLD: wind");
+        } else if (!temperatureOk) {
+            IO.println("HOLD: temperature");
+        } else if (!ceilingOk) {
+            IO.println("HOLD: ceiling");
+        } else {
+            IO.println("HOLD: fuel");
+        }
+    }
+}
+```
+
+`else if` rather than four separate `if`s, so only the first failure is reported. Fuel is the `else` because it is the only one left.
+
+```java
+void main() {
+    double wind = Double.parseDouble(IO.readln("Wind speed in mph? ").strip());
+    double temperature = Double.parseDouble(IO.readln("Temperature in C? ").strip());
+    double ceiling = Double.parseDouble(IO.readln("Cloud ceiling in feet? ").strip());
+    String typed = IO.readln("Fuel percentage? ");
+
+    String hold = "";
+    try {
+        if (Integer.parseInt(typed.strip()) < 95) {
+            hold = "fuel";
+        }
+    } catch (NumberFormatException e) {
+        hold = "fuel";
+    }
+    if (ceiling < 2000) {
+        hold = "ceiling";
+    }
+    if (temperature < 2 || temperature > 35) {
+        hold = "temperature";
+    }
+    if (wind >= 30) {
+        hold = "wind";
+    }
+
+    if (hold.isEmpty()) {
+        IO.println("LAUNCH: GO");
+    } else {
+        IO.println("LAUNCH: NO GO");
+        IO.println("HOLD: " + hold);
+    }
+}
+```
+
+The second answer checks the readings backward, fuel first, each failure overwriting the one before it, so the reason left at the end is the first one in the order wind, temperature, ceiling, fuel. An empty reason means a launch.
+
+### mistake
+
+The reasons checked in the wrong order: with both the wind and the ceiling bad, it blames the ceiling.
+
+```java
+void main() {
+    double wind = Double.parseDouble(IO.readln("Wind speed in mph? ").strip());
+    double temperature = Double.parseDouble(IO.readln("Temperature in C? ").strip());
+    double ceiling = Double.parseDouble(IO.readln("Cloud ceiling in feet? ").strip());
+    String typed = IO.readln("Fuel percentage? ");
+
+    boolean windOk = wind < 30;
+    boolean temperatureOk = temperature >= 2 && temperature <= 35;
+    boolean ceilingOk = ceiling >= 2000;
+    boolean fuelOk;
+    try {
+        fuelOk = Integer.parseInt(typed.strip()) >= 95;
+    } catch (NumberFormatException e) {
+        fuelOk = false;
+    }
+
+    if (windOk && temperatureOk && ceilingOk && fuelOk) {
+        IO.println("LAUNCH: GO");
+    } else {
+        IO.println("LAUNCH: NO GO");
+        if (!ceilingOk) {
+            IO.println("HOLD: ceiling");
+        } else if (!windOk) {
+            IO.println("HOLD: wind");
+        } else if (!temperatureOk) {
+            IO.println("HOLD: temperature");
+        } else {
+            IO.println("HOLD: fuel");
+        }
+    }
+}
+```
+
+## ch04-making-decisions-practice#8
+
+```java
+// The launch console: four readings, four status lines, a verdict and its reason.
+
+void main() {
+    double wind = Double.parseDouble(IO.readln("Wind speed in mph? ").strip());
+    double temperature = Double.parseDouble(IO.readln("Temperature in C? ").strip());
+    double ceiling = Double.parseDouble(IO.readln("Cloud ceiling in feet? ").strip());
+    String typed = IO.readln("Fuel percentage? ");
+
+    boolean windOk = wind < 30;
+    boolean temperatureOk = temperature >= 2 && temperature <= 35;
+    boolean ceilingOk = ceiling >= 2000;
+
+    if (windOk) {
+        IO.println("Wind: OK");
+    } else {
+        IO.println("Wind: TOO STRONG");
+    }
+
+    if (temperatureOk) {
+        IO.println("Temperature: OK");
+    } else {
+        IO.println("Temperature: OUT OF RANGE");
+    }
+
+    if (ceiling >= 5000) {
+        IO.println("Ceiling: CLEAR");
+    } else if (ceilingOk) {
+        IO.println("Ceiling: MARGINAL");
+    } else {
+        IO.println("Ceiling: TOO LOW");
+    }
+
+    boolean fuelOk;
+    try {
+        int fuel = Integer.parseInt(typed.strip());
+        IO.println("Fuel: " + fuel + "%");
+        fuelOk = fuel >= 95;
+    } catch (NumberFormatException e) {
+        IO.println("Fuel: NOT A NUMBER");
+        fuelOk = false;
+    }
+
+    if (windOk && temperatureOk && ceilingOk && fuelOk) {
+        IO.println("LAUNCH: GO");
+    } else {
+        IO.println("LAUNCH: NO GO");
+        if (!windOk) {
+            IO.println("HOLD: wind");
+        } else if (!temperatureOk) {
+            IO.println("HOLD: temperature");
+        } else if (!ceilingOk) {
+            IO.println("HOLD: ceiling");
+        } else {
+            IO.println("HOLD: fuel");
+        }
+    }
+}
+```
+
+Nothing new, only assembly: the status lines from steps 2 to 5, then the verdict, then the reason. The fuel's `try` both prints its status line and decides `fuelOk`, so the fuel is converted once.
+
+```java
+// Reads the four readings, reports each, and decides.
+
+void main() {
+    double wind = Double.parseDouble(IO.readln("Wind speed in mph? ").strip());
+    double temperature = Double.parseDouble(IO.readln("Temperature in C? ").strip());
+    double ceiling = Double.parseDouble(IO.readln("Cloud ceiling in feet? ").strip());
+    String typed = IO.readln("Fuel percentage? ");
+
+    String windLine = "Wind: OK";
+    if (wind >= 30) {
+        windLine = "Wind: TOO STRONG";
+    }
+    String temperatureLine = "Temperature: OK";
+    if (temperature < 2 || temperature > 35) {
+        temperatureLine = "Temperature: OUT OF RANGE";
+    }
+    String ceilingLine = "Ceiling: CLEAR";
+    if (ceiling < 2000) {
+        ceilingLine = "Ceiling: TOO LOW";
+    } else if (ceiling < 5000) {
+        ceilingLine = "Ceiling: MARGINAL";
+    }
+    int fuel;
+    String fuelLine;
+    try {
+        fuel = Integer.parseInt(typed.strip());
+        fuelLine = "Fuel: " + fuel + "%";
+    } catch (NumberFormatException e) {
+        fuel = 0;
+        fuelLine = "Fuel: NOT A NUMBER";
+    }
+
+    IO.println(windLine);
+    IO.println(temperatureLine);
+    IO.println(ceilingLine);
+    IO.println(fuelLine);
+
+    if (wind >= 30) {
+        IO.println("LAUNCH: NO GO");
+        IO.println("HOLD: wind");
+    } else if (temperature < 2 || temperature > 35) {
+        IO.println("LAUNCH: NO GO");
+        IO.println("HOLD: temperature");
+    } else if (ceiling < 2000) {
+        IO.println("LAUNCH: NO GO");
+        IO.println("HOLD: ceiling");
+    } else if (fuel < 95) {
+        IO.println("LAUNCH: NO GO");
+        IO.println("HOLD: fuel");
+    } else {
+        IO.println("LAUNCH: GO");
+    }
+}
+```
+
+The second answer works out each status line as text first and prints the four together, then decides the verdict and its reason in one chain, the first failure winning. Fuel that is not a number counts as 0, which is below 95.
+
+### mistake
+
+Step 6's verdict with no reason: a `LAUNCH: NO GO` never says why.
+
+```java
+void main() {
+    double wind = Double.parseDouble(IO.readln("Wind speed in mph? ").strip());
+    double temperature = Double.parseDouble(IO.readln("Temperature in C? ").strip());
+    double ceiling = Double.parseDouble(IO.readln("Cloud ceiling in feet? ").strip());
+    String typed = IO.readln("Fuel percentage? ");
+
+    boolean windOk = wind < 30;
+    boolean temperatureOk = temperature >= 2 && temperature <= 35;
+    boolean ceilingOk = ceiling >= 2000;
+
+    if (windOk) {
+        IO.println("Wind: OK");
+    } else {
+        IO.println("Wind: TOO STRONG");
+    }
+
+    if (temperatureOk) {
+        IO.println("Temperature: OK");
+    } else {
+        IO.println("Temperature: OUT OF RANGE");
+    }
+
+    if (ceiling >= 5000) {
+        IO.println("Ceiling: CLEAR");
+    } else if (ceilingOk) {
+        IO.println("Ceiling: MARGINAL");
+    } else {
+        IO.println("Ceiling: TOO LOW");
+    }
+
+    boolean fuelOk;
+    try {
+        int fuel = Integer.parseInt(typed.strip());
+        IO.println("Fuel: " + fuel + "%");
+        fuelOk = fuel >= 95;
+    } catch (NumberFormatException e) {
+        IO.println("Fuel: NOT A NUMBER");
+        fuelOk = false;
+    }
+
+    if (windOk && temperatureOk && ceilingOk && fuelOk) {
+        IO.println("LAUNCH: GO");
+    } else {
+        IO.println("LAUNCH: NO GO");
+    }
+}
+```
