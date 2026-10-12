@@ -452,5 +452,10 @@
   "ch10-records#2": {
     "compileError": "cannot assign a value to final variable score",
     "why": "A record's component is assigned to, which javac refuses: a record cannot be changed. The error message is the lesson."
+  },
+  "ch11-searching-and-sorting-practice#4": {
+    "stdin": [
+      "Omar"
+    ]
   }
 }

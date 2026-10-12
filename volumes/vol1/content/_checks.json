@@ -3157,5 +3157,373 @@
       ]
     ],
     "starter": "record Service(String route, int departs, String destination) {}\n\n// Bring in clock and byTime here.\n\nArrayList<String> timetableLines(ArrayList<Service> services) {\n    return new ArrayList<>();\n}\n\nvoid main() {\n    ArrayList<Service> services = new ArrayList<>(List.of(\n            new Service(\"47\", 500, \"Harbor\"),\n            new Service(\"12\", 380, \"Museum\"),\n            new Service(\"47\", 415, \"Harbor\")));\n    for (String line : timetableLines(services)) {\n        IO.println(line);\n    }\n}\n"
+  },
+  "ch11-searching-and-sorting#8": {
+    "kind": "method",
+    "name": "linearSearch",
+    "returns": "ArrayList<Integer>",
+    "params": [
+      "int[]",
+      "int"
+    ],
+    "cases": [
+      [
+        "new int[] {1, 2, 1, 3}, 1",
+        "new ArrayList<>(List.of(0, 2))"
+      ],
+      [
+        "new int[] {1, 2}, 5",
+        "new ArrayList<>()"
+      ],
+      [
+        "new int[] {4, 4, 4}, 4",
+        "new ArrayList<>(List.of(0, 1, 2))"
+      ],
+      [
+        "new int[] {17, 4, 23, 4, 42}, 42",
+        "new ArrayList<>(List.of(4))"
+      ]
+    ],
+    "starter": "ArrayList<Integer> linearSearch(int[] items, int target) {\n    return new ArrayList<>();\n}\n\nvoid main() {\n    int[] numbers = {17, 4, 23, 4, 42};\n    IO.println(linearSearch(numbers, 4));\n    IO.println(linearSearch(numbers, 99));\n}\n"
+  },
+  "ch11-searching-and-sorting#9": {
+    "kind": "input",
+    "runs": [
+      {
+        "typed": [],
+        "numbers": [
+          "999",
+          "1000",
+          "999",
+          "10"
+        ]
+      }
+    ],
+    "starter": "int linearSearch(int[] items, int target) {\n    for (int i = 0; i < items.length; i++) {\n        if (items[i] == target) {\n            return i;\n        }\n    }\n    return -1;\n}\n\nint binarySearch(int[] items, int target) {\n    int low = 0;\n    int high = items.length - 1;\n\n    while (low <= high) {\n        int middle = (low + high) / 2;\n\n        if (items[middle] == target) {\n            return middle;\n        } else if (items[middle] < target) {\n            low = middle + 1;\n        } else {\n            high = middle - 1;\n        }\n    }\n\n    return -1;\n}\n\nvoid main() {\n    int[] numbers = new int[1000];\n    for (int i = 0; i < numbers.length; i++) {\n        numbers[i] = i;\n    }\n    IO.println(linearSearch(numbers, 999));\n    IO.println(binarySearch(numbers, 999));\n}\n"
+  },
+  "ch11-searching-and-sorting#10": {
+    "kind": "method",
+    "name": "binarySearch",
+    "returns": "int",
+    "params": [
+      "int[]",
+      "int"
+    ],
+    "cases": [
+      [
+        "new int[] {1, 3, 5, 7}, 5",
+        "2"
+      ],
+      [
+        "new int[] {1, 3, 5, 7}, 4",
+        "2"
+      ],
+      [
+        "new int[] {1, 3, 5, 7}, 0",
+        "0"
+      ],
+      [
+        "new int[] {1, 3, 5, 7}, 9",
+        "4"
+      ],
+      [
+        "new int[] {1, 3, 5, 7}, 6",
+        "3"
+      ],
+      [
+        "new int[] {}, 3",
+        "0"
+      ]
+    ],
+    "starter": "int binarySearch(int[] items, int target) {\n    int low = 0;\n    int high = items.length - 1;\n\n    while (low <= high) {\n        int middle = (low + high) / 2;\n\n        if (items[middle] == target) {\n            return middle;\n        } else if (items[middle] < target) {\n            low = middle + 1;\n        } else {\n            high = middle - 1;\n        }\n    }\n\n    return -1;\n}\n\nvoid main() {\n    int[] numbers = {1, 3, 5, 7};\n    IO.println(binarySearch(numbers, 4));\n    IO.println(binarySearch(numbers, 9));\n}\n"
+  },
+  "ch11-searching-and-sorting#11": {
+    "kind": "method",
+    "name": "insertionSort",
+    "returns": "int[]",
+    "params": [
+      "int[]"
+    ],
+    "cases": [
+      [
+        "new int[] {64, 25, 12, 22, 11}",
+        "new int[] {11, 12, 22, 25, 64}"
+      ],
+      [
+        "new int[] {3, 1, 2, 5, 4}",
+        "new int[] {1, 2, 3, 4, 5}"
+      ],
+      [
+        "new int[] {2, 1}",
+        "new int[] {1, 2}"
+      ],
+      [
+        "new int[] {1}",
+        "new int[] {1}"
+      ],
+      [
+        "new int[] {}",
+        "new int[] {}"
+      ],
+      [
+        "new int[] {5, 1, 5, 1}",
+        "new int[] {1, 1, 5, 5}"
+      ]
+    ],
+    "starter": "int[] insertionSort(int[] items) {\n    return new int[] {};\n}\n\nvoid main() {\n    IO.println(Arrays.toString(insertionSort(new int[] {64, 25, 12, 22, 11})));\n}\n"
+  },
+  "ch11-searching-and-sorting#12": {
+    "kind": "input",
+    "runs": [
+      {
+        "typed": [],
+        "words": [
+          "Ada",
+          "Alan",
+          "Grace",
+          "Edsger",
+          "Katherine"
+        ],
+        "numbers": [
+          "88",
+          "88",
+          "95",
+          "99",
+          "99"
+        ]
+      }
+    ],
+    "starter": "record Student(String name, int score) {}\n\nvoid main() {\n    ArrayList<Student> students = new ArrayList<>(List.of(\n            new Student(\"Ada\", 88),\n            new Student(\"Grace\", 95),\n            new Student(\"Alan\", 88),\n            new Student(\"Katherine\", 99),\n            new Student(\"Edsger\", 99)));\n    // Sort by score, then by name; print each.\n}\n"
+  },
+  "ch11-searching-and-sorting#13": {
+    "kind": "method",
+    "name": "isSorted",
+    "returns": "boolean",
+    "params": [
+      "int[]"
+    ],
+    "cases": [
+      [
+        "new int[] {1, 2, 3}",
+        "true"
+      ],
+      [
+        "new int[] {3, 1}",
+        "false"
+      ],
+      [
+        "new int[] {}",
+        "true"
+      ],
+      [
+        "new int[] {5}",
+        "true"
+      ],
+      [
+        "new int[] {1, 2, 2, 3}",
+        "true"
+      ],
+      [
+        "new int[] {1, 3, 2}",
+        "false"
+      ],
+      [
+        "new int[] {1, 2, 4, 3}",
+        "false"
+      ]
+    ],
+    "starter": "boolean isSorted(int[] items) {\n    return false;\n}\n\nvoid main() {\n    IO.println(isSorted(new int[] {1, 2, 2, 3}));\n    IO.println(isSorted(new int[] {3, 1}));\n}\n"
+  },
+  "ch11-searching-and-sorting#14": {
+    "kind": "input",
+    "runs": [
+      {
+        "typed": [],
+        "numbers": [
+          "1",
+          "28",
+          "1",
+          "7"
+        ]
+      }
+    ],
+    "starter": "// The two closest values, found two ways.\n\nvoid main() {\n    int[] values = {17, 4, 23, 8, 42, 15, 9, 41};\n    // Every pair first; then a sorted copy's neighbors.\n}\n"
+  },
+  "ch11-searching-and-sorting-practice#1": {
+    "kind": "method",
+    "name": "fastestName",
+    "returns": "String",
+    "params": [
+      "ArrayList<Result>"
+    ],
+    "cases": [
+      [
+        "new ArrayList<>(List.of(new Result(\"Nadia\", 58.2), new Result(\"Omar\", 61.0), new Result(\"Priya\", 57.4), new Result(\"Quinn\", 63.5)))",
+        "\"Priya\""
+      ],
+      [
+        "new ArrayList<>(List.of(new Result(\"Nadia\", 58.2), new Result(\"Omar\", 61.0)))",
+        "\"Nadia\""
+      ],
+      [
+        "new ArrayList<>(List.of(new Result(\"Quinn\", 63.5)))",
+        "\"Quinn\""
+      ],
+      [
+        "new ArrayList<>(List.of(new Result(\"Priya\", 57.4), new Result(\"Quinn\", 63.5)))",
+        "\"Priya\""
+      ]
+    ],
+    "starter": "record Result(String name, double seconds) {}\n\nString fastestName(ArrayList<Result> results) {\n    return \"\";\n}\n\nvoid main() {\n    ArrayList<Result> results = new ArrayList<>(List.of(\n            new Result(\"Nadia\", 58.2),\n            new Result(\"Omar\", 61.0),\n            new Result(\"Priya\", 57.4),\n            new Result(\"Quinn\", 63.5)));\n    IO.println(fastestName(results));\n}\n"
+  },
+  "ch11-searching-and-sorting-practice#2": {
+    "kind": "output",
+    "expected": "Priya 57.4\nNadia 58.2\nOmar 61.0\nQuinn 63.5\nHanded in first: Nadia",
+    "starter": "record Result(String name, double seconds) {}\n\nArrayList<Result> ranked(ArrayList<Result> results) {\n    return new ArrayList<>();\n}\n\nvoid main() {\n    ArrayList<Result> results = new ArrayList<>(List.of(\n            new Result(\"Nadia\", 58.2),\n            new Result(\"Omar\", 61.0),\n            new Result(\"Priya\", 57.4),\n            new Result(\"Quinn\", 63.5)));\n    for (Result result : ranked(results)) {\n        IO.println(result.name() + \" \" + result.seconds());\n    }\n    IO.println(\"Handed in first: \" + results.get(0).name());\n}\n"
+  },
+  "ch11-searching-and-sorting-practice#3": {
+    "kind": "method",
+    "name": "placeOf",
+    "returns": "int",
+    "params": [
+      "ArrayList<Result>",
+      "String"
+    ],
+    "cases": [
+      [
+        "new ArrayList<>(List.of(new Result(\"Nadia\", 58.2), new Result(\"Omar\", 61.0), new Result(\"Priya\", 57.4), new Result(\"Quinn\", 63.5))), \"Priya\"",
+        "1"
+      ],
+      [
+        "new ArrayList<>(List.of(new Result(\"Nadia\", 58.2), new Result(\"Omar\", 61.0), new Result(\"Priya\", 57.4), new Result(\"Quinn\", 63.5))), \"Nadia\"",
+        "2"
+      ],
+      [
+        "new ArrayList<>(List.of(new Result(\"Nadia\", 58.2), new Result(\"Omar\", 61.0), new Result(\"Priya\", 57.4), new Result(\"Quinn\", 63.5))), \"Quinn\"",
+        "4"
+      ],
+      [
+        "new ArrayList<>(List.of(new Result(\"Nadia\", 58.2), new Result(\"Omar\", 61.0), new Result(\"Priya\", 57.4), new Result(\"Quinn\", 63.5))), \"Zed\"",
+        "-1"
+      ],
+      [
+        "new ArrayList<>(List.of(new Result(\"Nadia\", 58.2), new Result(\"Omar\", 61.0), new Result(\"Priya\", 57.4), new Result(\"Quinn\", 63.5))), \" Omar\".strip()",
+        "3"
+      ]
+    ],
+    "starter": "record Result(String name, double seconds) {}\n\n// Bring in ranked from step 2 here.\n\nint placeOf(ArrayList<Result> results, String name) {\n    return 0;\n}\n\nvoid main() {\n    ArrayList<Result> results = new ArrayList<>(List.of(\n            new Result(\"Nadia\", 58.2),\n            new Result(\"Omar\", 61.0),\n            new Result(\"Priya\", 57.4),\n            new Result(\"Quinn\", 63.5)));\n    IO.println(placeOf(results, \"Priya\"));\n    IO.println(placeOf(results, \"Zed\"));\n}\n"
+  },
+  "ch11-searching-and-sorting-practice#4": {
+    "kind": "input",
+    "runs": [
+      {
+        "typed": [
+          "Omar"
+        ],
+        "contains": "Result[name=Omar, seconds=61.0]"
+      },
+      {
+        "typed": [
+          "Zed"
+        ],
+        "contains": "null"
+      }
+    ],
+    "starter": "record Result(String name, double seconds) {}\n\nResult resultFor(ArrayList<Result> results, String name) {\n    return null;\n}\n\nvoid main() {\n    ArrayList<Result> results = new ArrayList<>(List.of(\n            new Result(\"Nadia\", 58.2),\n            new Result(\"Omar\", 61.0),\n            new Result(\"Priya\", 57.4),\n            new Result(\"Quinn\", 63.5)));\n    String name = IO.readln(\"Runner: \").strip();\n    IO.println(resultFor(results, name));\n}\n"
+  },
+  "ch11-searching-and-sorting-practice#5": {
+    "kind": "method",
+    "name": "insertionPoint",
+    "returns": "int",
+    "params": [
+      "double[]",
+      "double"
+    ],
+    "cases": [
+      [
+        "new double[] {57.4, 58.2, 61.0}, 60.0",
+        "2"
+      ],
+      [
+        "new double[] {57.4, 58.2, 61.0}, 57.0",
+        "0"
+      ],
+      [
+        "new double[] {57.4, 58.2, 61.0}, 62.0",
+        "3"
+      ],
+      [
+        "new double[] {57.4, 58.2, 61.0}, 58.2",
+        "1"
+      ],
+      [
+        "new double[] {57.4, 58.2, 61.0}, 61.0",
+        "2"
+      ],
+      [
+        "new double[] {58.2, 58.2, 61.0}, 58.2",
+        "0"
+      ],
+      [
+        "new double[] {}, 10.0",
+        "0"
+      ]
+    ],
+    "starter": "int insertionPoint(double[] times, double target) {\n    return 0;\n}\n\nvoid main() {\n    double[] times = {57.4, 58.2, 61.0};\n    IO.println(insertionPoint(times, 60.0));\n    IO.println(insertionPoint(times, 58.2));\n}\n"
+  },
+  "ch11-searching-and-sorting-practice#6": {
+    "kind": "method",
+    "name": "podium",
+    "returns": "ArrayList<String>",
+    "params": [
+      "ArrayList<Result>"
+    ],
+    "cases": [
+      [
+        "new ArrayList<>(List.of(new Result(\"Nadia\", 58.2), new Result(\"Omar\", 61.0), new Result(\"Priya\", 57.4), new Result(\"Quinn\", 63.5)))",
+        "new ArrayList<>(List.of(\"Priya\", \"Nadia\", \"Omar\"))"
+      ],
+      [
+        "new ArrayList<>(List.of(new Result(\"Nadia\", 58.2), new Result(\"Omar\", 61.0)))",
+        "new ArrayList<>(List.of(\"Nadia\", \"Omar\"))"
+      ],
+      [
+        "new ArrayList<>(List.of(new Result(\"Omar\", 61.0), new Result(\"Priya\", 57.4)))",
+        "new ArrayList<>(List.of(\"Priya\", \"Omar\"))"
+      ],
+      [
+        "new ArrayList<>()",
+        "new ArrayList<>()"
+      ]
+    ],
+    "starter": "record Result(String name, double seconds) {}\n\n// Bring in ranked from step 2 here.\n\nArrayList<String> podium(ArrayList<Result> results) {\n    return new ArrayList<>();\n}\n\nvoid main() {\n    ArrayList<Result> results = new ArrayList<>(List.of(\n            new Result(\"Nadia\", 58.2),\n            new Result(\"Omar\", 61.0),\n            new Result(\"Priya\", 57.4),\n            new Result(\"Quinn\", 63.5)));\n    IO.println(podium(results));\n}\n"
+  },
+  "ch11-searching-and-sorting-practice#7": {
+    "kind": "output",
+    "expected": "[57.4, 58.2, 61.0]\n[61.0, 57.4, 58.2]\n[1.0, 2.0, 3.0, 4.0, 5.0]\n[1.0]\n[1.0, 2.0]\n[]",
+    "starter": "double[] sortTimes(double[] times) {\n    return new double[] {};\n}\n\nvoid main() {\n    double[] times = {61.0, 57.4, 58.2};\n    IO.println(Arrays.toString(sortTimes(times)));\n    IO.println(Arrays.toString(times));\n    IO.println(Arrays.toString(sortTimes(new double[] {3.0, 1.0, 2.0, 5.0, 4.0})));\n    IO.println(Arrays.toString(sortTimes(new double[] {1.0})));\n    IO.println(Arrays.toString(sortTimes(new double[] {2.0, 1.0})));\n    IO.println(Arrays.toString(sortTimes(new double[] {})));\n}\n"
+  },
+  "ch11-searching-and-sorting-practice#8": {
+    "kind": "method",
+    "name": "leaderboardLines",
+    "returns": "ArrayList<String>",
+    "params": [
+      "ArrayList<Result>"
+    ],
+    "cases": [
+      [
+        "new ArrayList<>(List.of(new Result(\"Nadia\", 58.2), new Result(\"Omar\", 61.0), new Result(\"Priya\", 57.4), new Result(\"Quinn\", 63.5)))",
+        "new ArrayList<>(List.of(\"1. Priya 57.4\", \"2. Nadia 58.2\", \"3. Omar 61.0\", \"4. Quinn 63.5\"))"
+      ],
+      [
+        "new ArrayList<>()",
+        "new ArrayList<>()"
+      ],
+      [
+        "new ArrayList<>(List.of(new Result(\"Omar\", 61.0)))",
+        "new ArrayList<>(List.of(\"1. Omar 61.0\"))"
+      ]
+    ],
+    "starter": "record Result(String name, double seconds) {}\n\n// Bring in ranked from step 2 here.\n\nArrayList<String> leaderboardLines(ArrayList<Result> results) {\n    return new ArrayList<>();\n}\n\nvoid main() {\n    ArrayList<Result> results = new ArrayList<>(List.of(\n            new Result(\"Nadia\", 58.2),\n            new Result(\"Omar\", 61.0),\n            new Result(\"Priya\", 57.4),\n            new Result(\"Quinn\", 63.5)));\n    for (String line : leaderboardLines(results)) {\n        IO.println(line);\n    }\n}\n"
   }
 }

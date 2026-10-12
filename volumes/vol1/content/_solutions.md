@@ -9751,3 +9751,1793 @@ void main() {
     IO.println(timetableLines(services));
 }
 ```
+
+## ch11-searching-and-sorting#8
+
+Try It 1: every index where the target appears.
+
+```java
+/// Returns every index where target appears in items.
+ArrayList<Integer> linearSearch(int[] items, int target) {
+    ArrayList<Integer> found = new ArrayList<>();
+    for (int i = 0; i < items.length; i++) {
+        if (items[i] == target) {
+            found.add(i);
+        }
+    }
+    return found;
+}
+
+void main() {
+    int[] numbers = {17, 4, 23, 4, 42};
+    IO.println(linearSearch(numbers, 4));
+    IO.println(linearSearch(numbers, 99));
+}
+```
+
+The loop no longer stops at the first match: each index where the target appears goes into the list, and the method gives the list back once the loop has looked at every item. A target that never appears leaves the list empty.
+
+```java
+ArrayList<Integer> linearSearch(int[] items, int target) {
+    ArrayList<Integer> found = new ArrayList<>();
+    int i = 0;
+    while (i < items.length) {
+        if (items[i] == target) {
+            found.add(i);
+        }
+        i++;
+    }
+    return found;
+}
+
+void main() {
+    IO.println(linearSearch(new int[] {1, 2, 1, 3}, 1));
+}
+```
+
+The second answer walks the array with a `while` loop and its own counter instead of a `for`.
+
+### mistake
+
+Returning at the first match finds only one index:
+
+```java
+ArrayList<Integer> linearSearch(int[] items, int target) {
+    ArrayList<Integer> found = new ArrayList<>();
+    for (int i = 0; i < items.length; i++) {
+        if (items[i] == target) {
+            found.add(i);
+            return found;
+        }
+    }
+    return found;
+}
+
+void main() {
+    IO.println(linearSearch(new int[] {1, 2, 1, 3}, 1));
+}
+```
+
+Adding the item instead of its index gives `[1, 1]`:
+
+```java
+ArrayList<Integer> linearSearch(int[] items, int target) {
+    ArrayList<Integer> found = new ArrayList<>();
+    for (int i = 0; i < items.length; i++) {
+        if (items[i] == target) {
+            found.add(items[i]);
+        }
+    }
+    return found;
+}
+
+void main() {
+    IO.println(linearSearch(new int[] {1, 2, 1, 3}, 1));
+}
+```
+
+## ch11-searching-and-sorting#9
+
+Try It 2: a step counter in both searches.
+
+```java
+// Counts the steps each search takes on 1,000 numbers.
+
+record Search(int index, int steps) {}
+
+Search linearSearch(int[] items, int target) {
+    int steps = 0;
+    for (int i = 0; i < items.length; i++) {
+        steps++;
+        if (items[i] == target) {
+            return new Search(i, steps);
+        }
+    }
+    return new Search(-1, steps);
+}
+
+Search binarySearch(int[] items, int target) {
+    int low = 0;
+    int high = items.length - 1;
+    int steps = 0;
+
+    while (low <= high) {
+        steps++;
+        int middle = (low + high) / 2;
+        if (items[middle] == target) {
+            return new Search(middle, steps);
+        } else if (items[middle] < target) {
+            low = middle + 1;
+        } else {
+            high = middle - 1;
+        }
+    }
+    return new Search(-1, steps);
+}
+
+void main() {
+    int[] numbers = new int[1000];
+    for (int i = 0; i < numbers.length; i++) {
+        numbers[i] = i;
+    }
+
+    Search linear = linearSearch(numbers, 999);
+    Search binary = binarySearch(numbers, 999);
+    IO.println("Linear search: found at " + linear.index()
+            + " in " + linear.steps() + " steps");
+    IO.println("Binary search: found at " + binary.index()
+            + " in " + binary.steps() + " steps");
+}
+```
+
+Each search counts a step every time it checks an item, before it tests that item, so the check that finds 999 counts too. A record carries the index and the count back together. The linear search checks all 1,000 items; the binary search checks 10.
+
+```java
+int steps = 0;
+
+int linearSearch(int[] items, int target) {
+    for (int i = 0; i < items.length; i++) {
+        steps++;
+        if (items[i] == target) {
+            return i;
+        }
+    }
+    return -1;
+}
+
+int binarySearch(int[] items, int target) {
+    int low = 0;
+    int high = items.length - 1;
+    while (low <= high) {
+        steps++;
+        int middle = (low + high) / 2;
+        if (items[middle] == target) {
+            return middle;
+        } else if (items[middle] < target) {
+            low = middle + 1;
+        } else {
+            high = middle - 1;
+        }
+    }
+    return -1;
+}
+
+void main() {
+    int[] numbers = new int[1000];
+    for (int i = 0; i < numbers.length; i++) {
+        numbers[i] = i;
+    }
+
+    steps = 0;
+    int found = linearSearch(numbers, 999);
+    IO.println("Linear: index " + found + ", " + steps + " steps");
+
+    steps = 0;
+    found = binarySearch(numbers, 999);
+    IO.println("Binary: index " + found + ", " + steps + " steps");
+}
+```
+
+The second answer keeps the count in a field, Chapter 6's variable at the top of the file, and sets it back to 0 before each search, so each method still returns only the index.
+
+### mistake
+
+Counting after the test leaves out the check that finds the target, so the counts come out one short:
+
+```java
+record Search(int index, int steps) {}
+
+Search linearSearch(int[] items, int target) {
+    int steps = 0;
+    for (int i = 0; i < items.length; i++) {
+        if (items[i] == target) {
+            return new Search(i, steps);
+        }
+        steps++;
+    }
+    return new Search(-1, steps);
+}
+
+Search binarySearch(int[] items, int target) {
+    int low = 0;
+    int high = items.length - 1;
+    int steps = 0;
+    while (low <= high) {
+        int middle = (low + high) / 2;
+        if (items[middle] == target) {
+            return new Search(middle, steps);
+        } else if (items[middle] < target) {
+            low = middle + 1;
+        } else {
+            high = middle - 1;
+        }
+        steps++;
+    }
+    return new Search(-1, steps);
+}
+
+void main() {
+    int[] numbers = new int[1000];
+    for (int i = 0; i < numbers.length; i++) {
+        numbers[i] = i;
+    }
+    Search linear = linearSearch(numbers, 999);
+    Search binary = binarySearch(numbers, 999);
+    IO.println("Linear: " + linear.index() + " in " + linear.steps());
+    IO.println("Binary: " + binary.index() + " in " + binary.steps());
+}
+```
+
+Filling the array from 1 rather than 0 puts 999 at index 998:
+
+```java
+record Search(int index, int steps) {}
+
+Search linearSearch(int[] items, int target) {
+    int steps = 0;
+    for (int i = 0; i < items.length; i++) {
+        steps++;
+        if (items[i] == target) {
+            return new Search(i, steps);
+        }
+    }
+    return new Search(-1, steps);
+}
+
+Search binarySearch(int[] items, int target) {
+    int low = 0;
+    int high = items.length - 1;
+    int steps = 0;
+    while (low <= high) {
+        steps++;
+        int middle = (low + high) / 2;
+        if (items[middle] == target) {
+            return new Search(middle, steps);
+        } else if (items[middle] < target) {
+            low = middle + 1;
+        } else {
+            high = middle - 1;
+        }
+    }
+    return new Search(-1, steps);
+}
+
+void main() {
+    int[] numbers = new int[1000];
+    for (int i = 0; i < numbers.length; i++) {
+        numbers[i] = i + 1;
+    }
+    Search linear = linearSearch(numbers, 999);
+    Search binary = binarySearch(numbers, 999);
+    IO.println("Linear: " + linear.index() + " in " + linear.steps());
+    IO.println("Binary: " + binary.index() + " in " + binary.steps());
+}
+```
+
+## ch11-searching-and-sorting#10
+
+Try It 3: where an absent target would go.
+
+```java
+/// Returns the index of target in a sorted array, or where it would go.
+int binarySearch(int[] items, int target) {
+    int low = 0;
+    int high = items.length - 1;
+
+    while (low <= high) {
+        int middle = (low + high) / 2;
+
+        if (items[middle] == target) {
+            return middle;
+        } else if (items[middle] < target) {
+            low = middle + 1;
+        } else {
+            high = middle - 1;
+        }
+    }
+
+    return low;
+}
+
+void main() {
+    int[] numbers = {1, 3, 5, 7};
+    IO.println(binarySearch(numbers, 4));
+    IO.println(binarySearch(numbers, 9));
+}
+```
+
+When the loop ends without finding the target, `low` has just passed `high`: every item before `low` is smaller than the target and every item from `low` on is larger, so `low` is where the target would go. Only the last line changes.
+
+```java
+int binarySearch(int[] items, int target) {
+    int low = 0;
+    int high = items.length;
+    while (low < high) {
+        int middle = (low + high) / 2;
+        if (items[middle] < target) {
+            low = middle + 1;
+        } else {
+            high = middle;
+        }
+    }
+    return low;
+}
+
+void main() {
+    IO.println(binarySearch(new int[] {1, 3, 5, 7}, 4));
+}
+```
+
+The second answer never stops early: it narrows the range until `low` and `high` meet, at the first item that is not smaller than the target, which is the target's own index when it is there.
+
+### mistake
+
+`high` has gone one place too far to the left, so it is one short:
+
+```java
+int binarySearch(int[] items, int target) {
+    int low = 0;
+    int high = items.length - 1;
+
+    while (low <= high) {
+        int middle = (low + high) / 2;
+
+        if (items[middle] == target) {
+            return middle;
+        } else if (items[middle] < target) {
+            low = middle + 1;
+        } else {
+            high = middle - 1;
+        }
+    }
+
+    return high;
+}
+
+void main() {
+    IO.println(binarySearch(new int[] {1, 3, 5, 7}, 4));
+}
+```
+
+The last middle checked is not always where the target goes: for 9, it is 3, the last index, not 4:
+
+```java
+int binarySearch(int[] items, int target) {
+    int low = 0;
+    int high = items.length - 1;
+    int middle = 0;
+
+    while (low <= high) {
+        middle = (low + high) / 2;
+
+        if (items[middle] == target) {
+            return middle;
+        } else if (items[middle] < target) {
+            low = middle + 1;
+        } else {
+            high = middle - 1;
+        }
+    }
+
+    return middle;
+}
+
+void main() {
+    IO.println(binarySearch(new int[] {1, 3, 5, 7}, 9));
+}
+```
+
+## ch11-searching-and-sorting#11
+
+Try It 4: insertion sort.
+
+```java
+/// Returns a sorted copy of items, using insertion sort.
+int[] insertionSort(int[] items) {
+    int[] result = Arrays.copyOf(items, items.length);
+
+    for (int i = 1; i < result.length; i++) {
+        int current = result[i];
+        int j = i - 1;
+        while (j >= 0 && result[j] > current) {
+            result[j + 1] = result[j];
+            j--;
+        }
+        result[j + 1] = current;
+    }
+
+    return result;
+}
+
+void main() {
+    IO.println(Arrays.toString(insertionSort(new int[] {64, 25, 12, 22, 11})));
+}
+```
+
+Each pass takes the next item, `current`, and moves every larger item before it one place to the right until it meets a smaller one or the start of the array. When the `while` loop stops, `j` has gone one place too far, so `current` belongs at `j + 1`.
+
+```java
+int[] insertionSort(int[] items) {
+    int[] result = Arrays.copyOf(items, items.length);
+    for (int i = 1; i < result.length; i++) {
+        for (int j = i; j > 0 && result[j - 1] > result[j]; j--) {
+            int temp = result[j];
+            result[j] = result[j - 1];
+            result[j - 1] = temp;
+        }
+    }
+    return result;
+}
+
+void main() {
+    IO.println(Arrays.toString(insertionSort(new int[] {3, 1, 2})));
+}
+```
+
+The second answer slides each item back by swapping it with its left neighbor, with the three-line swap, for as long as that neighbor is larger.
+
+### mistake
+
+Putting `current` at `j` rather than `j + 1`, the classic off-by-one here:
+
+```java
+int[] insertionSort(int[] items) {
+    int[] result = Arrays.copyOf(items, items.length);
+    for (int i = 1; i < result.length; i++) {
+        int current = result[i];
+        int j = i - 1;
+        while (j >= 0 && result[j] > current) {
+            result[j + 1] = result[j];
+            j--;
+        }
+        result[j] = current;
+    }
+    return result;
+}
+
+void main() {
+    IO.println(Arrays.toString(insertionSort(new int[] {3, 1, 2})));
+}
+```
+
+`j > 0` never compares an item with the first one, so nothing ever moves to the front:
+
+```java
+int[] insertionSort(int[] items) {
+    int[] result = Arrays.copyOf(items, items.length);
+    for (int i = 1; i < result.length; i++) {
+        int current = result[i];
+        int j = i - 1;
+        while (j > 0 && result[j] > current) {
+            result[j + 1] = result[j];
+            j--;
+        }
+        result[j + 1] = current;
+    }
+    return result;
+}
+
+void main() {
+    IO.println(Arrays.toString(insertionSort(new int[] {2, 1})));
+}
+```
+
+## ch11-searching-and-sorting#12
+
+Try It 5: students by score, then by name.
+
+```java
+// Students sorted by score, then by name.
+
+record Student(String name, int score) {}
+
+void main() {
+    ArrayList<Student> students = new ArrayList<>(List.of(
+            new Student("Ada", 88),
+            new Student("Grace", 95),
+            new Student("Alan", 88),
+            new Student("Katherine", 99),
+            new Student("Edsger", 99)));
+
+    ArrayList<Student> ranked = new ArrayList<>(students);
+    ranked.sort(Comparator.comparing(student -> student.name()));
+    ranked.sort(Comparator.comparing(student -> student.score()));
+
+    for (Student student : ranked) {
+        IO.println(String.format("%-10s%5d", student.name(), student.score()));
+    }
+}
+```
+
+The first sort puts the students in order by name. The second sorts them by score, and because a list's `sort` is stable, students on the same score keep the order the first sort gave them: Ada before Alan, and Edsger before Katherine.
+
+```java
+record Student(String name, int score) {}
+
+/// Returns whether a comes first: a lower score, or the same score and an earlier name.
+boolean before(Student a, Student b) {
+    if (a.score() != b.score()) {
+        return a.score() < b.score();
+    }
+    return a.name().compareTo(b.name()) < 0;
+}
+
+void main() {
+    ArrayList<Student> students = new ArrayList<>(List.of(
+            new Student("Ada", 88),
+            new Student("Grace", 95),
+            new Student("Alan", 88),
+            new Student("Katherine", 99),
+            new Student("Edsger", 99)));
+
+    ArrayList<Student> left = new ArrayList<>(students);
+    while (!left.isEmpty()) {
+        int first = 0;
+        for (int i = 1; i < left.size(); i++) {
+            if (before(left.get(i), left.get(first))) {
+                first = i;
+            }
+        }
+        Student student = left.remove(first);
+        IO.println(student.name() + " " + student.score());
+    }
+}
+```
+
+The second answer sorts by hand, taking the student who comes first from those left, again and again; `before` compares the scores, and the names only when the scores are equal.
+
+### mistake
+
+Sorting by score alone leaves Katherine before Edsger, the order they were listed in:
+
+```java
+record Student(String name, int score) {}
+
+void main() {
+    ArrayList<Student> students = new ArrayList<>(List.of(
+            new Student("Ada", 88),
+            new Student("Grace", 95),
+            new Student("Alan", 88),
+            new Student("Katherine", 99),
+            new Student("Edsger", 99)));
+
+    ArrayList<Student> ranked = new ArrayList<>(students);
+    ranked.sort(Comparator.comparing(student -> student.score()));
+
+    for (Student student : ranked) {
+        IO.println(String.format("%-10s%5d", student.name(), student.score()));
+    }
+}
+```
+
+The two sorts the other way round: the last sort decides, so this is an order by name:
+
+```java
+record Student(String name, int score) {}
+
+void main() {
+    ArrayList<Student> students = new ArrayList<>(List.of(
+            new Student("Ada", 88),
+            new Student("Grace", 95),
+            new Student("Alan", 88),
+            new Student("Katherine", 99),
+            new Student("Edsger", 99)));
+
+    ArrayList<Student> ranked = new ArrayList<>(students);
+    ranked.sort(Comparator.comparing(student -> student.score()));
+    ranked.sort(Comparator.comparing(student -> student.name()));
+
+    for (Student student : ranked) {
+        IO.println(String.format("%-10s%5d", student.name(), student.score()));
+    }
+}
+```
+
+## ch11-searching-and-sorting#13
+
+Try It 6: `isSorted`.
+
+```java
+/// Returns whether items is in order, smallest first.
+boolean isSorted(int[] items) {
+    for (int i = 0; i < items.length - 1; i++) {
+        if (items[i] > items[i + 1]) {
+            return false;
+        }
+    }
+    return true;
+}
+
+void main() {
+    IO.println(isSorted(new int[] {1, 2, 2, 3}));
+    IO.println(isSorted(new int[] {3, 1}));
+}
+```
+
+Each item is compared with the one after it, so the loop stops one short of the end. A neighbor out of order means the array is not sorted; if the loop finishes, every pair was in order. An array of no items or one item never enters the loop, and is sorted.
+
+```java
+boolean isSorted(int[] items) {
+    boolean ordered = true;
+    for (int i = 1; i < items.length; i++) {
+        if (items[i - 1] > items[i]) {
+            ordered = false;
+        }
+    }
+    return ordered;
+}
+
+void main() {
+    IO.println(isSorted(new int[] {1, 3, 2}));
+}
+```
+
+The second answer compares each item with the one before it and keeps a flag, which the first pair out of order clears.
+
+### mistake
+
+`>=` calls two equal neighbors out of order:
+
+```java
+boolean isSorted(int[] items) {
+    for (int i = 0; i < items.length - 1; i++) {
+        if (items[i] >= items[i + 1]) {
+            return false;
+        }
+    }
+    return true;
+}
+
+void main() {
+    IO.println(isSorted(new int[] {1, 2, 2, 3}));
+}
+```
+
+Returning from the first pair looks at only that pair:
+
+```java
+boolean isSorted(int[] items) {
+    for (int i = 0; i < items.length - 1; i++) {
+        if (items[i] <= items[i + 1]) {
+            return true;
+        }
+    }
+    return false;
+}
+
+void main() {
+    IO.println(isSorted(new int[] {1, 2, 4, 3}));
+}
+```
+
+## ch11-searching-and-sorting#14
+
+Try It 7: the two closest values, two ways.
+
+```java
+// The two closest values, found two ways.
+
+record Closest(int first, int second, int gap, int comparisons) {}
+
+/// Checks every pair.
+Closest bruteForce(int[] numbers) {
+    int bestFirst = 0;
+    int bestSecond = 0;
+    int bestGap = -1;
+    int comparisons = 0;
+
+    for (int i = 0; i < numbers.length; i++) {
+        for (int j = i + 1; j < numbers.length; j++) {
+            comparisons++;
+            int gap;
+            if (numbers[i] > numbers[j]) {
+                gap = numbers[i] - numbers[j];
+            } else {
+                gap = numbers[j] - numbers[i];
+            }
+            if (bestGap == -1 || gap < bestGap) {
+                bestFirst = numbers[i];
+                bestSecond = numbers[j];
+                bestGap = gap;
+            }
+        }
+    }
+    return new Closest(bestFirst, bestSecond, bestGap, comparisons);
+}
+
+/// Sorts a copy first, then checks only neighbors.
+Closest sortedFirst(int[] numbers) {
+    int[] ordered = Arrays.copyOf(numbers, numbers.length);
+    Arrays.sort(ordered);
+    int bestFirst = 0;
+    int bestSecond = 0;
+    int bestGap = -1;
+    int comparisons = 0;
+
+    for (int i = 0; i < ordered.length - 1; i++) {
+        comparisons++;
+        int gap = ordered[i + 1] - ordered[i];
+        if (bestGap == -1 || gap < bestGap) {
+            bestFirst = ordered[i];
+            bestSecond = ordered[i + 1];
+            bestGap = gap;
+        }
+    }
+    return new Closest(bestFirst, bestSecond, bestGap, comparisons);
+}
+
+void main() {
+    int[] values = {17, 4, 23, 8, 42, 15, 9, 41};
+
+    Closest brute = bruteForce(values);
+    IO.println("Brute force:  " + brute.first() + " and " + brute.second()
+            + ", gap " + brute.gap() + ", " + brute.comparisons() + " comparisons");
+
+    Closest sorted = sortedFirst(values);
+    IO.println("Sorted first: " + sorted.first() + " and " + sorted.second()
+            + ", gap " + sorted.gap() + ", " + sorted.comparisons() + " comparisons");
+}
+```
+
+The brute force looks at all 28 pairs of the eight values, taking the larger minus the smaller for each gap. Sorting a copy first puts close values side by side, so only the 7 neighboring pairs need looking at. The sort has work of its own, O(n log n), but on a large array that and the n neighbors are far less than every pair, about n²/2.
+
+```java
+void main() {
+    int[] values = {17, 4, 23, 8, 42, 15, 9, 41};
+
+    int bestGap = -1;
+    String bestPair = "";
+    int comparisons = 0;
+    for (int i = 0; i < values.length; i++) {
+        for (int j = i + 1; j < values.length; j++) {
+            comparisons++;
+            int gap = values[j] - values[i];
+            if (gap < 0) {
+                gap = values[i] - values[j];
+            }
+            if (bestGap == -1 || gap <= bestGap) {
+                bestGap = gap;
+                bestPair = values[i] + " and " + values[j];
+            }
+        }
+    }
+    IO.println("Every pair: " + bestPair + ", gap " + bestGap + ", " + comparisons + " comparisons");
+
+    int[] ordered = Arrays.copyOf(values, values.length);
+    Arrays.sort(ordered);
+    bestGap = -1;
+    comparisons = 0;
+    for (int i = 1; i < ordered.length; i++) {
+        comparisons++;
+        if (bestGap == -1 || ordered[i] - ordered[i - 1] <= bestGap) {
+            bestGap = ordered[i] - ordered[i - 1];
+            bestPair = ordered[i - 1] + " and " + ordered[i];
+        }
+    }
+    IO.println("Neighbors: " + bestPair + ", gap " + bestGap + ", " + comparisons + " comparisons");
+}
+```
+
+The second answer works in `main` alone, with no methods and no record, and keeps the last pair it finds at the smallest gap, `<=`, so it reports 41 and 42 rather than 8 and 9: the other right answer.
+
+### mistake
+
+Looking at neighbors without sorting first finds neighbors in the order the values were listed, not close ones:
+
+```java
+record Closest(int first, int second, int gap, int comparisons) {}
+
+Closest bruteForce(int[] numbers) {
+    int bestFirst = 0;
+    int bestSecond = 0;
+    int bestGap = -1;
+    int comparisons = 0;
+    for (int i = 0; i < numbers.length; i++) {
+        for (int j = i + 1; j < numbers.length; j++) {
+            comparisons++;
+            int gap;
+            if (numbers[i] > numbers[j]) {
+                gap = numbers[i] - numbers[j];
+            } else {
+                gap = numbers[j] - numbers[i];
+            }
+            if (bestGap == -1 || gap < bestGap) {
+                bestFirst = numbers[i];
+                bestSecond = numbers[j];
+                bestGap = gap;
+            }
+        }
+    }
+    return new Closest(bestFirst, bestSecond, bestGap, comparisons);
+}
+
+Closest neighbors(int[] numbers) {
+    int bestFirst = 0;
+    int bestSecond = 0;
+    int bestGap = -1;
+    int comparisons = 0;
+    for (int i = 0; i < numbers.length - 1; i++) {
+        comparisons++;
+        int gap = numbers[i + 1] - numbers[i];
+        if (bestGap == -1 || gap < bestGap) {
+            bestFirst = numbers[i];
+            bestSecond = numbers[i + 1];
+            bestGap = gap;
+        }
+    }
+    return new Closest(bestFirst, bestSecond, bestGap, comparisons);
+}
+
+void main() {
+    int[] values = {17, 4, 23, 8, 42, 15, 9, 41};
+    Closest brute = bruteForce(values);
+    IO.println(brute.first() + " " + brute.second() + " " + brute.gap() + " " + brute.comparisons());
+    Closest near = neighbors(values);
+    IO.println(near.first() + " " + near.second() + " " + near.gap() + " " + near.comparisons());
+}
+```
+
+Starting the inner loop at 0 pairs every value with itself, a gap of 0:
+
+```java
+void main() {
+    int[] values = {17, 4, 23, 8, 42, 15, 9, 41};
+
+    int bestGap = -1;
+    String bestPair = "";
+    int comparisons = 0;
+    for (int i = 0; i < values.length; i++) {
+        for (int j = 0; j < values.length; j++) {
+            comparisons++;
+            int gap = values[j] - values[i];
+            if (gap < 0) {
+                gap = values[i] - values[j];
+            }
+            if (bestGap == -1 || gap < bestGap) {
+                bestGap = gap;
+                bestPair = values[i] + " and " + values[j];
+            }
+        }
+    }
+    IO.println("Every pair: " + bestPair + ", gap " + bestGap + ", " + comparisons + " comparisons");
+
+    int[] ordered = Arrays.copyOf(values, values.length);
+    Arrays.sort(ordered);
+    bestGap = -1;
+    comparisons = 0;
+    for (int i = 1; i < ordered.length; i++) {
+        comparisons++;
+        if (bestGap == -1 || ordered[i] - ordered[i - 1] < bestGap) {
+            bestGap = ordered[i] - ordered[i - 1];
+            bestPair = ordered[i - 1] + " and " + ordered[i];
+        }
+    }
+    IO.println("Neighbors: " + bestPair + ", gap " + bestGap + ", " + comparisons + " comparisons");
+}
+```
+
+## ch11-searching-and-sorting-practice#1
+
+```java
+record Result(String name, double seconds) {}
+
+String fastestName(ArrayList<Result> results) {
+    Result best = results.get(0);
+    for (Result result : results) {
+        if (result.seconds() < best.seconds()) {
+            best = result;
+        }
+    }
+    return best.name();
+}
+
+void main() {
+    ArrayList<Result> results = new ArrayList<>(List.of(
+            new Result("Nadia", 58.2),
+            new Result("Omar", 61.0),
+            new Result("Priya", 57.4),
+            new Result("Quinn", 63.5)));
+    IO.println(fastestName(results));
+}
+```
+
+Fastest is the smallest time, so the comparison is `<`. Everything about a race says "best" and means "least."
+
+```java
+record Result(String name, double seconds) {}
+
+String fastestName(ArrayList<Result> results) {
+    int best = 0;
+    for (int i = 1; i < results.size(); i++) {
+        if (results.get(i).seconds() < results.get(best).seconds()) {
+            best = i;
+        }
+    }
+    return results.get(best).name();
+}
+
+void main() {
+    ArrayList<Result> results = new ArrayList<>(List.of(
+            new Result("Nadia", 58.2),
+            new Result("Priya", 57.4)));
+    IO.println(fastestName(results));
+}
+```
+
+The second answer keeps the index of the fastest so far, as selection sort keeps `smallest`.
+
+### mistake
+
+`>` finds the slowest runner:
+
+```java
+record Result(String name, double seconds) {}
+
+String fastestName(ArrayList<Result> results) {
+    Result best = results.get(0);
+    for (Result result : results) {
+        if (result.seconds() > best.seconds()) {
+            best = result;
+        }
+    }
+    return best.name();
+}
+
+void main() {
+    ArrayList<Result> results = new ArrayList<>(List.of(
+            new Result("Nadia", 58.2),
+            new Result("Priya", 57.4)));
+    IO.println(fastestName(results));
+}
+```
+
+Comparing the names finds the first name in alphabetical order:
+
+```java
+record Result(String name, double seconds) {}
+
+String fastestName(ArrayList<Result> results) {
+    Result best = results.get(0);
+    for (Result result : results) {
+        if (result.name().compareTo(best.name()) < 0) {
+            best = result;
+        }
+    }
+    return best.name();
+}
+
+void main() {
+    ArrayList<Result> results = new ArrayList<>(List.of(
+            new Result("Nadia", 58.2),
+            new Result("Priya", 57.4)));
+    IO.println(fastestName(results));
+}
+```
+
+## ch11-searching-and-sorting-practice#2
+
+```java
+record Result(String name, double seconds) {}
+
+ArrayList<Result> ranked(ArrayList<Result> results) {
+    ArrayList<Result> sorted = new ArrayList<>(results);
+    sorted.sort(Comparator.comparing(result -> result.seconds()));
+    return sorted;
+}
+
+void main() {
+    ArrayList<Result> results = new ArrayList<>(List.of(
+            new Result("Nadia", 58.2),
+            new Result("Omar", 61.0),
+            new Result("Priya", 57.4),
+            new Result("Quinn", 63.5)));
+    for (Result result : ranked(results)) {
+        IO.println(result.name() + " " + result.seconds());
+    }
+    IO.println("Handed in first: " + results.get(0).name());
+}
+```
+
+The comparator sorts on each result's time. Sorting a copy leaves the clipboard's own list in the order the results were handed in, which is why the last line still names Nadia.
+
+```java
+record Result(String name, double seconds) {}
+
+ArrayList<Result> ranked(ArrayList<Result> results) {
+    ArrayList<Result> left = new ArrayList<>(results);
+    ArrayList<Result> sorted = new ArrayList<>();
+    while (!left.isEmpty()) {
+        int fastest = 0;
+        for (int i = 1; i < left.size(); i++) {
+            if (left.get(i).seconds() < left.get(fastest).seconds()) {
+                fastest = i;
+            }
+        }
+        sorted.add(left.remove(fastest));
+    }
+    return sorted;
+}
+
+void main() {
+    ArrayList<Result> results = new ArrayList<>(List.of(
+            new Result("Nadia", 58.2),
+            new Result("Omar", 61.0),
+            new Result("Priya", 57.4),
+            new Result("Quinn", 63.5)));
+    for (Result result : ranked(results)) {
+        IO.println(result.name() + " " + result.seconds());
+    }
+    IO.println("Handed in first: " + results.get(0).name());
+}
+```
+
+The second answer sorts by hand, taking the fastest result left, again and again, from a copy.
+
+### mistake
+
+Sorting the list it is handed changes the clipboard's order too:
+
+```java
+record Result(String name, double seconds) {}
+
+ArrayList<Result> ranked(ArrayList<Result> results) {
+    results.sort(Comparator.comparing(result -> result.seconds()));
+    return results;
+}
+
+void main() {
+    ArrayList<Result> results = new ArrayList<>(List.of(
+            new Result("Nadia", 58.2),
+            new Result("Omar", 61.0),
+            new Result("Priya", 57.4),
+            new Result("Quinn", 63.5)));
+    for (Result result : ranked(results)) {
+        IO.println(result.name() + " " + result.seconds());
+    }
+    IO.println("Handed in first: " + results.get(0).name());
+}
+```
+
+Sorting by name gives an alphabetical leaderboard:
+
+```java
+record Result(String name, double seconds) {}
+
+ArrayList<Result> ranked(ArrayList<Result> results) {
+    ArrayList<Result> sorted = new ArrayList<>(results);
+    sorted.sort(Comparator.comparing(result -> result.name()));
+    return sorted;
+}
+
+void main() {
+    ArrayList<Result> results = new ArrayList<>(List.of(
+            new Result("Nadia", 58.2),
+            new Result("Omar", 61.0),
+            new Result("Priya", 57.4),
+            new Result("Quinn", 63.5)));
+    for (Result result : ranked(results)) {
+        IO.println(result.name() + " " + result.seconds());
+    }
+    IO.println("Handed in first: " + results.get(0).name());
+}
+```
+
+## ch11-searching-and-sorting-practice#3
+
+```java
+record Result(String name, double seconds) {}
+
+ArrayList<Result> ranked(ArrayList<Result> results) {
+    ArrayList<Result> sorted = new ArrayList<>(results);
+    sorted.sort(Comparator.comparing(result -> result.seconds()));
+    return sorted;
+}
+
+int placeOf(ArrayList<Result> results, String name) {
+    ArrayList<Result> order = ranked(results);
+    for (int i = 0; i < order.size(); i++) {
+        if (order.get(i).name().equals(name)) {
+            return i + 1;
+        }
+    }
+    return -1;
+}
+
+void main() {
+    ArrayList<Result> results = new ArrayList<>(List.of(
+            new Result("Nadia", 58.2),
+            new Result("Omar", 61.0),
+            new Result("Priya", 57.4),
+            new Result("Quinn", 63.5)));
+    IO.println(placeOf(results, "Priya"));
+    IO.println(placeOf(results, "Zed"));
+}
+```
+
+The place is the index in the ranked list plus one: nobody finishes in place 0. Names are compared with `.equals`, and -1, which no place can be, means the name did not run.
+
+```java
+record Result(String name, double seconds) {}
+
+ArrayList<Result> ranked(ArrayList<Result> results) {
+    ArrayList<Result> sorted = new ArrayList<>(results);
+    sorted.sort(Comparator.comparing(result -> result.seconds()));
+    return sorted;
+}
+
+int placeOf(ArrayList<Result> results, String name) {
+    int place = 0;
+    for (Result result : ranked(results)) {
+        place++;
+        if (result.name().equals(name)) {
+            return place;
+        }
+    }
+    return -1;
+}
+
+void main() {
+    ArrayList<Result> results = new ArrayList<>(List.of(
+            new Result("Omar", 61.0),
+            new Result("Priya", 57.4)));
+    IO.println(placeOf(results, "Omar"));
+}
+```
+
+The second answer counts the places as it walks the ranked list, so it needs no index.
+
+### mistake
+
+The index alone counts from 0, so the winner comes back in place 0:
+
+```java
+record Result(String name, double seconds) {}
+
+ArrayList<Result> ranked(ArrayList<Result> results) {
+    ArrayList<Result> sorted = new ArrayList<>(results);
+    sorted.sort(Comparator.comparing(result -> result.seconds()));
+    return sorted;
+}
+
+int placeOf(ArrayList<Result> results, String name) {
+    ArrayList<Result> order = ranked(results);
+    for (int i = 0; i < order.size(); i++) {
+        if (order.get(i).name().equals(name)) {
+            return i;
+        }
+    }
+    return -1;
+}
+
+void main() {
+    ArrayList<Result> results = new ArrayList<>(List.of(
+            new Result("Omar", 61.0),
+            new Result("Priya", 57.4)));
+    IO.println(placeOf(results, "Priya"));
+}
+```
+
+Counting in the clipboard's order, unranked, gives the order the results were handed in:
+
+```java
+record Result(String name, double seconds) {}
+
+int placeOf(ArrayList<Result> results, String name) {
+    for (int i = 0; i < results.size(); i++) {
+        if (results.get(i).name().equals(name)) {
+            return i + 1;
+        }
+    }
+    return -1;
+}
+
+void main() {
+    ArrayList<Result> results = new ArrayList<>(List.of(
+            new Result("Omar", 61.0),
+            new Result("Priya", 57.4)));
+    IO.println(placeOf(results, "Priya"));
+}
+```
+
+`==` asks whether two names are the same object, so a name made while the program runs is never found:
+
+```java
+record Result(String name, double seconds) {}
+
+ArrayList<Result> ranked(ArrayList<Result> results) {
+    ArrayList<Result> sorted = new ArrayList<>(results);
+    sorted.sort(Comparator.comparing(result -> result.seconds()));
+    return sorted;
+}
+
+int placeOf(ArrayList<Result> results, String name) {
+    ArrayList<Result> order = ranked(results);
+    for (int i = 0; i < order.size(); i++) {
+        if (order.get(i).name() == name) {
+            return i + 1;
+        }
+    }
+    return -1;
+}
+
+void main() {
+    ArrayList<Result> results = new ArrayList<>(List.of(
+            new Result("Omar", 61.0),
+            new Result("Priya", 57.4)));
+    IO.println(placeOf(results, " Omar".strip()));
+}
+```
+
+## ch11-searching-and-sorting-practice#4
+
+```java
+record Result(String name, double seconds) {}
+
+Result resultFor(ArrayList<Result> results, String name) {
+    for (Result result : results) {
+        if (result.name().equals(name)) {
+            return result;
+        }
+    }
+    return null;
+}
+
+void main() {
+    ArrayList<Result> results = new ArrayList<>(List.of(
+            new Result("Nadia", 58.2),
+            new Result("Omar", 61.0),
+            new Result("Priya", 57.4),
+            new Result("Quinn", 63.5)));
+    String name = IO.readln("Runner: ").strip();
+    IO.println(resultFor(results, name));
+}
+```
+
+The whole record, not the name that was passed in, so the caller gets the time as well. A binary search is no use here: the list is not sorted by name. `null` after the loop says that no runner matched.
+
+```java
+record Result(String name, double seconds) {}
+
+Result resultFor(ArrayList<Result> results, String name) {
+    Result found = null;
+    for (int i = 0; i < results.size() && found == null; i++) {
+        if (results.get(i).name().equals(name)) {
+            found = results.get(i);
+        }
+    }
+    return found;
+}
+
+void main() {
+    ArrayList<Result> results = new ArrayList<>(List.of(
+            new Result("Nadia", 58.2),
+            new Result("Omar", 61.0),
+            new Result("Priya", 57.4),
+            new Result("Quinn", 63.5)));
+    String name = IO.readln("Runner: ").strip();
+    IO.println(resultFor(results, name));
+}
+```
+
+The second answer keeps the match in a variable that starts as `null`, and its loop stops as soon as the variable holds one.
+
+### mistake
+
+`==` never matches a name that was typed, since the typed text is a new object:
+
+```java
+record Result(String name, double seconds) {}
+
+Result resultFor(ArrayList<Result> results, String name) {
+    for (Result result : results) {
+        if (result.name() == name) {
+            return result;
+        }
+    }
+    return null;
+}
+
+void main() {
+    ArrayList<Result> results = new ArrayList<>(List.of(
+            new Result("Nadia", 58.2),
+            new Result("Omar", 61.0),
+            new Result("Priya", 57.4),
+            new Result("Quinn", 63.5)));
+    String name = IO.readln("Runner: ").strip();
+    IO.println(resultFor(results, name));
+}
+```
+
+Giving back the first result when nobody matches hands Zed Nadia's time:
+
+```java
+record Result(String name, double seconds) {}
+
+Result resultFor(ArrayList<Result> results, String name) {
+    for (Result result : results) {
+        if (result.name().equals(name)) {
+            return result;
+        }
+    }
+    return results.get(0);
+}
+
+void main() {
+    ArrayList<Result> results = new ArrayList<>(List.of(
+            new Result("Nadia", 58.2),
+            new Result("Omar", 61.0),
+            new Result("Priya", 57.4),
+            new Result("Quinn", 63.5)));
+    String name = IO.readln("Runner: ").strip();
+    IO.println(resultFor(results, name));
+}
+```
+
+## ch11-searching-and-sorting-practice#5
+
+```java
+int insertionPoint(double[] times, double target) {
+    int low = 0;
+    int high = times.length;
+    while (low < high) {
+        int middle = (low + high) / 2;
+        if (times[middle] < target) {
+            low = middle + 1;
+        } else {
+            high = middle;
+        }
+    }
+    return low;
+}
+
+void main() {
+    double[] times = {57.4, 58.2, 61.0};
+    IO.println(insertionPoint(times, 60.0));
+    IO.println(insertionPoint(times, 58.2));
+}
+```
+
+`high` starts at `times.length`, one past the end, because a time slower than all of them goes there. `times[middle] < target` rather than `<=` is what puts an equal time before the one already there: the two versions differ only on that case, which is why it is tested. The loop's own test, `while (low < high)`, is right here because `high` starts one past the end, so the range is empty when `low` reaches it; in the chapter's loop `high` is the last index, which is why that loop needs `<=`.
+
+```java
+int insertionPoint(double[] times, double target) {
+    int low = 0;
+    int high = times.length - 1;
+    while (low <= high) {
+        int middle = (low + high) / 2;
+        if (times[middle] < target) {
+            low = middle + 1;
+        } else {
+            high = middle - 1;
+        }
+    }
+    return low;
+}
+
+void main() {
+    double[] times = {58.2, 58.2, 61.0};
+    IO.println(insertionPoint(times, 58.2));
+}
+```
+
+The second answer keeps the chapter's `low <= high` and `high = middle - 1`, but never stops at an equal time: it keeps looking to its left, and `low` ends at the first time not faster than the target.
+
+### mistake
+
+`<=` puts an equal time after the one already there:
+
+```java
+int insertionPoint(double[] times, double target) {
+    int low = 0;
+    int high = times.length;
+    while (low < high) {
+        int middle = (low + high) / 2;
+        if (times[middle] <= target) {
+            low = middle + 1;
+        } else {
+            high = middle;
+        }
+    }
+    return low;
+}
+
+void main() {
+    double[] times = {57.4, 58.2, 61.0};
+    IO.println(insertionPoint(times, 58.2));
+}
+```
+
+Stopping at the first equal time found, as the chapter's search does, can land after another equal time:
+
+```java
+int insertionPoint(double[] times, double target) {
+    int low = 0;
+    int high = times.length - 1;
+    while (low <= high) {
+        int middle = (low + high) / 2;
+        if (times[middle] == target) {
+            return middle;
+        } else if (times[middle] < target) {
+            low = middle + 1;
+        } else {
+            high = middle - 1;
+        }
+    }
+    return low;
+}
+
+void main() {
+    double[] times = {58.2, 58.2, 61.0};
+    IO.println(insertionPoint(times, 58.2));
+}
+```
+
+## ch11-searching-and-sorting-practice#6
+
+```java
+record Result(String name, double seconds) {}
+
+ArrayList<Result> ranked(ArrayList<Result> results) {
+    ArrayList<Result> sorted = new ArrayList<>(results);
+    sorted.sort(Comparator.comparing(result -> result.seconds()));
+    return sorted;
+}
+
+ArrayList<String> podium(ArrayList<Result> results) {
+    ArrayList<String> names = new ArrayList<>();
+    for (Result result : ranked(results)) {
+        if (names.size() < 3) {
+            names.add(result.name());
+        }
+    }
+    return names;
+}
+
+void main() {
+    ArrayList<Result> results = new ArrayList<>(List.of(
+            new Result("Nadia", 58.2),
+            new Result("Omar", 61.0),
+            new Result("Priya", 57.4),
+            new Result("Quinn", 63.5)));
+    IO.println(podium(results));
+}
+```
+
+The loop adds a name only while there are fewer than three, so a race of two gives back two, and no position past the end is ever asked for.
+
+```java
+record Result(String name, double seconds) {}
+
+ArrayList<Result> ranked(ArrayList<Result> results) {
+    ArrayList<Result> sorted = new ArrayList<>(results);
+    sorted.sort(Comparator.comparing(result -> result.seconds()));
+    return sorted;
+}
+
+ArrayList<String> podium(ArrayList<Result> results) {
+    ArrayList<Result> order = ranked(results);
+    if (order.size() > 3) {
+        order = new ArrayList<>(order.subList(0, 3));
+    }
+    ArrayList<String> names = new ArrayList<>();
+    for (Result result : order) {
+        names.add(result.name());
+    }
+    return names;
+}
+
+void main() {
+    ArrayList<Result> results = new ArrayList<>(List.of(
+            new Result("Omar", 61.0),
+            new Result("Priya", 57.4)));
+    IO.println(podium(results));
+}
+```
+
+The second answer cuts the ranked list to three with `subList`, but checks its `size()` first, as Chapter 7 said: past the end, `subList` stops the program.
+
+### mistake
+
+`subList(0, 3)` on a race of two stops the program with an exception:
+
+```java
+record Result(String name, double seconds) {}
+
+ArrayList<Result> ranked(ArrayList<Result> results) {
+    ArrayList<Result> sorted = new ArrayList<>(results);
+    sorted.sort(Comparator.comparing(result -> result.seconds()));
+    return sorted;
+}
+
+ArrayList<String> podium(ArrayList<Result> results) {
+    ArrayList<String> names = new ArrayList<>();
+    for (Result result : ranked(results).subList(0, 3)) {
+        names.add(result.name());
+    }
+    return names;
+}
+
+void main() {
+    ArrayList<Result> results = new ArrayList<>(List.of(
+            new Result("Omar", 61.0),
+            new Result("Priya", 57.4)));
+    IO.println(podium(results));
+}
+```
+
+The first three handed in, unranked:
+
+```java
+record Result(String name, double seconds) {}
+
+ArrayList<String> podium(ArrayList<Result> results) {
+    ArrayList<String> names = new ArrayList<>();
+    for (Result result : results) {
+        if (names.size() < 3) {
+            names.add(result.name());
+        }
+    }
+    return names;
+}
+
+void main() {
+    ArrayList<Result> results = new ArrayList<>(List.of(
+            new Result("Omar", 61.0),
+            new Result("Priya", 57.4)));
+    IO.println(podium(results));
+}
+```
+
+## ch11-searching-and-sorting-practice#7
+
+```java
+double[] sortTimes(double[] times) {
+    double[] out = Arrays.copyOf(times, times.length);
+    for (int i = 1; i < out.length; i++) {
+        double current = out[i];
+        int j = i - 1;
+        while (j >= 0 && out[j] > current) {
+            out[j + 1] = out[j];
+            j--;
+        }
+        out[j + 1] = current;
+    }
+    return out;
+}
+
+void main() {
+    double[] times = {61.0, 57.4, 58.2};
+    IO.println(Arrays.toString(sortTimes(times)));
+    IO.println(Arrays.toString(times));
+    IO.println(Arrays.toString(sortTimes(new double[] {3.0, 1.0, 2.0, 5.0, 4.0})));
+    IO.println(Arrays.toString(sortTimes(new double[] {1.0})));
+    IO.println(Arrays.toString(sortTimes(new double[] {2.0, 1.0})));
+    IO.println(Arrays.toString(sortTimes(new double[] {})));
+}
+```
+
+This is Try It 4's insertion sort, on a copy, so the array handed in keeps its order. After the `while` loop stops, `j` has gone one too far, so the time belongs at `j + 1`. Putting it at `j` is the classic off-by-one here.
+
+```java
+double[] sortTimes(double[] times) {
+    double[] out = Arrays.copyOf(times, times.length);
+    for (int i = 0; i < out.length; i++) {
+        int smallest = i;
+        for (int j = i + 1; j < out.length; j++) {
+            if (out[j] < out[smallest]) {
+                smallest = j;
+            }
+        }
+        double temp = out[i];
+        out[i] = out[smallest];
+        out[smallest] = temp;
+    }
+    return out;
+}
+
+void main() {
+    double[] times = {61.0, 57.4, 58.2};
+    IO.println(Arrays.toString(sortTimes(times)));
+    IO.println(Arrays.toString(times));
+    IO.println(Arrays.toString(sortTimes(new double[] {3.0, 1.0, 2.0, 5.0, 4.0})));
+    IO.println(Arrays.toString(sortTimes(new double[] {1.0})));
+    IO.println(Arrays.toString(sortTimes(new double[] {2.0, 1.0})));
+    IO.println(Arrays.toString(sortTimes(new double[] {})));
+}
+```
+
+The second answer is selection sort, also on a copy, with a `double` as the swap's temporary variable.
+
+### mistake
+
+Sorting the array it is handed, with no copy, changes the caller's array too:
+
+```java
+double[] sortTimes(double[] times) {
+    for (int i = 1; i < times.length; i++) {
+        double current = times[i];
+        int j = i - 1;
+        while (j >= 0 && times[j] > current) {
+            times[j + 1] = times[j];
+            j--;
+        }
+        times[j + 1] = current;
+    }
+    return times;
+}
+
+void main() {
+    double[] times = {61.0, 57.4, 58.2};
+    IO.println(Arrays.toString(sortTimes(times)));
+    IO.println(Arrays.toString(times));
+    IO.println(Arrays.toString(sortTimes(new double[] {3.0, 1.0, 2.0, 5.0, 4.0})));
+    IO.println(Arrays.toString(sortTimes(new double[] {1.0})));
+    IO.println(Arrays.toString(sortTimes(new double[] {2.0, 1.0})));
+    IO.println(Arrays.toString(sortTimes(new double[] {})));
+}
+```
+
+The time put at `j` rather than `j + 1`:
+
+```java
+double[] sortTimes(double[] times) {
+    double[] out = Arrays.copyOf(times, times.length);
+    for (int i = 1; i < out.length; i++) {
+        double current = out[i];
+        int j = i - 1;
+        while (j >= 0 && out[j] > current) {
+            out[j + 1] = out[j];
+            j--;
+        }
+        out[j] = current;
+    }
+    return out;
+}
+
+void main() {
+    double[] times = {61.0, 57.4, 58.2};
+    IO.println(Arrays.toString(sortTimes(times)));
+    IO.println(Arrays.toString(times));
+    IO.println(Arrays.toString(sortTimes(new double[] {3.0, 1.0, 2.0, 5.0, 4.0})));
+    IO.println(Arrays.toString(sortTimes(new double[] {1.0})));
+    IO.println(Arrays.toString(sortTimes(new double[] {2.0, 1.0})));
+    IO.println(Arrays.toString(sortTimes(new double[] {})));
+}
+```
+
+## ch11-searching-and-sorting-practice#8
+
+```java
+record Result(String name, double seconds) {}
+
+ArrayList<Result> ranked(ArrayList<Result> results) {
+    ArrayList<Result> sorted = new ArrayList<>(results);
+    sorted.sort(Comparator.comparing(result -> result.seconds()));
+    return sorted;
+}
+
+ArrayList<String> leaderboardLines(ArrayList<Result> results) {
+    ArrayList<String> lines = new ArrayList<>();
+    ArrayList<Result> order = ranked(results);
+    for (int i = 0; i < order.size(); i++) {
+        Result result = order.get(i);
+        lines.add((i + 1) + ". " + result.name() + " " + result.seconds());
+    }
+    return lines;
+}
+
+void main() {
+    ArrayList<Result> results = new ArrayList<>(List.of(
+            new Result("Nadia", 58.2),
+            new Result("Omar", 61.0),
+            new Result("Priya", 57.4),
+            new Result("Quinn", 63.5)));
+    for (String line : leaderboardLines(results)) {
+        IO.println(line);
+    }
+}
+```
+
+Rank first, then number. Numbering the clipboard order gives everyone a place and gets all of them wrong.
+
+```java
+record Result(String name, double seconds) {}
+
+ArrayList<Result> ranked(ArrayList<Result> results) {
+    ArrayList<Result> sorted = new ArrayList<>(results);
+    sorted.sort(Comparator.comparing(result -> result.seconds()));
+    return sorted;
+}
+
+ArrayList<String> leaderboardLines(ArrayList<Result> results) {
+    ArrayList<String> lines = new ArrayList<>();
+    int place = 1;
+    for (Result result : ranked(results)) {
+        lines.add(String.format("%d. %s %.1f", place, result.name(), result.seconds()));
+        place++;
+    }
+    return lines;
+}
+
+void main() {
+    ArrayList<Result> results = new ArrayList<>(List.of(
+            new Result("Omar", 61.0),
+            new Result("Priya", 57.4)));
+    IO.println(leaderboardLines(results));
+}
+```
+
+The second answer counts the places in a variable of its own and builds each line with `String.format`; `%.1f` writes 61.0 with its one decimal place.
+
+### mistake
+
+Numbering the clipboard order, unranked:
+
+```java
+record Result(String name, double seconds) {}
+
+ArrayList<String> leaderboardLines(ArrayList<Result> results) {
+    ArrayList<String> lines = new ArrayList<>();
+    for (int i = 0; i < results.size(); i++) {
+        Result result = results.get(i);
+        lines.add((i + 1) + ". " + result.name() + " " + result.seconds());
+    }
+    return lines;
+}
+
+void main() {
+    ArrayList<Result> results = new ArrayList<>(List.of(
+            new Result("Omar", 61.0),
+            new Result("Priya", 57.4)));
+    IO.println(leaderboardLines(results));
+}
+```
+
+Numbering from 0:
+
+```java
+record Result(String name, double seconds) {}
+
+ArrayList<Result> ranked(ArrayList<Result> results) {
+    ArrayList<Result> sorted = new ArrayList<>(results);
+    sorted.sort(Comparator.comparing(result -> result.seconds()));
+    return sorted;
+}
+
+ArrayList<String> leaderboardLines(ArrayList<Result> results) {
+    ArrayList<String> lines = new ArrayList<>();
+    ArrayList<Result> order = ranked(results);
+    for (int i = 0; i < order.size(); i++) {
+        Result result = order.get(i);
+        lines.add(i + ". " + result.name() + " " + result.seconds());
+    }
+    return lines;
+}
+
+void main() {
+    ArrayList<Result> results = new ArrayList<>(List.of(
+            new Result("Omar", 61.0),
+            new Result("Priya", 57.4)));
+    IO.println(leaderboardLines(results));
+}
+```
