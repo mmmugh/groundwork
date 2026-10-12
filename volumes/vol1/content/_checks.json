@@ -1384,5 +1384,359 @@
       }
     ],
     "starter": "void main() {\n    // Eight balances, then the goal week.\n}\n"
+  },
+  "ch06-methods#17": {
+    "kind": "method",
+    "name": "isEven",
+    "returns": "boolean",
+    "params": [
+      "int"
+    ],
+    "cases": [
+      [
+        "4",
+        "true"
+      ],
+      [
+        "7",
+        "false"
+      ],
+      [
+        "0",
+        "true"
+      ],
+      [
+        "-2",
+        "true"
+      ],
+      [
+        "-3",
+        "false"
+      ]
+    ],
+    "starter": "boolean isEven(int n) {\n    return false;\n}\n\nvoid main() {\n    IO.println(isEven(4));\n}\n"
+  },
+  "ch06-methods#18": {
+    "kind": "method",
+    "name": "bmi",
+    "returns": "double",
+    "params": [
+      "double",
+      "double"
+    ],
+    "cases": [
+      [
+        "70, 1.75",
+        "22.9"
+      ],
+      [
+        "90, 1.8",
+        "27.8"
+      ],
+      [
+        "50, 1.6",
+        "19.5"
+      ]
+    ],
+    "starter": "double bmi(double weightKg, double heightM) {\n    return 0;\n}\n\nvoid main() {\n    IO.println(bmi(70, 1.75));\n}\n"
+  },
+  "ch06-methods#19": {
+    "kind": "method",
+    "name": "largestOfThree",
+    "returns": "int",
+    "params": [
+      "int",
+      "int",
+      "int"
+    ],
+    "cases": [
+      [
+        "3, 9, 5",
+        "9"
+      ],
+      [
+        "7, 7, 2",
+        "7"
+      ],
+      [
+        "-1, -5, -3",
+        "-1"
+      ],
+      [
+        "1, 2, 3",
+        "3"
+      ],
+      [
+        "5, 3, 9",
+        "9"
+      ]
+    ],
+    "starter": "int largestOfThree(int a, int b, int c) {\n    return 0;\n}\n\nvoid main() {\n    IO.println(largestOfThree(3, 9, 5));\n}\n"
+  },
+  "ch06-methods#20": {
+    "kind": "method",
+    "name": "countVowels",
+    "returns": "int",
+    "params": [
+      "String"
+    ],
+    "cases": [
+      [
+        "\"banana\"",
+        "3"
+      ],
+      [
+        "\"sky\"",
+        "0"
+      ],
+      [
+        "\"programming\"",
+        "3"
+      ],
+      [
+        "\"queue\"",
+        "4"
+      ],
+      [
+        "\"idea\"",
+        "3"
+      ],
+      [
+        "\"Ocean\"",
+        "3"
+      ],
+      [
+        "\"\"",
+        "0"
+      ]
+    ],
+    "starter": "int countVowels(String word) {\n    return 0;\n}\n\nvoid main() {\n    IO.println(countVowels(\"banana\"));\n}\n"
+  },
+  "ch06-methods#21": {
+    "kind": "method",
+    "name": "isPrime",
+    "returns": "boolean",
+    "params": [
+      "int"
+    ],
+    "cases": [
+      [
+        "2",
+        "true"
+      ],
+      [
+        "1",
+        "false"
+      ],
+      [
+        "0",
+        "false"
+      ],
+      [
+        "4",
+        "false"
+      ],
+      [
+        "9",
+        "false"
+      ],
+      [
+        "13",
+        "true"
+      ],
+      [
+        "17",
+        "true"
+      ],
+      [
+        "25",
+        "false"
+      ]
+    ],
+    "starter": "boolean isPrime(int n) {\n    return false;\n}\n\nvoid main() {\n    IO.println(isPrime(13));\n}\n"
+  },
+  "ch06-methods#22": {
+    "kind": "predict"
+  },
+  "ch06-methods-practice#1": {
+    "kind": "method",
+    "name": "cToF",
+    "returns": "double",
+    "params": [
+      "double"
+    ],
+    "cases": [
+      [
+        "0",
+        "32.0"
+      ],
+      [
+        "100",
+        "212.0"
+      ],
+      [
+        "37",
+        "98.6"
+      ],
+      [
+        "-40",
+        "-40.0"
+      ],
+      [
+        "36.6",
+        "97.9"
+      ]
+    ],
+    "starter": "double cToF(double celsius) {\n    return 0;\n}\n\nvoid main() {\n    IO.println(cToF(100));\n}\n"
+  },
+  "ch06-methods-practice#2": {
+    "kind": "method",
+    "name": "fToC",
+    "returns": "double",
+    "params": [
+      "double"
+    ],
+    "cases": [
+      [
+        "212",
+        "100.0"
+      ],
+      [
+        "32",
+        "0.0"
+      ],
+      [
+        "98.6",
+        "37.0"
+      ],
+      [
+        "-40",
+        "-40.0"
+      ],
+      [
+        "100",
+        "37.8"
+      ]
+    ],
+    "starter": "double fToC(double fahrenheit) {\n    return 0;\n}\n\nvoid main() {\n    IO.println(fToC(212));\n}\n"
+  },
+  "ch06-methods-practice#3": {
+    "kind": "method",
+    "name": "kmToMiles",
+    "returns": "double",
+    "params": [
+      "double"
+    ],
+    "cases": [
+      [
+        "1",
+        "0.62"
+      ],
+      [
+        "10",
+        "6.21"
+      ],
+      [
+        "42.195",
+        "26.22"
+      ],
+      [
+        "0",
+        "0.0"
+      ]
+    ],
+    "starter": "double kmToMiles(double km) {\n    return 0;\n}\n\nvoid main() {\n    IO.println(kmToMiles(10));\n}\n"
+  },
+  "ch06-methods-practice#4": {
+    "kind": "method",
+    "name": "cupsToMl",
+    "returns": "double",
+    "params": [
+      "double"
+    ],
+    "cases": [
+      [
+        "1",
+        "236.6"
+      ],
+      [
+        "0.5",
+        "118.3"
+      ],
+      [
+        "3",
+        "709.8"
+      ]
+    ],
+    "starter": "double cupsToMl(double cups) {\n    return 0;\n}\n\nvoid main() {\n    IO.println(cupsToMl(1));\n}\n"
+  },
+  "ch06-methods-practice#5": {
+    "kind": "method",
+    "name": "ovenSetting",
+    "returns": "int",
+    "params": [
+      "double"
+    ],
+    "cases": [
+      [
+        "180",
+        "350"
+      ],
+      [
+        "200",
+        "400"
+      ],
+      [
+        "220",
+        "425"
+      ],
+      [
+        "100",
+        "200"
+      ]
+    ],
+    "starter": "// From step 1.\ndouble cToF(double celsius) {\n    return Math.round((celsius * 9 / 5 + 32) * 10) / 10.0;\n}\n\nint ovenSetting(double celsius) {\n    return 0;\n}\n\nvoid main() {\n    IO.println(ovenSetting(180));\n}\n"
+  },
+  "ch06-methods-practice#6": {
+    "kind": "output",
+    "expected": "90 minutes is 1 h 30 min\n45 minutes is 0 h 45 min\n125 minutes is 2 h 5 min",
+    "starter": "int hoursIn(int totalMinutes) {\n    return 0;\n}\n\nint minutesLeft(int totalMinutes) {\n    return 0;\n}\n\nvoid main() {\n    // 90, 45 and 125 minutes, one line each.\n}\n"
+  },
+  "ch06-methods-practice#7": {
+    "kind": "method",
+    "name": "scaleRecipe",
+    "returns": "double",
+    "params": [
+      "double",
+      "double"
+    ],
+    "cases": [
+      [
+        "200, 0.5",
+        "100.0"
+      ],
+      [
+        "1.5, 3",
+        "4.5"
+      ],
+      [
+        "0.25, 4",
+        "1.0"
+      ],
+      [
+        "125, 1",
+        "125.0"
+      ],
+      [
+        "2, 0.333",
+        "0.67"
+      ]
+    ],
+    "starter": "double scaleRecipe(double amount, double factor) {\n    return 0;\n}\n\nvoid main() {\n    IO.println(scaleRecipe(200, 0.5));\n}\n"
+  },
+  "ch06-methods-practice#8": {
+    "kind": "output",
+    "expected": "180 C is 356.0 F\n5 km is 3.11 miles\n2 cups is 473.2 ml",
+    "starter": "// Bring in cToF, kmToMiles and cupsToMl here.\n\nvoid main() {\n    // The three lines of the table.\n}\n"
   }
 }

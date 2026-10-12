@@ -1,0 +1,196 @@
+GROUNDWORK
+Chapter 6 - Methods
+
+ANSWER KEY
+
+
+VOCABULARY
+----------
+
+ 1. The variables declared in the parentheses of a method's declaration
+    are called ____, while the values you pass in when calling the method
+    are called ____.
+
+      ANSWER: parameters
+      ANSWER: arguments
+
+ 2. A variable created inside a method exists only inside it; this is
+    called ____ scope.
+
+      ANSWER: local
+
+ 3. A comment that starts with three slashes, ///, written just above a
+    method to say what it does, is called a ____ comment.
+
+      ANSWER: documentation
+
+ 4. Breaking a problem into small methods that each do one job, and
+    giving each a name, is called ____.
+
+      ANSWER: decomposition
+
+
+READING CODE
+------------
+
+ 5. What does this print?
+
+        void doublePrint(int n) {
+            IO.println(n * 2);
+        }
+
+        int doubleReturn(int n) {
+            return n * 2;
+        }
+
+        void main() {
+            doublePrint(5);
+            int b = doubleReturn(5);
+            IO.println("b is " + b);
+        }
+
+      ANSWER: 10
+          b is 10
+
+ 6. What does this print?
+
+        void greet(String name, String greeting) {
+            IO.println(greeting + ", " + name + "!");
+        }
+
+        void greet(String name) {
+            greet(name, "Hello");
+        }
+
+        void main() {
+            greet("Ada");
+            greet("Ada", "Good morning");
+        }
+
+      ANSWER: Hello, Ada!
+          Good morning, Ada!
+
+ 7. What does this print?
+
+        int positionOf(String word, char letter) {
+            for (int i = 0; i < word.length(); i++) {
+                if (word.charAt(i) == letter) {
+                    return i;
+                }
+            }
+            return -1;
+        }
+
+        void main() {
+            IO.println(positionOf("banana", 'n'));
+            IO.println(positionOf("banana", 'z'));
+        }
+
+      ANSWER: 2
+          -1
+
+ 8. What does this print?
+
+        int minutesIn(int totalSeconds) {
+            return totalSeconds / 60;
+        }
+
+        int secondsLeft(int totalSeconds) {
+            return totalSeconds % 60;
+        }
+
+        void main() {
+            int total = 500;
+            IO.println(minutesIn(total) + " minutes and "
+                    + secondsLeft(total) + " seconds");
+        }
+
+      ANSWER: 8 minutes and 20 seconds
+
+ 9. What does this print?
+
+        void addTen(int n) {
+            n = n + 10;
+        }
+
+        void main() {
+            int x = 5;
+            addTen(x);
+            IO.println(x);
+        }
+
+      ANSWER: 5
+
+
+WRITING CODE
+------------
+
+10. Complete the first line of a method that prints a greeting and gives
+    nothing back:
+    ____ greet(String name) {
+        IO.println("Hello, " + name + "!");
+    }
+
+      ANSWER: void
+
+11. Complete the method so that it hands its answer back to the caller:
+    int area(int width, int height) {
+        ____ width * height;
+    }
+    int room = area(12, 10); // room should hold 120
+
+      ANSWER: return
+
+12. Write the line above the method that says what it does, in the form
+    the course uses for a method's description:
+    ____
+    double celsiusToFahrenheit(double celsius) {
+        return celsius * 9 / 5 + 32;
+    }
+
+      ANSWER: /// Converts Celsius to Fahrenheit. (any accurate /// line)
+
+13. Java calls main when the program starts. Complete main so that the
+    program also runs showTitle:
+    void main() {
+        ____
+    }
+    void showTitle() {
+        IO.println("Running the program.");
+    }
+
+      ANSWER: showTitle();
+
+
+WHY IT WORKS
+------------
+
+14. doublePrint is declared void, so it gives back no value. That is why
+    int a = doublePrint(5); never runs: javac refuses it with a ____ error
+    before the program starts.
+
+      ANSWER: compile
+
+15. result is created inside calculate and stops existing once the
+    method returns, because variables created inside a method have ____
+    scope; the only way to get a value out of a method is to ____ it.
+
+        int calculate() {
+            int result = 42;
+            return result;
+        }
+
+        void main() {
+            IO.println(calculate());
+            IO.println(result);
+        }
+
+      ANSWER: local
+      ANSWER: return
+
+16. Inside addTen, the line n = n + 10; gives the parameter n a new
+    value inside the method; it does not reach back and change x,
+    because assigning to a parameter only affects that method's own ____
+    copy of the value.
+
+      ANSWER: local (separate or private is also right)

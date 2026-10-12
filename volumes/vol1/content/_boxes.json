@@ -367,5 +367,23 @@
     "stdin": [
       "15"
     ]
+  },
+  "ch06-methods#7": {
+    "compileError": "incompatible types: void cannot be converted to int",
+    "why": "A void method's result stored in a variable, which javac refuses. The error message is the lesson."
+  },
+  "ch06-methods#11": {
+    "compileError": "cannot find symbol",
+    "why": "A variable used outside the method that created it, which javac refuses. The error message is the lesson."
+  },
+  "ch06-methods#23": {
+    "stdin": [
+      "Ada",
+      "88",
+      "105",
+      "92",
+      "79",
+      "95"
+    ]
   }
 }

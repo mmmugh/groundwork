@@ -3525,3 +3525,1127 @@ void main() {
     }
 }
 ```
+
+## ch06-methods#17
+
+Try It 1: `isEven`, then the even numbers from 1 to 20.
+
+```java
+// Prints the even numbers from 1 to 20, asking isEven about each.
+
+boolean isEven(int n) {
+    return n % 2 == 0;
+}
+
+void main() {
+    for (int i = 1; i <= 20; i++) {
+        if (isEven(i)) {
+            IO.println(i);
+        }
+    }
+}
+```
+
+`n % 2 == 0` is already a `boolean`, `true` or `false`, so the method can return the comparison itself. `main` asks `isEven` about each number from 1 to 20 and prints the ones it says yes to.
+
+```java
+boolean isEven(int n) {
+    if (n % 2 == 0) {
+        return true;
+    } else {
+        return false;
+    }
+}
+
+void main() {
+    int number = 1;
+    while (number <= 20) {
+        if (isEven(number)) {
+            IO.println(number);
+        }
+        number++;
+    }
+}
+```
+
+The second answer spells the decision out with `if` and `else`, one `return` on each side, and counts with a `while` loop.
+
+### mistake
+
+`n % 2 != 1` looks like the same test, but in Java the remainder of a negative odd number is -1, not 1, so `isEven(-3)` says `true`:
+
+```java
+boolean isEven(int n) {
+    return n % 2 != 1;
+}
+
+void main() {
+    for (int i = 1; i <= 20; i++) {
+        if (isEven(i)) {
+            IO.println(i);
+        }
+    }
+}
+```
+
+The test the wrong way around, which answers whether `n` is odd:
+
+```java
+boolean isEven(int n) {
+    return n % 2 == 1;
+}
+
+void main() {
+    for (int i = 1; i <= 20; i++) {
+        if (isEven(i)) {
+            IO.println(i);
+        }
+    }
+}
+```
+
+## ch06-methods#18
+
+Try It 2: the body mass index, to one decimal place.
+
+```java
+/// Returns the body mass index, rounded to one decimal place.
+double bmi(double weightKg, double heightM) {
+    return Math.round(weightKg / (heightM * heightM) * 10) / 10.0;
+}
+
+void main() {
+    IO.println(bmi(70, 1.75));
+}
+```
+
+The parentheses around `heightM * heightM` make Java square the height before it divides. Then Chapter 3's rounding: times 10, `Math.round`, and divided by `10.0`, a `double`, so the answer keeps its decimal place.
+
+```java
+double bmi(double weightKg, double heightM) {
+    double index = weightKg / Math.pow(heightM, 2);
+    return Math.round(index * 10) / 10.0;
+}
+
+void main() {
+    IO.println(bmi(90, 1.8));
+}
+```
+
+The second answer squares the height with `Math.pow` and rounds on a line of its own.
+
+### mistake
+
+No rounding: `bmi(70, 1.75)` returns 22.857142857142858, not 22.9.
+
+```java
+double bmi(double weightKg, double heightM) {
+    return weightKg / (heightM * heightM);
+}
+
+void main() {
+    IO.println(bmi(70, 1.75));
+}
+```
+
+Dividing by `10` instead of `10.0`: `Math.round` gives a `long`, and a `long` divided by an `int` drops the fraction, so the answer is 22.0.
+
+```java
+double bmi(double weightKg, double heightM) {
+    return Math.round(weightKg / (heightM * heightM) * 10) / 10;
+}
+
+void main() {
+    IO.println(bmi(70, 1.75));
+}
+```
+
+No parentheses: `weightKg / heightM * heightM` divides by the height and then multiplies by it again, which gives the weight back.
+
+```java
+double bmi(double weightKg, double heightM) {
+    return Math.round(weightKg / heightM * heightM * 10) / 10.0;
+}
+
+void main() {
+    IO.println(bmi(70, 1.75));
+}
+```
+
+## ch06-methods#19
+
+Try It 3: the largest of three numbers, without `Math.max`.
+
+```java
+int largestOfThree(int a, int b, int c) {
+    if (a >= b && a >= c) {
+        return a;
+    } else if (b >= c) {
+        return b;
+    } else {
+        return c;
+    }
+}
+
+void main() {
+    IO.println(largestOfThree(3, 9, 5));
+}
+```
+
+`a` wins when it is at least as large as both of the others. Otherwise the largest is `b` or `c`, and one more comparison settles which. `>=` rather than `>` matters when two numbers tie for the largest: with `>`, `7, 7, 2` would fall through to the `else` and return 2.
+
+```java
+int largestOfThree(int a, int b, int c) {
+    int largest = a;
+    if (b > largest) {
+        largest = b;
+    }
+    if (c > largest) {
+        largest = c;
+    }
+    return largest;
+}
+
+void main() {
+    IO.println(largestOfThree(-1, -5, -3));
+}
+```
+
+The second answer keeps the largest so far, as Chapter 5's loop did, starting from the first number rather than from 0.
+
+### mistake
+
+`>` where `>=` belongs: when `a` and `b` tie for the largest, neither test is true, and `largestOfThree(7, 7, 2)` returns 2.
+
+```java
+int largestOfThree(int a, int b, int c) {
+    if (a > b && a > c) {
+        return a;
+    } else if (b > a && b > c) {
+        return b;
+    } else {
+        return c;
+    }
+}
+
+void main() {
+    IO.println(largestOfThree(7, 7, 2));
+}
+```
+
+Starting the largest at 0: when all three are negative, none is larger than 0, so the answer is 0.
+
+```java
+int largestOfThree(int a, int b, int c) {
+    int largest = 0;
+    if (a > largest) {
+        largest = a;
+    }
+    if (b > largest) {
+        largest = b;
+    }
+    if (c > largest) {
+        largest = c;
+    }
+    return largest;
+}
+
+void main() {
+    IO.println(largestOfThree(-1, -5, -3));
+}
+```
+
+`a` returned as soon as it beats `b`, without asking about `c`: `largestOfThree(5, 3, 9)` returns 5.
+
+```java
+int largestOfThree(int a, int b, int c) {
+    if (a > b) {
+        return a;
+    } else if (b > c) {
+        return b;
+    } else {
+        return c;
+    }
+}
+
+void main() {
+    IO.println(largestOfThree(5, 3, 9));
+}
+```
+
+## ch06-methods#20
+
+Try It 4: counting vowels.
+
+```java
+int countVowels(String word) {
+    String lower = word.toLowerCase();
+    int vowels = 0;
+    for (int i = 0; i < lower.length(); i++) {
+        char letter = lower.charAt(i);
+        if (letter == 'a' || letter == 'e' || letter == 'i'
+                || letter == 'o' || letter == 'u') {
+            vowels++;
+        }
+    }
+    return vowels;
+}
+
+void main() {
+    IO.println(countVowels("banana"));
+}
+```
+
+Chapter 5's vowel loop, moved into a method: `toLowerCase()` turns a capital `O` into `o` before the loop starts, so the five tests catch every vowel, whatever its case. The count starts at 0, every vowel adds one, and `return vowels;` hands the total back instead of printing it. An empty word never enters the loop, so it has 0 vowels.
+
+```java
+boolean isVowel(char letter) {
+    return letter == 'a' || letter == 'e' || letter == 'i' || letter == 'o' || letter == 'u';
+}
+
+int countVowels(String word) {
+    word = word.toLowerCase();
+    int count = 0;
+    int position = 0;
+    while (position < word.length()) {
+        if (isVowel(word.charAt(position))) {
+            count++;
+        }
+        position++;
+    }
+    return count;
+}
+
+void main() {
+    IO.println(countVowels("Ocean"));
+}
+```
+
+The second answer gives the vowel test a method of its own, `isVowel`, replaces the parameter `word` with its lowercase copy, so `isVowel` only ever sees lowercase letters, and walks the word with a `while` loop.
+
+### mistake
+
+No `toLowerCase()`: a capital vowel is missed, so `countVowels("Ocean")` is 2:
+
+```java
+int countVowels(String word) {
+    int vowels = 0;
+    for (int i = 0; i < word.length(); i++) {
+        char letter = word.charAt(i);
+        if (letter == 'a' || letter == 'e' || letter == 'i'
+                || letter == 'o' || letter == 'u') {
+            vowels++;
+        }
+    }
+    return vowels;
+}
+
+void main() {
+    IO.println(countVowels("Ocean"));
+}
+```
+
+`u` left out of the test, so `countVowels("queue")` is 2:
+
+```java
+int countVowels(String word) {
+    String lower = word.toLowerCase();
+    int vowels = 0;
+    for (int i = 0; i < lower.length(); i++) {
+        char letter = lower.charAt(i);
+        if (letter == 'a' || letter == 'e' || letter == 'i' || letter == 'o') {
+            vowels++;
+        }
+    }
+    return vowels;
+}
+
+void main() {
+    IO.println(countVowels("queue"));
+}
+```
+
+`<=` runs one position past the end, where `charAt` throws a `StringIndexOutOfBoundsException`:
+
+```java
+int countVowels(String word) {
+    String lower = word.toLowerCase();
+    int vowels = 0;
+    for (int i = 0; i <= lower.length(); i++) {
+        char letter = lower.charAt(i);
+        if (letter == 'a' || letter == 'e' || letter == 'i'
+                || letter == 'o' || letter == 'u') {
+            vowels++;
+        }
+    }
+    return vowels;
+}
+
+void main() {
+    IO.println(countVowels("banana"));
+}
+```
+
+Starting at position 1 skips the first letter, which only matters when it is a vowel: `countVowels("idea")` is 2.
+
+```java
+int countVowels(String word) {
+    String lower = word.toLowerCase();
+    int vowels = 0;
+    for (int i = 1; i < lower.length(); i++) {
+        char letter = lower.charAt(i);
+        if (letter == 'a' || letter == 'e' || letter == 'i'
+                || letter == 'o' || letter == 'u') {
+            vowels++;
+        }
+    }
+    return vowels;
+}
+
+void main() {
+    IO.println(countVowels("idea"));
+}
+```
+
+## ch06-methods#21
+
+Try It 5: `isPrime`, then every prime under 50.
+
+```java
+// Prints every prime under 50, asking isPrime about each number.
+
+boolean isPrime(int n) {
+    if (n < 2) {
+        return false;
+    }
+    for (int divisor = 2; divisor < n; divisor++) {
+        if (n % divisor == 0) {
+            return false;
+        }
+    }
+    return true;
+}
+
+void main() {
+    for (int n = 1; n < 50; n++) {
+        if (isPrime(n)) {
+            IO.println(n);
+        }
+    }
+}
+```
+
+The special case comes first: nothing below 2 is prime. Then the loop tries every divisor from 2 up to `n - 1`, and the first one that divides evenly ends the method with `false`. Only a number that survives the whole loop reaches `return true;`.
+
+```java
+boolean isPrime(int n) {
+    if (n <= 1) {
+        return false;
+    }
+    int divisor = 2;
+    while (divisor * divisor <= n) {
+        if (n % divisor == 0) {
+            return false;
+        }
+        divisor++;
+    }
+    return true;
+}
+
+void main() {
+    int n = 2;
+    while (n < 50) {
+        if (isPrime(n)) {
+            IO.println(n);
+        }
+        n++;
+    }
+}
+```
+
+The second answer stops at the square root: if `n` has a divisor larger than its square root, it also has one smaller, which the loop has already tried.
+
+### mistake
+
+Trying only 2 and 3 as divisors gets every number below 25 right, but calls 25, which is 5 times 5, prime:
+
+```java
+boolean isPrime(int n) {
+    if (n < 2) {
+        return false;
+    }
+    if (n == 2 || n == 3) {
+        return true;
+    }
+    return n % 2 != 0 && n % 3 != 0;
+}
+
+void main() {
+    IO.println(isPrime(25));
+}
+```
+
+`return true;` in an `else` inside the loop decides after the first divisor alone, so 9, which 2 does not divide, is called prime:
+
+```java
+boolean isPrime(int n) {
+    if (n < 2) {
+        return false;
+    }
+    for (int divisor = 2; divisor < n; divisor++) {
+        if (n % divisor == 0) {
+            return false;
+        } else {
+            return true;
+        }
+    }
+    return true;
+}
+
+void main() {
+    IO.println(isPrime(9));
+}
+```
+
+No special case for numbers below 2: the loop never runs for 1 or 0, so both reach `return true;`.
+
+```java
+boolean isPrime(int n) {
+    for (int divisor = 2; divisor < n; divisor++) {
+        if (n % divisor == 0) {
+            return false;
+        }
+    }
+    return true;
+}
+
+void main() {
+    IO.println(isPrime(1));
+}
+```
+
+Only 1 kept out: the loop never runs for 0, so 0 is called prime, though the definition starts above 1.
+
+```java
+boolean isPrime(int n) {
+    if (n == 1) {
+        return false;
+    }
+    for (int divisor = 2; divisor < n; divisor++) {
+        if (n % divisor == 0) {
+            return false;
+        }
+    }
+    return true;
+}
+
+void main() {
+    IO.println(isPrime(0));
+}
+```
+
+Stopping at `divisor < n / 2` leaves out half the number itself, so for 4 the loop never tries 2:
+
+```java
+boolean isPrime(int n) {
+    if (n < 2) {
+        return false;
+    }
+    for (int divisor = 2; divisor < n / 2; divisor++) {
+        if (n % divisor == 0) {
+            return false;
+        }
+    }
+    return true;
+}
+
+void main() {
+    IO.println(isPrime(4));
+}
+```
+
+`divisor <= n` tries `n` itself, which always divides evenly, so no number is prime:
+
+```java
+boolean isPrime(int n) {
+    if (n < 2) {
+        return false;
+    }
+    for (int divisor = 2; divisor <= n; divisor++) {
+        if (n % divisor == 0) {
+            return false;
+        }
+    }
+    return true;
+}
+
+void main() {
+    IO.println(isPrime(13));
+}
+```
+
+## ch06-methods#22
+
+Try It 6: a right prediction written another way (spaces at the end of the line and a blank line after it, which Check ignores).
+
+```text
+5   
+
+```
+
+### mistake
+
+Expecting `addTen` to change `x`: it changes only its own copy, `n`.
+
+```text
+15
+```
+
+## ch06-methods-practice#1
+
+```java
+double cToF(double celsius) {
+    return Math.round((celsius * 9 / 5 + 32) * 10) / 10.0;
+}
+
+void main() {
+    IO.println(cToF(100));
+    IO.println(cToF(0));
+}
+```
+
+Multiply first, then add 32, then round. `celsius` is a `double`, so `celsius * 9 / 5` keeps its fraction all the way through. Adding first is the classic way to get this wrong, and it even looks right at a glance.
+
+```java
+double cToF(double celsius) {
+    double fahrenheit = celsius * 1.8 + 32;
+    return Math.round(fahrenheit * 10) / 10.0;
+}
+
+void main() {
+    IO.println(cToF(37));
+}
+```
+
+The second answer multiplies by 1.8 and rounds on a line of its own.
+
+### mistake
+
+Adding 32 before multiplying:
+
+```java
+double cToF(double celsius) {
+    return Math.round((celsius + 32) * 9 / 5 * 10) / 10.0;
+}
+
+void main() {
+    IO.println(cToF(100));
+}
+```
+
+`9 / 5` first: two `int`s, so it is 1, and 100 comes out as 132.
+
+```java
+double cToF(double celsius) {
+    return Math.round((9 / 5 * celsius + 32) * 10) / 10.0;
+}
+
+void main() {
+    IO.println(cToF(100));
+}
+```
+
+No rounding: 36.6 comes out as 97.88000000000001, not 97.9.
+
+```java
+double cToF(double celsius) {
+    return celsius * 9 / 5 + 32;
+}
+
+void main() {
+    IO.println(cToF(36.6));
+}
+```
+
+## ch06-methods-practice#2
+
+```java
+double fToC(double fahrenheit) {
+    return Math.round((fahrenheit - 32) * 5 / 9 * 10) / 10.0;
+}
+
+void main() {
+    IO.println(fToC(212));
+    IO.println(fToC(32));
+}
+```
+
+Going back the other way means subtracting first and turning the fraction upside down. -40 is the temperature where the two scales meet.
+
+```java
+double fToC(double fahrenheit) {
+    double celsius = (fahrenheit - 32) / 1.8;
+    return Math.round(celsius * 10) / 10.0;
+}
+
+void main() {
+    IO.println(fToC(98.6));
+}
+```
+
+The second answer divides by 1.8 instead of multiplying by 5 and dividing by 9.
+
+### mistake
+
+No parentheses: `32 * 5 / 9` is worked out first, as `int`s, so the method takes 17 from the temperature and nothing else.
+
+```java
+double fToC(double fahrenheit) {
+    return Math.round((fahrenheit - 32 * 5 / 9) * 10) / 10.0;
+}
+
+void main() {
+    IO.println(fToC(212));
+}
+```
+
+The fraction the right way up for the other direction:
+
+```java
+double fToC(double fahrenheit) {
+    return Math.round((fahrenheit - 32) * 9 / 5 * 10) / 10.0;
+}
+
+void main() {
+    IO.println(fToC(212));
+}
+```
+
+No rounding: 100 comes out as 37.77777777777778, not 37.8.
+
+```java
+double fToC(double fahrenheit) {
+    return (fahrenheit - 32) * 5 / 9;
+}
+
+void main() {
+    IO.println(fToC(100));
+}
+```
+
+## ch06-methods-practice#3
+
+```java
+double kmToMiles(double km) {
+    return Math.round(km * 0.621371 * 100) / 100.0;
+}
+
+void main() {
+    IO.println(kmToMiles(10));
+}
+```
+
+A mile is longer than a kilometer, so the number gets smaller. Dividing by 0.621371 gives 1.61 for one kilometer, which is the answer to the opposite question.
+
+```java
+double kmToMiles(double km) {
+    double miles = km / 1.609344;
+    return Math.round(miles * 100) / 100.0;
+}
+
+void main() {
+    IO.println(kmToMiles(42.195));
+}
+```
+
+The second answer divides by 1.609344, the number of kilometers in a mile, which is the same conversion from the other side.
+
+### mistake
+
+Dividing where multiplying belongs:
+
+```java
+double kmToMiles(double km) {
+    return Math.round(km / 0.621371 * 100) / 100.0;
+}
+
+void main() {
+    IO.println(kmToMiles(10));
+}
+```
+
+Rounded to one place instead of two: 10 kilometers comes out as 6.2.
+
+```java
+double kmToMiles(double km) {
+    return Math.round(km * 0.621371 * 10) / 10.0;
+}
+
+void main() {
+    IO.println(kmToMiles(10));
+}
+```
+
+## ch06-methods-practice#4
+
+```java
+double cupsToMl(double cups) {
+    return Math.round(cups * 236.588 * 10) / 10.0;
+}
+
+void main() {
+    IO.println(cupsToMl(1));
+}
+```
+
+A cup is not 250 ml, however tempting the round number is. The error is small per cup and ruins bread at three.
+
+```java
+double cupsToMl(double cups) {
+    double milliliters = cups * 236.588;
+    return Math.round(milliliters * 10) / 10.0;
+}
+
+void main() {
+    IO.println(cupsToMl(3));
+}
+```
+
+The second answer gives the unrounded amount a name before rounding it.
+
+### mistake
+
+The tempting round number:
+
+```java
+double cupsToMl(double cups) {
+    return cups * 250;
+}
+
+void main() {
+    IO.println(cupsToMl(1));
+}
+```
+
+No rounding: one cup comes out as 236.588.
+
+```java
+double cupsToMl(double cups) {
+    return cups * 236.588;
+}
+
+void main() {
+    IO.println(cupsToMl(1));
+}
+```
+
+## ch06-methods-practice#5
+
+```java
+double cToF(double celsius) {
+    return Math.round((celsius * 9 / 5 + 32) * 10) / 10.0;
+}
+
+int ovenSetting(double celsius) {
+    return (int) Math.round(cToF(celsius) / 25) * 25;
+}
+
+void main() {
+    IO.println(ovenSetting(180));
+}
+```
+
+Dividing by 25, rounding, then multiplying back is how you snap a number to a step of any size. Calling `cToF` means the conversion lives in one place. The `(int)` cast applies to `Math.round`'s answer, before the `* 25`.
+
+```java
+double cToF(double celsius) {
+    return Math.round((celsius * 9 / 5 + 32) * 10) / 10.0;
+}
+
+int ovenSetting(double celsius) {
+    int fahrenheit = (int) Math.round(cToF(celsius));
+    return (fahrenheit + 12) / 25 * 25;
+}
+
+void main() {
+    IO.println(ovenSetting(200));
+}
+```
+
+The second answer rounds with whole numbers: adding 12, just under half of 25, before the integer division makes it round to the nearest step rather than down.
+
+### mistake
+
+The cast on the division instead of `Math.round`: `(int)` drops the fraction, so 392 goes down to 375 rather than up to 400.
+
+```java
+double cToF(double celsius) {
+    return Math.round((celsius * 9 / 5 + 32) * 10) / 10.0;
+}
+
+int ovenSetting(double celsius) {
+    return (int) (cToF(celsius) / 25) * 25;
+}
+
+void main() {
+    IO.println(ovenSetting(200));
+}
+```
+
+Rounding the Celsius temperature and never converting it: 180 becomes 175.
+
+```java
+int ovenSetting(double celsius) {
+    return (int) Math.round(celsius / 25) * 25;
+}
+
+void main() {
+    IO.println(ovenSetting(180));
+}
+```
+
+## ch06-methods-practice#6
+
+```java
+int hoursIn(int totalMinutes) {
+    return totalMinutes / 60;
+}
+
+int minutesLeft(int totalMinutes) {
+    return totalMinutes % 60;
+}
+
+void main() {
+    IO.println("90 minutes is " + hoursIn(90) + " h " + minutesLeft(90) + " min");
+    IO.println("45 minutes is " + hoursIn(45) + " h " + minutesLeft(45) + " min");
+    IO.println("125 minutes is " + hoursIn(125) + " h " + minutesLeft(125) + " min");
+}
+```
+
+Two answers, so two methods, one value each. Hours come from `/` and minutes from `%`, and swapping them is silent until the numbers happen to differ.
+
+```java
+int hoursIn(int totalMinutes) {
+    return totalMinutes / 60;
+}
+
+int minutesLeft(int totalMinutes) {
+    return totalMinutes - hoursIn(totalMinutes) * 60;
+}
+
+void showTime(int totalMinutes) {
+    IO.println(totalMinutes + " minutes is " + hoursIn(totalMinutes) + " h " + minutesLeft(totalMinutes) + " min");
+}
+
+void main() {
+    showTime(90);
+    showTime(45);
+    showTime(125);
+}
+```
+
+The second answer works out the minutes left by taking away the whole hours, and gives the printing a `void` method of its own, so each line is one call.
+
+### mistake
+
+`/` and `%` swapped: 90 minutes is 30 h 1 min.
+
+```java
+int hoursIn(int totalMinutes) {
+    return totalMinutes % 60;
+}
+
+int minutesLeft(int totalMinutes) {
+    return totalMinutes / 60;
+}
+
+void main() {
+    IO.println("90 minutes is " + hoursIn(90) + " h " + minutesLeft(90) + " min");
+    IO.println("45 minutes is " + hoursIn(45) + " h " + minutesLeft(45) + " min");
+    IO.println("125 minutes is " + hoursIn(125) + " h " + minutesLeft(125) + " min");
+}
+```
+
+A copied line left unchanged: the third line asks about 90 minutes again.
+
+```java
+int hoursIn(int totalMinutes) {
+    return totalMinutes / 60;
+}
+
+int minutesLeft(int totalMinutes) {
+    return totalMinutes % 60;
+}
+
+void main() {
+    IO.println("90 minutes is " + hoursIn(90) + " h " + minutesLeft(90) + " min");
+    IO.println("45 minutes is " + hoursIn(45) + " h " + minutesLeft(45) + " min");
+    IO.println("125 minutes is " + hoursIn(90) + " h " + minutesLeft(90) + " min");
+}
+```
+
+## ch06-methods-practice#7
+
+```java
+double scaleRecipe(double amount, double factor) {
+    return Math.round(amount * factor * 100) / 100.0;
+}
+
+void main() {
+    IO.println(scaleRecipe(200, 0.5));
+}
+```
+
+Two parameters, in the order the name suggests. Scaling by 1 should give the amount back, which is a quick way to check you have not mixed them up.
+
+```java
+double scaleRecipe(double amount, double factor) {
+    double scaled = amount * factor;
+    return Math.round(scaled * 100) / 100.0;
+}
+
+void main() {
+    IO.println(scaleRecipe(1.5, 3));
+}
+```
+
+The second answer names the scaled amount before rounding it.
+
+### mistake
+
+No rounding: 2 cups scaled by 0.333, a third, comes out as 0.666, not 0.67.
+
+```java
+double scaleRecipe(double amount, double factor) {
+    return amount * factor;
+}
+
+void main() {
+    IO.println(scaleRecipe(2, 0.333));
+}
+```
+
+Rounded to one place instead of two: the same third comes out as 0.7.
+
+```java
+double scaleRecipe(double amount, double factor) {
+    return Math.round(amount * factor * 10) / 10.0;
+}
+
+void main() {
+    IO.println(scaleRecipe(2, 0.333));
+}
+```
+
+Dividing by the factor: half a recipe comes out double.
+
+```java
+double scaleRecipe(double amount, double factor) {
+    return Math.round(amount / factor * 100) / 100.0;
+}
+
+void main() {
+    IO.println(scaleRecipe(200, 0.5));
+}
+```
+
+## ch06-methods-practice#8
+
+```java
+// A small conversion table, from three methods.
+
+double cToF(double celsius) {
+    return Math.round((celsius * 9 / 5 + 32) * 10) / 10.0;
+}
+
+double kmToMiles(double km) {
+    return Math.round(km * 0.621371 * 100) / 100.0;
+}
+
+double cupsToMl(double cups) {
+    return Math.round(cups * 236.588 * 10) / 10.0;
+}
+
+void main() {
+    IO.println("180 C is " + cToF(180) + " F");
+    IO.println("5 km is " + kmToMiles(5) + " miles");
+    IO.println("2 cups is " + cupsToMl(2) + " ml");
+}
+```
+
+Three methods declared once and called once each. The program reads as the table it prints, which is the whole point of giving the arithmetic a name.
+
+```java
+double cToF(double celsius) {
+    double fahrenheit = celsius * 1.8 + 32;
+    return Math.round(fahrenheit * 10) / 10.0;
+}
+
+double kmToMiles(double km) {
+    double miles = km / 1.609344;
+    return Math.round(miles * 100) / 100.0;
+}
+
+double cupsToMl(double cups) {
+    double milliliters = cups * 236.588;
+    return Math.round(milliliters * 10) / 10.0;
+}
+
+void main() {
+    double oven = cToF(180);
+    double run = kmToMiles(5);
+    double flour = cupsToMl(2);
+
+    IO.println("180 C is " + oven + " F");
+    IO.println("5 km is " + run + " miles");
+    IO.println("2 cups is " + flour + " ml");
+}
+```
+
+The second answer uses the second style of each method, and stores the three answers before printing them.
+
+### mistake
+
+`cupsToMl` without its rounding: 2 cups comes out as 473.176 ml.
+
+```java
+double cToF(double celsius) {
+    return Math.round((celsius * 9 / 5 + 32) * 10) / 10.0;
+}
+
+double kmToMiles(double km) {
+    return Math.round(km * 0.621371 * 100) / 100.0;
+}
+
+double cupsToMl(double cups) {
+    return cups * 236.588;
+}
+
+void main() {
+    IO.println("180 C is " + cToF(180) + " F");
+    IO.println("5 km is " + kmToMiles(5) + " miles");
+    IO.println("2 cups is " + cupsToMl(2) + " ml");
+}
+```
+
+`kmToMiles` rounded to one place: 5 km is 3.1 miles.
+
+```java
+double cToF(double celsius) {
+    return Math.round((celsius * 9 / 5 + 32) * 10) / 10.0;
+}
+
+double kmToMiles(double km) {
+    return Math.round(km * 0.621371 * 10) / 10.0;
+}
+
+double cupsToMl(double cups) {
+    return Math.round(cups * 236.588 * 10) / 10.0;
+}
+
+void main() {
+    IO.println("180 C is " + cToF(180) + " F");
+    IO.println("5 km is " + kmToMiles(5) + " miles");
+    IO.println("2 cups is " + cupsToMl(2) + " ml");
+}
+```
