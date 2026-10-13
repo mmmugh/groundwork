@@ -99,6 +99,24 @@ Serve, which serves the folder at an https address inside your tailnet. Plain ht
 own browser. The folder carries the runtimes' source (`runtime/source.tar.gz` and `scratchpad/source.tar.gz`) beside
 their notices, so serving the folder offers the source from the same place, as GPLv2 section 3 allows.
 
+## The course as a Word file
+
+The course is also one `.docx`: the front matter, the chapters and the appendices (the practice pages are not in it),
+made by `scripts/make_docx.py`, adapted from the Python course's script. It is made for a release of the course, as the
+ready-site zip is, and the site does not publish it. The script needs python-docx, in a venv of its own:
+
+```
+python3 -m venv build/.work/docx-venv && build/.work/docx-venv/bin/pip install python-docx==1.2.0
+build/.work/docx-venv/bin/python scripts/make_docx.py   # writes build/.work/docx/groundwork.docx
+python3 tests/make_docx_test.py                          # its test, on fixture volumes
+```
+
+`--volume <dir>` and `--out <path>` name another volume or file. Each box shows what its page shows: a box whose check
+has a starter shows the starter, never the author's own fence, and a predict box shows no output. After saving, the
+script runs the site's private-content scan inside the file and deletes the file if it holds `ANSWER KEY` or
+`Worked solutions`, failing; then, on a Mac, it checks that `textutil` can read the file and finds the title in it, and
+elsewhere it says that check was skipped.
+
 ## Continuous integration
 
 Two workflows under `.github/workflows/` are thin: every step calls a script under `ci/`, which runs the same command
