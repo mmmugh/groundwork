@@ -295,7 +295,7 @@ Ada         88
 Alan        45
 ```
 
-That comparator is the same idea as in Chapter 9: the lambda `(Student s) -> s.score()` says what to compare, each student's score, and `.reversed()` puts the highest first, which is why the lambda's parameter has its type written out. The sort works on a copy, so `students` keeps its own order. Crucially, the records stay intact—Katherine keeps her own score, which is exactly what parallel arrays could not guarantee.
+That comparator is the same idea as in Chapter 9: the lambda `(Student s) -> s.score()` says what to compare, each student's score, and `.reversed()` puts the highest first, which is why the lambda's parameter has its type written out. The sort works on a copy, so `students` keeps its own order. Crucially, the records stay intact—Katherine's 95 stays with Katherine, which is exactly what parallel arrays could not guarantee.
 
 **Finding one record:**
 

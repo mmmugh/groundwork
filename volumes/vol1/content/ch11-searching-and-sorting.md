@@ -144,7 +144,7 @@ Binary search halves the remaining range each step, so the question "how many st
 | 1,000,000 | 1,000,000 | 20 |
 | 1,000,000,000 | 1,000,000,000 | 30 |
 
-Read the bottom row again. Searching a billion sorted items takes about thirty comparisons. This is not a small optimization; it is a different category of thing, and it is why so much of computing is arranged around keeping data sorted or indexed.
+Read the bottom row again. Searching a billion sorted items takes about thirty comparisons. This is not a small optimization; it is a different category of thing, and it is why so much of computing is arranged around keeping data sorted or indexed. The 100 row is Chapter 5's guessing game: always guessing the middle finds any number from 1 to 100 in at most 7 tries.
 
 The standard notation for this is **big-O**. Linear search is **O(n)**—work grows in proportion to the size. Binary search is **O(log n)**—work grows like the logarithm, which is to say barely. Big-O describes how cost *scales*, deliberately ignoring constant factors and the speed of the machine, because those change and the scaling does not.
 
@@ -159,7 +159,7 @@ A few common classes:
 
 Reading `array[5]` is O(1): one step, however long the array is. Binary search is O(log n), linear search and summing an array are O(n), and the sorts written by hand below are O(n²).
 
-This also makes precise a claim from Chapter 9, that looking things up by key is dramatically faster on large collections. Finding a name in a list of a thousand takes up to a thousand comparisons; finding it in a `HashMap` takes roughly one, regardless of size. A `HashMap` lookup is O(1), and so is a `LinkedHashMap`'s. (A `TreeMap`, which keeps its keys sorted, takes about log n steps, much as binary search does.) That is the real reason to choose a map, and it is why Chapter 9's map of names to scores is faster than Chapter 7's parallel arrays as well as safer.
+This also makes precise a claim from Chapter 9, that looking things up by key is dramatically faster on large collections. Finding a name in a list of a thousand takes up to a thousand comparisons; finding it in a `HashMap` takes roughly one, regardless of size. A `HashMap` lookup is O(1) on average, and so is a `LinkedHashMap`'s. (A `TreeMap`, which keeps its keys sorted, takes about log n steps, much as binary search does.) That is the real reason to choose a map, and it is why Chapter 9's map of names to scores is faster than Chapter 7's parallel arrays as well as safer.
 
 Binary search has one prerequisite, and it is a real cost: **the array must be sorted.** Which raises the next question.
 

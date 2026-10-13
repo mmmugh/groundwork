@@ -539,7 +539,7 @@ void main() {
 
 Write a complete guessing game in which the computer picks a number and the player guesses, with a limited number of tries.
 
-This needs one new thing: random numbers. Java's `Random` makes them, and a compact source file can use it with nothing added at the top. `Random random = new Random();` creates one (`new` is how Java creates a value of a type like `Random`) and stores it in a variable named `random`: lowercase, as Chapter 2 asks, because the capitalized name belongs to the type. Then `random.nextInt(100)` gives a random whole number from 0 to 99. Like `i < 100`, it stops before 100 itself, so `random.nextInt(100) + 1` gives 1 to 100.
+This needs one new thing: random numbers. Java's `Random` makes them, and the programs in this course, which Java calls compact source files, can use it with nothing added at the top. `Random random = new Random();` creates one (`new` is how Java creates a value of a type like `Random`) and stores it in a variable named `random`: lowercase, as Chapter 2 asks, because the capitalized name belongs to the type. Then `random.nextInt(100)` gives a random whole number from 0 to 99. Like `i < 100`, it stops before 100 itself, so `random.nextInt(100) + 1` gives 1 to 100.
 
 ```java
 // A guessing game with a limited number of tries.

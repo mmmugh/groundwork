@@ -14,7 +14,7 @@ As in Chapter 7, none of these methods should change the register they are hande
 
 An item held zero times is not held. When the last one is claimed, its entry comes out of the register rather than sitting there as a zero.
 
-Each step names the method exactly: its return type, its name and its parameters. Check calls it with the cases under "What it should do," and those cases write each register with `Map.of`, which makes a map that can never change: a method that changes the register it is handed stops there with an `UnsupportedOperationException`. So copy the register first, `new LinkedHashMap<>(register)`, and change the copy. Step 7's cases write each list as `new ArrayList<>(List.of(...))`, as in Chapter 7.
+Each step names the method exactly: its return type, its name and its parameters. Check calls it with the cases under "What it should do," and those cases write each register with `Map.of`, which makes a map that can never change: a method that changes the register it is handed stops there with an `UnsupportedOperationException`. So copy the register first, `new LinkedHashMap<>(register)`, and change the copy. Step 7's cases write each list as `new ArrayList<>(List.of(...))`, as in Chapter 7. A case written `" phone".strip()` is the plain word `"phone"` made while the program runs, so an answer that compares item names with `==` fails it, as in Chapter 7's practice: compare text with `.equals`.
 
 ## Steps
 

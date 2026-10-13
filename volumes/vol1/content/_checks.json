@@ -2,7 +2,7 @@
   "ch01-your-first-programs#11": {
     "kind": "output",
     "expected": "10080",
-    "starter": "void main() {\n    // Print the number of minutes in a week, worked out by Java.\n}\n"
+    "starter": "void main() {\n    // Minutes in a week, worked out.\n}\n"
   },
   "ch01-your-first-programs#13": {
     "kind": "predict"
@@ -10,7 +10,7 @@
   "ch01-your-first-programs-practice#1": {
     "kind": "output",
     "expected": "======================================\n         RIVERSIDE FILM CLUB\n======================================",
-    "starter": "void main() {\n    IO.println(\"======================================\");\n    // Then the club name, indented by nine spaces, and the rule again.\n}\n"
+    "starter": "void main() {\n    IO.println(\"======================================\");\n    // Then the name and the rule.\n}\n"
   },
   "ch01-your-first-programs-practice#2": {
     "kind": "output",
@@ -25,22 +25,22 @@
   "ch01-your-first-programs-practice#4": {
     "kind": "output",
     "expected": "When:     Friday, 7:30 pm\nWhere:    Room 14",
-    "starter": "void main() {\n    // The When: and Where: lines, their values lined up.\n}\n"
+    "starter": "void main() {\n    // The When: and Where: lines.\n}\n"
   },
   "ch01-your-first-programs-practice#5": {
     "kind": "output",
     "expected": "Seats available: 96",
-    "starter": "void main() {\n    // The seat count: 8 rows of 12 seats, worked out by Java.\n}\n"
+    "starter": "void main() {\n    // The seats, worked out by Java.\n}\n"
   },
   "ch01-your-first-programs-practice#6": {
     "kind": "output",
     "expected": "Snack bar total: 17.25",
-    "starter": "void main() {\n    // The snack total: 3 popcorn at 3.75 and 2 drinks at 3.00, worked out by Java.\n}\n"
+    "starter": "void main() {\n    // The snack total, worked out.\n}\n"
   },
   "ch01-your-first-programs-practice#7": {
     "kind": "output",
     "expected": "======================================\n         RIVERSIDE FILM CLUB\n======================================\n\nFeature:  The Quiet Harbor  (1998)\nWhen:     Friday, 7:30 pm\nWhere:    Room 14\n\nSeats available: 96\nSnack bar total: 17.25\n\n======================================",
-    "starter": "void main() {\n    IO.println(\"======================================\");\n    // Then the rest of the flyer: every line in order, blank lines and all.\n}\n"
+    "starter": "void main() {\n    IO.println(\"======================================\");\n    // Then the rest of the flyer.\n}\n"
   },
   "ch02-variables-and-types#14": {
     "kind": "input",
@@ -56,7 +56,7 @@
         ]
       }
     ],
-    "starter": "void main() {\n    // Two numbers in; their sum, difference and product out.\n}\n"
+    "starter": "void main() {\n    // Sum, difference and product.\n}\n"
   },
   "ch02-variables-and-types#15": {
     "kind": "input",
@@ -71,7 +71,7 @@
         ]
       }
     ],
-    "starter": "void main() {\n    // Ask for the seconds, then print minutes and seconds.\n}\n"
+    "starter": "void main() {\n    // Into minutes and seconds.\n}\n"
   },
   "ch02-variables-and-types#16": {
     "kind": "predict"
@@ -79,7 +79,7 @@
   "ch02-variables-and-types-practice#1": {
     "kind": "output",
     "expected": "Kettle Ridge is 12.4 km",
-    "starter": "void main() {\n    String trail = \"Kettle Ridge\";\n    // Then the length, and the line printed from both.\n}\n"
+    "starter": "void main() {\n    String trail = \"Kettle Ridge\";\n    // Then the length, and the line.\n}\n"
   },
   "ch02-variables-and-types-practice#2": {
     "kind": "input",
@@ -107,7 +107,7 @@
         ]
       }
     ],
-    "starter": "void main() {\n    double distanceKm = 12.4;\n    // Ask for the pace; print the minutes and the hours.\n}\n"
+    "starter": "void main() {\n    double distanceKm = 12.4;\n    // Pace in; minutes, hours out.\n}\n"
   },
   "ch02-variables-and-types-practice#4": {
     "kind": "input",
@@ -136,7 +136,7 @@
         ]
       }
     ],
-    "starter": "void main() {\n    double distanceKm = 12.4;\n    // Ask for the pace and the group; print its water.\n}\n"
+    "starter": "void main() {\n    double distanceKm = 12.4;\n    // Pace and group in; water out.\n}\n"
   },
   "ch02-variables-and-types-practice#6": {
     "kind": "input",
@@ -150,7 +150,7 @@
         ]
       }
     ],
-    "starter": "void main() {\n    // Ask how many people; print the permit total.\n}\n"
+    "starter": "void main() {\n    // People in; permit total out.\n}\n"
   },
   "ch02-variables-and-types-practice#7": {
     "kind": "input",
@@ -210,7 +210,7 @@
         ]
       }
     ],
-    "starter": "void main() {\n    // Ask for the minutes; print hours and minutes.\n}\n"
+    "starter": "void main() {\n    // Minutes to hours and minutes.\n}\n"
   },
   "ch03-expressions-and-operators#17": {
     "kind": "input",
@@ -542,7 +542,7 @@
         ]
       }
     ],
-    "starter": "void main() {\n    // Ask for a number: positive, negative or zero?\n}\n"
+    "starter": "void main() {\n    // Positive, negative or zero?\n}\n"
   },
   "ch04-making-decisions#14": {
     "kind": "input",
@@ -1052,7 +1052,7 @@
         "contains": "HOLD: wind"
       }
     ],
-    "starter": "void main() {\n    // Four readings, four status lines, the verdict.\n}\n"
+    "starter": "void main() {\n    // Four lines, then the verdict.\n}\n"
   },
   "ch05-repetition#15": {
     "kind": "output",
@@ -1229,7 +1229,7 @@
         ]
       }
     ],
-    "starter": "void main() {\n    // Ask the weekly amount; print eight running totals.\n}\n"
+    "starter": "void main() {\n    // Eight running totals.\n}\n"
   },
   "ch05-repetition-practice#3": {
     "kind": "input",
@@ -2564,7 +2564,7 @@
         ]
       }
     ],
-    "starter": "void main() {\n    // Ask for a sentence; print its most common character.\n}\n"
+    "starter": "void main() {\n    // The most common character.\n}\n"
   },
   "ch09-maps-and-sets-practice#1": {
     "kind": "method",
@@ -2891,7 +2891,7 @@
         "contains": "Dune, Children of Dune"
       }
     ],
-    "starter": "record Book(String title, String author, int year) {}\n\nvoid main() {\n    ArrayList<Book> books = new ArrayList<>(List.of(\n            new Book(\"Dune\", \"Frank Herbert\", 1965),\n            new Book(\"Neuromancer\", \"William Gibson\", 1984),\n            new Book(\"The Hobbit\", \"J.R.R. Tolkien\", 1937),\n            new Book(\"Project Hail Mary\", \"Andy Weir\", 2021),\n            new Book(\"Foundation\", \"Isaac Asimov\", 1951),\n            new Book(\"Children of Dune\", \"Frank Herbert\", 1976)));\n    // Group the titles by author; print each author.\n}\n"
+    "starter": "record Book(String title, String author, int year) {}\n\nvoid main() {\n    ArrayList<Book> books = new ArrayList<>(List.of(\n            new Book(\"Dune\", \"Frank Herbert\", 1965),\n            new Book(\"Neuromancer\", \"William Gibson\", 1984),\n            new Book(\"The Hobbit\", \"J.R.R. Tolkien\", 1937),\n            new Book(\"Project Hail Mary\", \"Andy Weir\", 2021),\n            new Book(\"Foundation\", \"Isaac Asimov\", 1951),\n            new Book(\"Children of Dune\", \"Frank Herbert\", 1976)));\n    // Titles grouped by author.\n}\n"
   },
   "ch10-records#18": {
     "kind": "method",
@@ -3347,7 +3347,7 @@
         ]
       }
     ],
-    "starter": "// The two closest values, found two ways.\n\nvoid main() {\n    int[] values = {17, 4, 23, 8, 42, 15, 9, 41};\n    // Every pair first; then a sorted copy's neighbors.\n}\n"
+    "starter": "// The two closest values, found two ways.\n\nvoid main() {\n    int[] values = {17, 4, 23, 8, 42, 15, 9, 41};\n    // Every pair; then neighbors.\n}\n"
   },
   "ch11-searching-and-sorting-practice#1": {
     "kind": "method",
@@ -3378,8 +3378,8 @@
   },
   "ch11-searching-and-sorting-practice#2": {
     "kind": "output",
-    "expected": "Priya 57.4\nNadia 58.2\nOmar 61.0\nQuinn 63.5\nHanded in first: Nadia",
-    "starter": "record Result(String name, double seconds) {}\n\nArrayList<Result> ranked(ArrayList<Result> results) {\n    return new ArrayList<>();\n}\n\nvoid main() {\n    ArrayList<Result> results = new ArrayList<>(List.of(\n            new Result(\"Nadia\", 58.2),\n            new Result(\"Omar\", 61.0),\n            new Result(\"Priya\", 57.4),\n            new Result(\"Quinn\", 63.5)));\n    for (Result result : ranked(results)) {\n        IO.println(result.name() + \" \" + result.seconds());\n    }\n    IO.println(\"Handed in first: \" + results.get(0).name());\n}\n"
+    "expected": "Priya 57.4\nNadia 58.2\nOmar 61.0\nQuinn 63.5\nHanded in first: Nadia\n[]\n[Result[name=Priya, seconds=57.4], Result[name=Omar, seconds=61.0]]",
+    "starter": "record Result(String name, double seconds) {}\n\nArrayList<Result> ranked(ArrayList<Result> results) {\n    return new ArrayList<>();\n}\n\nvoid main() {\n    ArrayList<Result> results = new ArrayList<>(List.of(\n            new Result(\"Nadia\", 58.2),\n            new Result(\"Omar\", 61.0),\n            new Result(\"Priya\", 57.4),\n            new Result(\"Quinn\", 63.5)));\n    for (Result result : ranked(results)) {\n        IO.println(result.name() + \" \" + result.seconds());\n    }\n    IO.println(\"Handed in first: \" + results.get(0).name());\n    IO.println(ranked(new ArrayList<>()));\n    IO.println(ranked(new ArrayList<>(List.of(\n            new Result(\"Omar\", 61.0),\n            new Result(\"Priya\", 57.4)))));\n}\n"
   },
   "ch11-searching-and-sorting-practice#3": {
     "kind": "method",
@@ -3414,22 +3414,32 @@
     "starter": "record Result(String name, double seconds) {}\n\n// Bring in ranked from step 2 here.\n\nint placeOf(ArrayList<Result> results, String name) {\n    return 0;\n}\n\nvoid main() {\n    ArrayList<Result> results = new ArrayList<>(List.of(\n            new Result(\"Nadia\", 58.2),\n            new Result(\"Omar\", 61.0),\n            new Result(\"Priya\", 57.4),\n            new Result(\"Quinn\", 63.5)));\n    IO.println(placeOf(results, \"Priya\"));\n    IO.println(placeOf(results, \"Zed\"));\n}\n"
   },
   "ch11-searching-and-sorting-practice#4": {
-    "kind": "input",
-    "runs": [
-      {
-        "typed": [
-          "Omar"
-        ],
-        "contains": "Result[name=Omar, seconds=61.0]"
-      },
-      {
-        "typed": [
-          "Zed"
-        ],
-        "contains": "null"
-      }
+    "kind": "method",
+    "name": "resultFor",
+    "returns": "Result",
+    "params": [
+      "ArrayList<Result>",
+      "String"
     ],
-    "starter": "record Result(String name, double seconds) {}\n\nResult resultFor(ArrayList<Result> results, String name) {\n    return null;\n}\n\nvoid main() {\n    ArrayList<Result> results = new ArrayList<>(List.of(\n            new Result(\"Nadia\", 58.2),\n            new Result(\"Omar\", 61.0),\n            new Result(\"Priya\", 57.4),\n            new Result(\"Quinn\", 63.5)));\n    String name = IO.readln(\"Runner: \").strip();\n    IO.println(resultFor(results, name));\n}\n"
+    "cases": [
+      [
+        "new ArrayList<>(List.of(new Result(\"Nadia\", 58.2), new Result(\"Omar\", 61.0), new Result(\"Priya\", 57.4), new Result(\"Quinn\", 63.5))), \"Omar\"",
+        "new Result(\"Omar\", 61.0)"
+      ],
+      [
+        "new ArrayList<>(List.of(new Result(\"Nadia\", 58.2), new Result(\"Omar\", 61.0), new Result(\"Priya\", 57.4), new Result(\"Quinn\", 63.5))), \"Zed\"",
+        "null"
+      ],
+      [
+        "new ArrayList<>(), \"Omar\"",
+        "null"
+      ],
+      [
+        "new ArrayList<>(List.of(new Result(\"Nadia\", 58.2), new Result(\"Omar\", 61.0), new Result(\"Priya\", 57.4), new Result(\"Quinn\", 63.5))), \" Omar\".strip()",
+        "new Result(\"Omar\", 61.0)"
+      ]
+    ],
+    "starter": "record Result(String name, double seconds) {}\n\nResult resultFor(ArrayList<Result> results, String name) {\n    return null;\n}\n\nvoid main() {\n    ArrayList<Result> results = new ArrayList<>(List.of(\n            new Result(\"Nadia\", 58.2),\n            new Result(\"Omar\", 61.0),\n            new Result(\"Priya\", 57.4),\n            new Result(\"Quinn\", 63.5)));\n    IO.println(resultFor(results, \"Omar\"));\n    IO.println(resultFor(results, \"Zed\"));\n}\n"
   },
   "ch11-searching-and-sorting-practice#5": {
     "kind": "method",

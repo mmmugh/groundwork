@@ -57,7 +57,7 @@ The starter, unchanged, prints nothing:
 
 ```java
 void main() {
-    // Print the number of minutes in a week, worked out by Java.
+    // Minutes in a week, worked out.
 }
 ```
 
@@ -150,7 +150,7 @@ The starter, unchanged, prints the first rule and stops:
 ```java
 void main() {
     IO.println("======================================");
-    // Then the club name, indented by nine spaces, and the rule again.
+    // Then the name and the rule.
 }
 ```
 
@@ -453,7 +453,7 @@ The starter, unchanged, prints nothing:
 
 ```java
 void main() {
-    // Two numbers in; their sum, difference and product out.
+    // Sum, difference and product.
 }
 ```
 
@@ -10755,10 +10755,14 @@ void main() {
         IO.println(result.name() + " " + result.seconds());
     }
     IO.println("Handed in first: " + results.get(0).name());
+    IO.println(ranked(new ArrayList<>()));
+    IO.println(ranked(new ArrayList<>(List.of(
+            new Result("Omar", 61.0),
+            new Result("Priya", 57.4)))));
 }
 ```
 
-The comparator sorts on each result's time. Sorting a copy leaves the clipboard's own list in the order the results were handed in, which is why the last line still names Nadia.
+The comparator sorts on each result's time. Sorting a copy leaves the clipboard's own list in the order the results were handed in, which is why `Handed in first:` still names Nadia.
 
 ```java
 record Result(String name, double seconds) {}
@@ -10788,6 +10792,10 @@ void main() {
         IO.println(result.name() + " " + result.seconds());
     }
     IO.println("Handed in first: " + results.get(0).name());
+    IO.println(ranked(new ArrayList<>()));
+    IO.println(ranked(new ArrayList<>(List.of(
+            new Result("Omar", 61.0),
+            new Result("Priya", 57.4)))));
 }
 ```
 
@@ -10815,6 +10823,10 @@ void main() {
         IO.println(result.name() + " " + result.seconds());
     }
     IO.println("Handed in first: " + results.get(0).name());
+    IO.println(ranked(new ArrayList<>()));
+    IO.println(ranked(new ArrayList<>(List.of(
+            new Result("Omar", 61.0),
+            new Result("Priya", 57.4)))));
 }
 ```
 
@@ -10839,6 +10851,10 @@ void main() {
         IO.println(result.name() + " " + result.seconds());
     }
     IO.println("Handed in first: " + results.get(0).name());
+    IO.println(ranked(new ArrayList<>()));
+    IO.println(ranked(new ArrayList<>(List.of(
+            new Result("Omar", 61.0),
+            new Result("Priya", 57.4)))));
 }
 ```
 
@@ -11008,8 +11024,8 @@ void main() {
             new Result("Omar", 61.0),
             new Result("Priya", 57.4),
             new Result("Quinn", 63.5)));
-    String name = IO.readln("Runner: ").strip();
-    IO.println(resultFor(results, name));
+    IO.println(resultFor(results, "Omar"));
+    IO.println(resultFor(results, "Zed"));
 }
 ```
 
@@ -11034,8 +11050,8 @@ void main() {
             new Result("Omar", 61.0),
             new Result("Priya", 57.4),
             new Result("Quinn", 63.5)));
-    String name = IO.readln("Runner: ").strip();
-    IO.println(resultFor(results, name));
+    IO.println(resultFor(results, "Omar"));
+    IO.println(resultFor(results, "Zed"));
 }
 ```
 
@@ -11043,7 +11059,7 @@ The second answer keeps the match in a variable that starts as `null`, and its l
 
 ### mistake
 
-`==` never matches a name that was typed, since the typed text is a new object:
+`==` asks whether two names are the same object, so a name made while the program runs is never found:
 
 ```java
 record Result(String name, double seconds) {}
@@ -11063,8 +11079,7 @@ void main() {
             new Result("Omar", 61.0),
             new Result("Priya", 57.4),
             new Result("Quinn", 63.5)));
-    String name = IO.readln("Runner: ").strip();
-    IO.println(resultFor(results, name));
+    IO.println(resultFor(results, " Omar".strip()));
 }
 ```
 
@@ -11088,8 +11103,8 @@ void main() {
             new Result("Omar", 61.0),
             new Result("Priya", 57.4),
             new Result("Quinn", 63.5)));
-    String name = IO.readln("Runner: ").strip();
-    IO.println(resultFor(results, name));
+    IO.println(resultFor(results, "Omar"));
+    IO.println(resultFor(results, "Zed"));
 }
 ```
 

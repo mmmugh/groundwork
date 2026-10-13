@@ -30,7 +30,7 @@ Folder root = new Folder("root", List.of(10, 20), List.of(
 
 Everything here uses Chapters 1 to 12. Each method needs to answer for the folder it is given by asking the same question of the folders inside it.
 
-Each step names the method exactly: its return type, its name and its parameters. Check calls it with the cases under "What it should do," and those cases build each folder with `new Folder(...)` and each list with `List.of(...)`, so no method here can add to a folder's own lists: where a step builds a list, make a new one. Every box declares the `Folder` record on its first line, since each box is a whole program: keep that line.
+Each step names the method exactly: its return type, its name and its parameters. Check calls it with the cases under "What it should do," and those cases build each folder with `new Folder(...)` and each list with `List.of(...)`, so no method here can add to a folder's own lists: where a step builds a list, make a new one. A case written `" raw".strip()` is the plain name `"raw"` made while the program runs, so an answer that compares folder names with `==` fails it, as in Chapter 7's practice: compare text with `.equals`. Every box declares the `Folder` record on its first line, since each box is a whole program: keep that line.
 
 ## Steps
 

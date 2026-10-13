@@ -279,7 +279,7 @@ Note the use of `Double.parseDouble` rather than `Integer.parseInt`. Temperature
 
 ```java
 void main() {
-    // A book's title, author and page count, then one sentence.
+    // Three variables, one sentence.
 }
 ```
 

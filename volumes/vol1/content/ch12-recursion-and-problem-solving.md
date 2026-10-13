@@ -222,7 +222,7 @@ The reason is that it recomputes the same values endlessly. Calculating `fib(5)`
 
 The fix is to remember answers already computed, a technique called **memoization**. A map from each `n` to its answer does the remembering: before working a value out, look for it in the map, and after working it out, put it there.
 
-Two things in the program below are new. The answers are `long`s, Chapter 3's whole numbers with room for far bigger values, because Fibonacci numbers outgrow an `int` quickly: `fib(47)` is 2,971,215,073, past the largest `int`, 2,147,483,647. And a map holds objects, so its values are `Long`, the object twin of `long`, as `Integer` is of `int` (Chapter 7); Java converts between the two on its own. The map is made by a one-parameter `fibFast`, so each outside call starts with an empty one, and it is handed along to every recursive call. It is a `HashMap`: nothing prints it, so its order does not matter, and its lookups are O(1), as Chapter 11 showed.
+Two things in the program below need a word. The answers are `long`s, Chapter 3's whole numbers with room for far bigger values, because Fibonacci numbers outgrow an `int` quickly: `fib(47)` is 2,971,215,073, past the largest `int`, 2,147,483,647. And a map holds objects, so its values are `Long`, the object twin of `long`, as `Integer` is of `int` (Chapter 7); Java converts between the two on its own. The map is made by a one-parameter `fibFast`, so each outside call starts with an empty one, and it is handed along to every recursive call. It is a `HashMap`: nothing prints it, so its order does not matter, and its lookups are O(1) on average, as Chapter 11 showed.
 
 ```java
 /// Returns the nth Fibonacci number, remembering previous results.
@@ -290,7 +290,7 @@ Anything recursive can be written with a loop, and anything looped can be writte
 
 **Loops fit** when you are stepping through a sequence. Summing an array recursively, as above, is a fine teaching exercise and worse code than Chapter 7's loop.
 
-For a 9th-grade course the honest summary is: recognize recursion, be able to trace it, and know that some problems become much simpler when expressed this way. Do not force it where a loop is clearer.
+For a first course the honest summary is: recognize recursion, be able to trace it, and know that some problems become much simpler when expressed this way. Do not force it where a loop is clearer.
 
 ## A problem that wants recursion
 
@@ -487,7 +487,7 @@ This brings together everything in the course: methods, loops, conditionals, lis
 One thing in it is new. Each student's scores are a list inside the record, and the component's type is written `List<Integer>`. `List` is to lists what Chapter 9's `Map` is to maps: a variable or a component typed `List` holds any kind of list, an `ArrayList` or the one that `List.of` makes, which can never change. So each student's scores can be written `List.of(88, 92, 85)` and stored as they are, and `average` takes a `List<Integer>` for the same reason. A `List` is read the way an `ArrayList` is, with `size()`, `isEmpty()` and a loop.
 
 ```java
-// A student records system: add, search, sort, and report.
+// A student records system: search, sort, group, and report.
 
 record Student(int id, String name, int grade, List<Integer> scores) {}
 

@@ -219,7 +219,7 @@ void main() {
 Cannot divide by zero.
 ```
 
-`divide(10, 2)` passes two `int`s, and its `double` parameters take them as readily as `double price = 3;` took an `int` in Chapter 2.
+`divide(10, 2)` passes two `int`s, and its `double` parameters take them as readily as `double price = 3;` took an `int` in Chapter 2. Without the check, `divide(10, 0)` would not stop the program as Chapter 3's `5 / 0` did: a `double` divided by zero gives `Infinity`, which prints as that word and is no use as an answer.
 
 A method gives back exactly one value. Where two answers are wanted, such as the minutes and the seconds in a number of seconds, write two methods, one for each:
 

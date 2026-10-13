@@ -44,6 +44,8 @@ Every example here runs exactly as shown. Nothing needs to be installed, no file
 | Try It | Short exercises that practice one thing each, many with a Check button |
 | Common mistakes | Errors that catch nearly everyone, and what they look like |
 | Chapter project | A longer program combining everything in the chapter |
+| Practice | A page of its own after the chapter: one project, built in checked steps |
+| Quiz | A plain-text quiz to fill in, linked at the end of the chapter's page |
 
 Do the Try It exercises as you go rather than saving them for the end. Programming is a skill like playing an instrument: reading about it and doing it are different activities, and only one of them works.
 
@@ -65,11 +67,11 @@ A few boxes fail on purpose: some do not compile, and some crash while they run.
 
 The boxes behave like files, because a program is a file. But a lot of learning happens by simply asking Java a question—what does `"5" + 1` give? is `7 / 2` 3 or 3.5?—and for that there is a **Scratchpad** button in the bottom right-hand corner of every page.
 
-It opens jshell, the Java shell, right in the page. It remembers what you typed, so you can build something up a line at a time, and it shows you the value of anything you type without your having to print it. The page fetches about 30 MB for it the first time you open it, so it takes a few seconds to start (up to a minute on a phone). Appendix D explains the difference between the boxes and the scratchpad, and when each is the right one to reach for.
+It opens jshell, the Java shell, right in the page. It remembers what you typed, so you can build something up a line at a time, and it shows you the value of anything you type without your having to print it. The page fetches about 30 MB for it the first time you open it, so it takes about ten seconds to start (up to a minute on a phone). Appendix D explains the difference between the boxes and the scratchpad, and when each is the right one to reach for.
 
 ### Checking your answers
 
-Every chapter ends with a handful of Try It exercises. About half have a **Check** button: it runs your answer against several test cases and, if something is wrong, tells you which case failed and what it expected. It does not care how you wrote it—a `for` loop and a `while` loop that both work will both pass.
+Every chapter has a handful of Try It exercises, and nearly all of them have a **Check** button: it runs your answer against several test cases and, if something is wrong, tells you which case failed and what it expected. It does not care how you wrote it—a `for` loop and a `while` loop that both work will both pass.
 
 Some exercises have no Check button. Those are the ones where you choose the words the program prints, or the data it works on, so there is no single right answer to check against. The box says as much rather than pretending otherwise. Appendix A is how you check those yourself, and it is worth reading before you need it.
 

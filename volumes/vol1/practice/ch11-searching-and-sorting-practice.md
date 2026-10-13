@@ -21,7 +21,7 @@ The results to test with, in the order they were handed in:
 
 Nothing here may assume the results arrive in order, because they do not. Nothing here may change the list or array it is handed, either: where something needs reordering, sort a copy.
 
-Each step names the method exactly: its return type, its name and its parameters. Check calls it with the cases under "What it should do," and those cases make each result with `new Result(...)` and each list with `new ArrayList<>(List.of(...))`, as in Chapter 10. Steps 2, 4 and 7 are the exceptions: Check runs the program and reads what it prints, because what steps 2 and 7 do to the list or array they are handed shows only there, and step 4's program asks for a name. Every box that works with results declares the `Result` record on its first line, since each box is a whole program: keep that line.
+Each step names the method exactly: its return type, its name and its parameters. Check calls it with the cases under "What it should do," and those cases make each result with `new Result(...)` and each list with `new ArrayList<>(List.of(...))`, as in Chapter 10. Steps 2 and 7 are the exceptions: Check runs the program and reads what it prints, because what they do to the list or array they are handed shows only there. A case written `" Omar".strip()` is the plain name `"Omar"` made while the program runs, so an answer that compares names with `==` fails it, as in Chapter 7's practice: compare text with `.equals`. Every box that works with results declares the `Result` record on its first line, since each box is a whole program: keep that line.
 
 ## Steps
 
@@ -50,7 +50,7 @@ void main() {
 }
 ```
 
-**Step 2.** Write `ArrayList<Result> ranked(ArrayList<Result> results)`, returning a new list of the results ordered fastest first. Check runs the program: the runners in finishing order, then the first name handed in, which must still be Nadia.
+**Step 2.** Write `ArrayList<Result> ranked(ArrayList<Result> results)`, returning a new list of the results ordered fastest first. Check runs the program: the runners in finishing order, then the first name handed in, which must still be Nadia; the program also ranks an empty race and a two-runner one.
 
 ```java
 record Result(String name, double seconds) {}
@@ -71,6 +71,10 @@ void main() {
         IO.println(result.name() + " " + result.seconds());
     }
     IO.println("Handed in first: " + results.get(0).name());
+    IO.println(ranked(new ArrayList<>()));
+    IO.println(ranked(new ArrayList<>(List.of(
+            new Result("Omar", 61.0),
+            new Result("Priya", 57.4)))));
 }
 ```
 
@@ -106,7 +110,7 @@ void main() {
 }
 ```
 
-**Step 4.** Write `Result resultFor(ArrayList<Result> results, String name)`, returning that runner's whole record, or `null` for a name that did not run. This is a linear search: the results are not sorted by name, so there is nothing cleverer available. Check runs the program twice, typing Omar and then Zed, and looks for Omar's record and then `null` in what it prints.
+**Step 4.** Write `Result resultFor(ArrayList<Result> results, String name)`, returning that runner's whole record, or `null` for a name that did not run. This is a linear search: the results are not sorted by name, so there is nothing cleverer available.
 
 ```java
 record Result(String name, double seconds) {}
@@ -126,8 +130,8 @@ void main() {
             new Result("Omar", 61.0),
             new Result("Priya", 57.4),
             new Result("Quinn", 63.5)));
-    String name = IO.readln("Runner: ").strip();
-    IO.println(resultFor(results, name));
+    IO.println(resultFor(results, "Omar"));
+    IO.println(resultFor(results, "Zed"));
 }
 ```
 

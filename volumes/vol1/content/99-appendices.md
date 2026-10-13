@@ -84,7 +84,7 @@ Then the exceptions, which stop a program while it runs:
 - `NullPointerException`: a method called on `null`, or a `null` stored in an `int`, as when a map's `get` finds no such key. Check with `!= null` or `containsKey` first; the note below says what the message tells you.
 - `StackOverflowError`: a recursion that never reaches its base case. Java calls it an error rather than an exception, and it stops the program the same way.
 - `UnsupportedOperationException`: a change to a list, map or set made with `List.of`, `Map.of` or `Set.of`, which can never change. Copy it into a new `ArrayList`, `LinkedHashMap` or `LinkedHashSet` first.
-- `ConcurrentModificationException`: a list changed while a for-each loop walks it; a removal while the loop is on the second-to-last item throws nothing, but the loop then skips the last one. Build a new list instead.
+- `ConcurrentModificationException`: a list changed while an enhanced `for` walks it; a removal while the loop is on the second-to-last item throws nothing, but the loop then skips the last one. Build a new list instead.
 
 ### A note on `NullPointerException`
 
@@ -138,7 +138,7 @@ void main() {
 
 Nothing is malformed. Java has no way to know what you meant. These are found by checking output against a case you can compute yourself.
 
-Java has a silent bug all its own: `/` between two `int`s drops the fraction without a word (Chapter 3). With scores of 88, 92 and 85, `total / scores.length` gives 88, where the true average is about 88.33.
+Java has a silent bug all its own: `/` between two `int`s drops the fraction without a word (Chapter 3). With scores of 88, 92 and 85 instead, `total / scores.length` gives 88, where the true average is about 88.33.
 
 ### Debugging techniques
 

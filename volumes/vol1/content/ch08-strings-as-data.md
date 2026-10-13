@@ -196,7 +196,7 @@ void main() {
     String date = "2026-09-17";
     IO.println(Arrays.toString(date.split("-")));
 
-    String row = "Ada,88,A";
+    String row = "Ada,88,B";
     String[] fields = row.split(",");
     String name = fields[0];
     String score = fields[1];
@@ -208,7 +208,7 @@ void main() {
 ```output
 [the, quick, brown, fox]
 [2026, 09, 17]
-Ada scored 88 for a A
+Ada scored 88 for a B
 ```
 
 That last pattern—split a comma-separated line, then give each piece a name—is how nearly every program reads data files. Every piece is a `String`, the score included: to do arithmetic with it, convert it with Chapter 2's `Integer.parseInt`.
@@ -483,14 +483,14 @@ Some characters cannot be typed directly inside a string, so they are written wi
 ```java
 void main() {
     IO.println("Name:\tAda\nRole:\tMathematician");
-    IO.println("She said, \"Hello.\"");
+    IO.println("Ada said, \"Hello.\"");
 }
 ```
 
 ```output
 Name:	Ada
 Role:	Mathematician
-She said, "Hello."
+Ada said, "Hello."
 ```
 
 A single quote needs no backslash inside a string, as Chapter 1 found with its apostrophe; `\'` is for a `char`, where `'\''` is the single quote itself. And `\\` is why `split`'s pattern for spaces was written `"\\s+"`: the pattern needs one backslash before the `s`, and in a Java string one backslash is written `\\`.

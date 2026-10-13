@@ -14,7 +14,7 @@ The test playlist:
 
 No method here should change the list it is given. A method that quietly rearranges its caller's playlist is a bug that shows up three screens later, so where something needs to grow or be reordered, build a new list.
 
-Each step names the method exactly: its return type, its name and its parameters. Check calls it with the cases under "What it should do," and those cases write each list in place, as `new ArrayList<>(List.of("Anvil", "Ribbons"))`, or `new ArrayList<>()` for an empty one. Step 4's Check is the exception: it runs the program, because a change to the caller's list shows only in what `main` prints.
+Each step names the method exactly: its return type, its name and its parameters. Check calls it with the cases under "What it should do," and those cases write each list in place, as `new ArrayList<>(List.of("Anvil", "Ribbons"))`, or `new ArrayList<>()` for an empty one. Step 4's Check is the exception: it runs the program, because a change to the caller's list shows only in what `main` prints. One of step 7's cases passes `" Ribbons".strip()`, which is the plain word `"Ribbons"` made while the program runs: a separate `String` object from the `"Ribbons"` in the list, with the same letters. So an answer that compares titles with `==` fails that case, for the reason the end of Chapter 7's Common mistakes gives: `==` asks whether two variables hold the same object. Compare text with `.equals`.
 
 ## Steps
 

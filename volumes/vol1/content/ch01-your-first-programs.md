@@ -169,7 +169,7 @@ Under it is a copy of that line, with a caret, `^`, pointing at the spot javac n
 
 ```java
 void main() {
-    // Your name, your school and your favorite subject, one on each line.
+    // Name, school and subject.
 }
 ```
 
@@ -185,7 +185,7 @@ void main() {
 
 ```java
 void main() {
-    // A small shape made of asterisks, one row on each line.
+    // A shape made of asterisks.
 }
 ```
 

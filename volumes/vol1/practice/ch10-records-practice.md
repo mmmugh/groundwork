@@ -21,7 +21,7 @@ The services to test with:
 
 Peak hours are 07:00 to 09:20 and 16:00 to 19:00—in minutes, 420 up to but not including 560, and 960 up to but not including 1140.
 
-Each step names the method exactly: its return type, its name and its parameters. Check calls it with the cases under "What it should do," and those cases make each service with `new Service(...)` and each list with `new ArrayList<>(List.of(...))`, as in Chapter 7. Every box that works with services declares the `Service` record on its first line, since each box is a whole program: keep that line.
+Each step names the method exactly: its return type, its name and its parameters. Check calls it with the cases under "What it should do," and those cases make each service with `new Service(...)` and each list with `new ArrayList<>(List.of(...))`, as in Chapter 7. A case written `" Harbor".strip()` is the plain word `"Harbor"` made while the program runs, so an answer that compares destinations with `==` fails it, as in Chapter 7's practice: compare text with `.equals`. Every box that works with services declares the `Service` record on its first line, since each box is a whole program: keep that line.
 
 ## Steps
 
