@@ -21,7 +21,7 @@
 // afresh, ends a session whose memory runs out and starts afresh, ends an entry at the output cap, at the line cap (a
 // runaway of short lines), at Ristretto's own output stop and at the backstop, ends a session whose memory passes
 // 2 GiB (this browser's own RangeError), and talks to nobody, a jshell entry that opens a java.net URL included
-// (Chromium, W-8). Firefox takes about a minute to start jshell, so every
+// (Chromium, W-8). Playwright's Firefox takes about a minute to start jshell, so every
 // open has a 250-second allowance. Each engine prints how long the open took, phase by phase, the first entry and the
 // /reset. The panel's own behavior, against a stand-in worker, is web/test/scratchpad-panel.mjs.
 //   node web/test/scratchpad.mjs [chromium|webkit|firefox]
@@ -45,11 +45,11 @@ const BOOT_MS = 250_000; // the client's own boot deadline is 240 s
 const ENTRY_MS = 120_000; // the slowest entry below, f(0), took 6.8 s under Node
 const LINE_CAP_DEADLINE_MS = 300_000; // the line-cap page's entry deadline (D115); readers get 60 s
 const PHASE_WORDS = ["Downloading jshell (about 30 MB) and checking it", "Starting Java",
-  "Starting jshell, which takes about 10 seconds in Chrome and Safari on a computer, and up to a minute in Firefox or on a phone"];
+  "Starting jshell, which takes about 10 seconds on a computer, and up to a minute on a phone"];
 // The same on a page that is not secure (plain http from another device), where Safari and every iPhone or iPad browser
 // cannot start jshell (D90, D91; chosen by isSecureContext).
-const PHASE_WORDS_PLAIN = [...PHASE_WORDS.slice(0, 2), "Starting jshell, which takes about 10 seconds in Chrome and up to a " +
-  "minute in Firefox; on a plain http address Safari and every browser on iPhone or iPad cannot start it (use https or localhost)"];
+const PHASE_WORDS_PLAIN = [...PHASE_WORDS.slice(0, 2), "Starting jshell, which takes about 10 seconds in Chrome or " +
+  "Firefox on a computer; on a plain http address Safari and every browser on iPhone or iPad cannot start it (use https or localhost)"];
 const RESTARTING = /^Starting a fresh jshell… (\d+) s$/; // the note while /reset restarts: no time claimed
 // What a reader might type first: values, a variable, an empty line (the front end answers it with its prompt), a
 // method over three lines, an error; a program's own System.err; then endless recursion, whose trace (the front end
@@ -163,7 +163,7 @@ for (const engine of only ? [only] : Object.keys(ENGINES)) {
     first: window.jfNotes[0]?.at }));
   const note = seen.note;
   const counted = Number((note.match(/(\d+) s$/) ?? [])[1]);
-  check(`${engine}: ${process.env.CI ? "once it has started jshell" : "2.5 s into the open"}, the panel says jshell is starting, Firefox's minute included, and counts the seconds (D54)`,
+  check(`${engine}: ${process.env.CI ? "once it has started jshell" : "2.5 s into the open"}, the panel says jshell is starting, a phone's minute included, and counts the seconds (D54)`,
     note.startsWith(PHASE_WORDS[2]) && counted >= 2, note);
   // The counter counts from the first note the panel said, which the page's own timestamps (jfNotes) record: it must agree
   // with the time since then, to the second, whatever the machine's speed.

@@ -32,10 +32,11 @@ const HISTORY_SIZE = 100;
 const TRIM_CHARS = 2_000_000;
 // What starting jshell is doing, by the client's onProgress phase (D54); a timer follows the words. Measured by
 // web/test/scratchpad.mjs, the files served from the same machine: the download and its check 0.1 s, Java under a
-// second, then jshell about 9 s in Chromium and WebKit and about 55 s in Firefox, so Firefox's minute goes with
-// jshell's words. On an iPhone (D68, the files from a computer on the same network, about 2 s to download) the open
-// took 12 s in Edge and between 30 s and a minute in Safari, both WebKit: the wait is jshell's start, so a phone's
-// minute goes with jshell's words too.
+// second, then jshell about 9 s in Chromium and WebKit and about 55 s in Playwright's Firefox, a Nightly-line build.
+// Release browsers on a Mac took about 10 s in Edge and Safari and 12 s in Firefox from the live site (D125), so a
+// computer gets about 10 seconds. On an iPhone (D68, the files from a computer on the same network, about 2 s to
+// download) the open took 12 s in Edge and between 30 s and a minute in Safari, both WebKit: the wait is jshell's
+// start, so a phone's minute goes with jshell's words.
 // These times are for a secure page (https, localhost). On a page that is not secure (plain http from another device)
 // Safari is far slower: on a MacBook Air (M4) it downloaded the files and then had not started jshell when the 240 s boot
 // deadline passed, and Playwright's WebKit slowed the same way on a page loaded over the network at an insecure origin
@@ -44,16 +45,16 @@ const TRIM_CHARS = 2_000_000;
 const PHASES = {
   download: "Downloading jshell (about 30 MB) and checking it",
   engine: "Starting Java",
-  jshell: "Starting jshell, which takes about 10 seconds in Chrome and Safari on a computer, and up to a minute in Firefox or on a phone",
+  jshell: "Starting jshell, which takes about 10 seconds on a computer, and up to a minute on a phone",
 };
-const PLAIN_JSHELL = "Starting jshell, which takes about 10 seconds in Chrome and up to a minute in Firefox; on a plain http " +
+const PLAIN_JSHELL = "Starting jshell, which takes about 10 seconds in Chrome or Firefox on a computer; on a plain http " +
   "address Safari and every browser on iPhone or iPad cannot start it (use https or localhost)";
 // The client's words for a start, or a restart, that did not answer by its deadline: "... jshell did not answer within ...".
 const START_TIMED_OUT = /jshell did not answer within/;
 // A /reset or /reload starts a fresh VM inside its one request: the client says jshell as it sends the line, the
 // session busy, and nothing follows until the answer. The note says so in words of its own, with the timer and no
 // time claimed: a restart does not take the first open's time (a /reset about 8 s in Chromium and WebKit and 15 s in
-// Firefox, measured), and a /reload then runs the session's entries again.
+// Playwright's Firefox, measured), and a /reload then runs the session's entries again.
 const RESTARTING = "Starting a fresh jshell";
 // The endings after which a fresh session starts by itself (D49): the reader's entry was stopped, or the engine gave
 // out. After exited (the reader asked to end) and failed-to-load (starting again by itself would download 30 MB in a

@@ -429,7 +429,8 @@ check("a message the worker could not pass ends the session as crashed", r.statu
 // ---- /reset and /reload ----
 // The front end answers them in the same request, after Ristretto's worker has started a fresh VM (lib.rs): one
 // request, one answer, no phase event. Here the restart answers after 200 ms, past the entry deadline of 50 ms: a
-// restart has a boot's deadline (Firefox takes about a minute to start jshell; an entry's deadline is a minute).
+// restart has a boot's deadline (Playwright's Firefox takes about a minute to start jshell; an entry's deadline is a
+// minute).
 const table = /static final String\[\] NAMES = \{([^}]*)\};/.exec(fs.readFileSync(path.join(REPO, "runtime/jshell/src/foundations/scratchpad/Commands.java"), "utf8"));
 const names = table ? [...table[1].matchAll(/"([^"]*)"/g)].map((m) => m[1]) : null;
 check("the client resolves commands against the front end's own command names (Commands.java's NAMES)",

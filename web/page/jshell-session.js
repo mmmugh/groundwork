@@ -45,9 +45,9 @@ const CACHE = "jf-scratchpad";
 const TERMINAL = new Set(["ready", "completions", "error", "done"]);
 // A /reload replays the session's entries on the fresh VM, each at about the cost it had when typed. Measured: the
 // replay of 50 entries took 0.88 times their first run under Node, 1.03 in Chromium, 1.00 in WebKit and 1.09 in Firefox,
-// after a fresh VM's boot of 9 to 15 s (Firefox's first boot takes about a minute; a restart's, 15 s); its total grows
-// faster than the count, since later entries cost more (100 entries: 106 s under Node). So a /reload gets the boot
-// deadline plus twice what the session's entries have taken so far.
+// after a fresh VM's boot of 9 to 15 s (Playwright's Firefox: a minute for a first boot, 15 s for a restart); its
+// total grows faster than the count, since later entries cost more (100 entries: 106 s under Node). So a /reload gets
+// the boot deadline plus twice what the session's entries have taken so far.
 const REPLAY_FACTOR = 2;
 
 // What the engine's Rust runtime writes to stderr just before the worker reports an error. It means nothing to a

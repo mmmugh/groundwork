@@ -145,17 +145,18 @@ the JDK. It does run the JDK's own jshell engine, which is where the course uses
   that is not secure the startup note says so, and a start or a box that runs out of time adds that Safari and every
   iPhone or iPad browser run Java much more slowly there and names https or localhost (D91), chosen by
   `isSecureContext`, never by the browser's name. Chrome and Firefox are tested end to end at a plain-http origin. The
-  times that follow are for https or localhost. Opening it takes about 10 seconds in Chrome and Safari on a computer and
-  up to a minute in Firefox or on a phone (on an iPhone, 12 seconds in Edge and up to a minute in Safari); an entry then
-  takes a couple of seconds (about five for the first one in Firefox); `/reset` starts a fresh virtual machine (under 10
-  seconds, about 15 in Firefox), and `/reload` then runs the session's entries again. A runaway entry is stopped by the
-  reader or after 60 seconds, and the scratchpad starts a fresh session and says why. Endless printing of short lines
-  usually ends sooner, at the scratchpad's cap of 100,000 lines: on a Mac Studio (M3 Ultra), in about 8 seconds in
-  Chromium and WebKit and about 40 in Firefox; on a slower computer, such as GitHub's Linux runner, Firefox reaches the
-  60 seconds first (D115). Unlike a box, an entry that uses up memory is not reported as `java.lang.OutOfMemoryError`:
-  the engine aborts, the session ends in plain words, and a fresh one starts; a session can use several gigabytes first,
-  so a small device may lose the tab. The memory a session uses is never given back, so a long session ends and starts
-  again: after roughly 70 to 150 entries, fewer when entries declare many classes (about 50 in the worst case measured).
+  times that follow are for https or localhost. Opening it takes about 10 seconds on a computer (Edge, Safari and
+  Firefox: D125) and up to a minute on a phone (on an iPhone, 12 seconds in Edge and up to a minute in Safari); an entry
+  then takes a couple of seconds (about five for the first one in Playwright's Firefox); `/reset` starts a fresh virtual
+  machine (under 10 seconds, about 15 in Playwright's Firefox), and `/reload` then runs the session's entries again. A
+  runaway entry is stopped by the reader or after 60 seconds, and the scratchpad starts a fresh session and says why.
+  Endless printing of short lines usually ends sooner, at the scratchpad's cap of 100,000 lines: on a Mac Studio (M3
+  Ultra), in about 8 seconds in Chromium and WebKit and about 40 in Firefox; on a slower computer, such as GitHub's
+  Linux runner, Firefox reaches the 60 seconds first (D115). Unlike a box, an entry that uses up memory is not reported
+  as `java.lang.OutOfMemoryError`: the engine aborts, the session ends in plain words, and a fresh one starts; a session
+  can use several gigabytes first, so a small device may lose the tab. The memory a session uses is never given back, so
+  a long session ends and starts again: after roughly 70 to 150 entries, fewer when entries declare many classes (about
+  50 in the worst case measured).
 
 ## 3. Checking answers
 
@@ -268,13 +269,13 @@ Also carried over:
   documents, its derivation log `runtime/jshell/DERIVATION.md`, whose Disclosures section
   records what its clean room let through. Three patch headers (teavm-0011, teavm-0019 and teavm-0020) point at
   clean-room records kept in commit messages of the private history (D95, D96); `docs/clean-room-records.md` copies them.
-- Genuine bug fixes are offered upstream later, one at a time, each approved by the author first:
-  to TeaVM and teavm-javac, and to Ristretto: Firefox's slow jshell start (about a minute, against
-  about 10 seconds elsewhere: D54), `void main()` support, uncaught-exception text, and out-of-memory
-  handling, including the end of a session whose memory passes 2 GiB. JDK-fidelity changes to TeaVM
-  stay ours, since TeaVM is a usable stand-in for the JDK rather than a copy of it.
-- teavm-javac's repository states Apache-2.0 in its README but carries no license file. Asking its
-  author to add one is the first thing on the give-back list.
+- Genuine bug fixes go upstream as issues, one at a time, each approved by the author first. The nineteen filed on
+  2026-10-12, to TeaVM, teavm-javac and Ristretto, are listed in `docs/upstream-issues.md` with the course's own fix
+  for each; Ristretto's are `void main()` support, uncaught-exception text, out-of-memory handling and its license
+  notices. The end of a session whose memory passes 2 GiB is not filed yet. JDK-fidelity changes to TeaVM stay ours,
+  since TeaVM is a usable stand-in for the JDK rather than a copy of it.
+- teavm-javac's repository states Apache-2.0 in its README but carries no license file; the request to add one is
+  teavm-javac#22.
 - Two engines are pinned: the teavm-javac fork for every box, and Ristretto for the scratchpad. Each
   runtime release ships the licenses it needs and the exact source that corresponds to it, including
   the OpenJDK and Corretto parts under GPLv2 with the Classpath Exception. The scratchpad release carries the

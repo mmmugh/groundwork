@@ -42,9 +42,9 @@ const BANNER = "|  Welcome to JShell -- Version 25.0.4.1\n|  For an introduction
 // one that is not (plain http from another device), where Safari and every iPhone or iPad browser cannot start jshell
 // (D90, D91): the words are chosen by isSecureContext, never by the browser's name.
 const PHASE_WORDS = ["Downloading jshell (about 30 MB) and checking it", "Starting Java",
-  "Starting jshell, which takes about 10 seconds in Chrome and Safari on a computer, and up to a minute in Firefox or on a phone"];
-const PHASE_WORDS_PLAIN = [...PHASE_WORDS.slice(0, 2), "Starting jshell, which takes about 10 seconds in Chrome and up to a " +
-  "minute in Firefox; on a plain http address Safari and every browser on iPhone or iPad cannot start it (use https or localhost)"];
+  "Starting jshell, which takes about 10 seconds on a computer, and up to a minute on a phone"];
+const PHASE_WORDS_PLAIN = [...PHASE_WORDS.slice(0, 2), "Starting jshell, which takes about 10 seconds in Chrome or " +
+  "Firefox on a computer; on a plain http address Safari and every browser on iPhone or iPad cannot start it (use https or localhost)"];
 // The sentence a start that timed out adds on a page that is not secure (D91).
 const PLAIN_HTTP_SLOW = "On a plain http address, Safari and every iPhone or iPad browser run Java much more slowly; open the " +
   "course over https or from localhost.";
@@ -262,7 +262,7 @@ for (const engine of only ? [only] : Object.keys(ENGINES)) {
   const ticks = await t.page.evaluate(() => window.jfTicks);
   const secs = (s) => Number((s.match(/(\d+) s$/) ?? [])[1]);
   const counted = ticks.filter((s) => s.startsWith(PHASE_WORDS[2])).map(secs);
-  check(`${engine}: while it opens, the panel says what it is doing, phase by phase (D54), Firefox's minute with jshell's`,
+  check(`${engine}: while it opens, the panel says what it is doing, phase by phase (D54), a phone's minute with jshell's`,
     JSON.stringify(notes) === JSON.stringify(PHASE_WORDS), notes);
   check(`${engine}: and counts the seconds`, counted.length >= 2 && counted.every((n, i) => Number.isInteger(n) && (i === 0 || n > counted[i - 1])), ticks);
   const atReady = await t.page.evaluate(() => window.jfAtReady);

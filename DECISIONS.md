@@ -646,6 +646,15 @@ before the public repository's first commit, which stays private too (D96; D17's
   "—built with Claude Opus 5.5"), as the Python course's front matter does. NameTest allows the name on exactly that one
   line of `volumes/vol1/content/00-front-matter.md`, by the same "—built with Claude" mark as the two bylines it already
   allows; everywhere else the course says "the author". The author chose the recommended option.
+- D125 (2026-10-13) THE SCRATCHPAD'S OPEN, RETIMED IN RELEASE BROWSERS: the author timed the live course's scratchpad
+  on 2026-10-12 in release browsers on a Mac, to jshell's banner: about 10 s in Edge and Safari and about 12 s in
+  Firefox. D54's minute for Firefox came from Playwright's Firefox, a Nightly-line build, which release Firefox on a
+  computer does not show. So the words a reader sees say about 10 seconds on a computer and up to a minute on a phone
+  (D68's iPhone trials stand, and the author's later iPhone opens stayed under a minute), and on a plain-http page
+  about 10 seconds in Chrome or Firefox on a computer, which is not re-measured in release Firefox. Deadlines and test
+  allowances do not shrink: CI still runs Playwright's Firefox, and slower machines exist. The other Firefox figures
+  (the first entry, `/reset`) are Playwright's and now say so. Ruled by the controller from the give-back session's
+  handoff, for the author's veto.
 
 ## R1-R4: the design review's defaults (2026-09-27)
 
