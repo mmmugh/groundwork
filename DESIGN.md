@@ -248,6 +248,11 @@ Also carried over:
 - the appendices, adapted: errors cover compile errors as well as runtime ones, and "the two kinds of
   box" becomes boxes and jshell.
 
+What shipped (2026-10-13): the front matter, the twelve chapters, each with its practice page and quiz, and Appendices
+A to D: 360 boxes, every one run, and every check tried, in Chromium, WebKit and Firefox by the acceptance. The `.docx`
+is made by `scripts/make_docx.py` and attached to the course release beside the ready-site zip; the site does not
+publish it.
+
 ## 7. The runtime, owned
 
 - Patches live in this repository as a series, with a pinned build script. The built runtime is

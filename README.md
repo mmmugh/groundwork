@@ -4,9 +4,9 @@
 twelve-chapter first course where every example is an editable box that runs in the browser, with
 nothing installed and no server.
 
-**Status: chapter 1 is live; the rest are being written.** Read it at
-https://mmmugh.github.io/groundwork/vol1/ch01-your-first-programs.html. [DESIGN.md](DESIGN.md) records how the course is
-built and why; [DECISIONS.md](DECISIONS.md) records each decision by number.
+**Status: the course is complete: twelve chapters, each with its practice page and quiz, and the appendices.** Read
+it at https://mmmugh.github.io/groundwork/. [DESIGN.md](DESIGN.md) records how the course is built and why;
+[DECISIONS.md](DECISIONS.md) records each decision by number.
 
 ## Building and checking
 
@@ -247,7 +247,7 @@ never committed. The hooks read the diff git produces; a binary file's contents 
 
 | What | License |
 | --- | --- |
-| The course: chapters and their example programs, exercises, worked solutions, practice pages, quizzes, and the `.java` files and `.docx` generated from them (everything under `volumes/`, once it exists) | [CC BY-NC-SA 4.0](LICENSE-COURSE) |
+| The course: chapters and their example programs, exercises, worked solutions, practice pages, quizzes, and the `.java` files and `.docx` generated from them (everything under `volumes/`) | [CC BY-NC-SA 4.0](LICENSE-COURSE) |
 | Everything else: the build, page scripts, tests, git hooks, runtime patches and the scratchpad's front end | [Apache-2.0](LICENSE) |
 | `runtime/legal/`: third-party notices and license texts, which stay under their own licenses; and `runtime/jshell/derive/`, which quotes short pieces of the real tool's output as evidence | their own licenses |
 
