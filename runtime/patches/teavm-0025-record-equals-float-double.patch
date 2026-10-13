@@ -1,0 +1,64 @@
+# Copyright 2026 Groundwork contributors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# Engine wave 2, E7. A record's equals on a double or float component was reversed for -0.0 and NaN: with record
+# Point(double x, double y), new Point(-0.0, 0.0).equals(new Point(0.0, 0.0)) was true on the fork and false on the
+# pinned JDK, and new Point(Double.NaN, 1).equals(new Point(Double.NaN, 1)) false on the fork and true on the JDK
+# (runtime/test/cases.mjs, the E7 cases).
+#   - The rule, from the pinned JDK run black box on all 196 pairs of 14 double values (0.0, -0.0, 1.5, 2.5, NaN, a NaN
+#     with other bits (0x7ff8000000000001), a NaN with its sign bit set (0xfff8000000000000), both infinities, the
+#     smallest value of each sign, the largest value, 0.1 + 0.2 and 0.3), and the same for float: a record's equals on
+#     such a component agrees on every pair with Double.compare(a, b) == 0 (Float.compare for float) and with equal
+#     doubleToLongBits, and on the pairs tried with equals on the boxed values. It does not agree with == (11 pairs
+#     differ: -0.0 == 0.0, NaN != NaN), nor with equal doubleToRawLongBits (6 pairs differ: it tells NaNs with other
+#     bits apart, where the record calls them equal).
+#   - TeaVM's ObjectMethodsSubstitutor (its emulation of the ObjectMethods bootstrap behind a record's equals) compared
+#     long, float and double components alike, by a numeric comparison equal to 0, which for float and double is ==.
+#     A Double or Float component already went through Double.equals and Float.equals and agreed with the JDK, as did
+#     every other primitive type, String, a List, another record, null, a record of another type and a record that
+#     overrides its accessor (which neither runtime calls); none of them changes (the E7 controls).
+#   - Now a float or double component is compared with Float.compare or Double.compare equal to 0. TeaVM's versions
+#     order -0.0 below 0.0 and make NaN equal to NaN, which the cases confirm on the new build; long keeps its
+#     comparison. Equal records still have equal hashes: Double.hashCode and Float.hashCode are the same for every
+#     NaN on both runtimes, and -0.0 and 0.0 hash apart.
+#
+# Written from TeaVM's own source (classlib/src/main/java/org/teavm/classlib/impl/record/ObjectMethodsSubstitutor.java,
+# and TDouble.java and TFloat.java for compare, equals and hashCode) and the pinned JDK's observed output; no OpenJDK
+# source was opened (clean room, D14). Written by a subagent (Claude Opus 5.5), a language model whose training may
+# include OpenJDK, so the patch was read for names or structure that look recalled rather than derived: it adds no
+# name and calls TeaVM's own Float.compare and Double.compare, the comparison the probes single out.
+#
+# Applies to: github.com/konsoletyper/teavm tag 0.13.1 (b3a245b7). The only other patch that touches
+# ObjectMethodsSubstitutor is teavm-0024, which changes other lines of it (hashCode); each applies with or without the
+# other.
+
+diff --git a/classlib/src/main/java/org/teavm/classlib/impl/record/ObjectMethodsSubstitutor.java b/classlib/src/main/java/org/teavm/classlib/impl/record/ObjectMethodsSubstitutor.java
+index d4ac694..0967e75 100644
+--- a/classlib/src/main/java/org/teavm/classlib/impl/record/ObjectMethodsSubstitutor.java
++++ b/classlib/src/main/java/org/teavm/classlib/impl/record/ObjectMethodsSubstitutor.java
+@@ -99,9 +99,13 @@ public class ObjectMethodsSubstitutor implements BootstrapMethodSubstitutor {
+                 case INTEGER:
+                     return a.isEqualTo(b);
+                 case LONG:
++                    return a.compareTo(b).isEqualTo(pe.constant(0));
++                // teavm-fork: a float or double component is equal as Float.compare and Double.compare have it, as
++                // on the pinned JDK: -0.0 and 0.0 are not equal, and NaN is equal to NaN.
+                 case FLOAT:
++                    return pe.invoke(Float.class, "compare", int.class, a, b).isEqualTo(pe.constant(0));
+                 case DOUBLE:
+-                    return a.compareTo(b).isEqualTo(pe.constant(0));
++                    return pe.invoke(Double.class, "compare", int.class, a, b).isEqualTo(pe.constant(0));
+             }
+         }
+         return pe.invoke(Objects.class, "equals", boolean.class, a.cast(Object.class), b.cast(Object.class)).isTrue();

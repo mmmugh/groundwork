@@ -1,4 +1,4 @@
-Pinned sources for runtime release 2026.10.12-1.
+Pinned sources for runtime release 2026.10.13-1.
 No source here was modified from what these commits/revisions name; runtime/patches/ (in
 source.tar.gz) is applied on top at build time, not baked into any of the archives below.
 
@@ -32,7 +32,7 @@ source is in source.tar.gz, beside these files in each GitHub release of this ru
 https://github.com/mmmugh/groundwork/releases, and inside the course's site zip whenever one is published.
 
 What the six runtime files were built from (dist/fork/manifest.json, checked against this source):
-  teavm commit:       b3a245b7d9034ff35cdfab2def057a3d4f256efb, patches 0001 0002 0003 0004 0005 0006 0007 0008 0009 0010 0011 0012 0013 0014 0015 0016 0017 0018 0019 0020 0021 0022 0023
+  teavm commit:       b3a245b7d9034ff35cdfab2def057a3d4f256efb, patches 0001 0002 0003 0004 0005 0006 0007 0008 0009 0010 0011 0012 0013 0014 0015 0016 0017 0018 0019 0020 0021 0022 0023 0024 0025 0026
   teavm-javac commit: 2ddcf02e4983e5c74d45b945c2fd41a829358828, patches 0101 0102 0103 0104 0105 0106 0107
   SHA-256 of each patch applied (runtime/patches/ in source.tar.gz):
     4a9e060961fdd46313921ef6bd21f395b39d323ba2a99047fc8700357245b0e3  patches/teavm-0001-strict-implicit-exception-flow.patch
@@ -58,6 +58,9 @@ What the six runtime files were built from (dist/fork/manifest.json, checked aga
     eb49162a75c9c2d05d9dfe47117f1eec07ae353e553f1df5b2d6e67f2363ac2c  patches/teavm-0021-class-init-after-instance-call.patch
     104bdab5393e41e639eb5b7fbac7c0e5c58ee07586dec7b1756dd7991f754db6  patches/teavm-0022-split-zero-width-at-start.patch
     2ccd41b6fa2dc64c46eea76a3112f5b6cb8aa7729e532b00b868538c2ad5a0b3  patches/teavm-0023-copy-of-range-past-end.patch
+    d09b9f8f7d8eeec3efc387c06e6512a4bf93cb6e89a80ae8c13b2ca94023bc64  patches/teavm-0024-record-hash-code.patch
+    f5ce7c23cfc448e1ad13ee287c9727fc0837e52aa384a38329317d2e53620842  patches/teavm-0025-record-equals-float-double.patch
+    a33e132a9668102702bb7593297fac9ad96a72a220db5b630915eccbe1a16b11  patches/teavm-0026-double-min-normal.patch
     0d36260033e9718340fbe4e5f212a26764618098cd8b785eab4719b54f728ffb  patches/teavm-javac-0101-build-with-patched-teavm.patch
     ff82dc44c929e8179a57c76a2e7ea2fe51dc193e51b0a7c7c7cbc89d0bed5da3  patches/teavm-javac-0102-strict-arithmetic.patch
     1aa1ac2eed133c2d40015af5412d468d949aea48048502810bbf05a12d7f8a85  patches/teavm-javac-0103-stdlib-rename.patch

@@ -1,0 +1,48 @@
+# Copyright 2026 Groundwork contributors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# Engine wave 2. Double.MIN_NORMAL was negative and far too large: it printed -4.49423283715579E307 where the
+# pinned JDK prints 2.2250738585072014E-308, and Double.doubleToLongBits(Double.MIN_NORMAL) gave -13510798882111488
+# where the JDK gives 4503599627370496 (runtime/test/cases.mjs, D11-double-min-normal). Reported upstream as
+# teavm#1316, with the two Float constants teavm-0010 already fixes.
+#   - The rule, from the Javadoc and the pinned JDK run black box: MIN_NORMAL is the smallest positive normal double,
+#     0x1.0p-1022, so it is above 0, half of it is smaller still (a subnormal), and Math.getExponent gives -1022.
+#   - TeaVM's TDouble declared it as -0x1.0P+1022, the sign and the exponent's sign both wrong. Nothing else in
+#     TeaVM's classlib or core reads the constant (git grep at the pinned tag), and javac copies a constant's value
+#     into the code that reads it, so the fix reaches a box through the compile classlib and the run classlib alike.
+#   - Now it is 0x1.0p-1022.
+#
+# Written from TeaVM's own source (classlib/src/main/java/org/teavm/classlib/java/lang/TDouble.java), the Javadoc and
+# the pinned JDK's observed output; no OpenJDK source was opened (clean room, D14). Written by the controlling
+# session (Claude Opus 5.5), a language model whose training may include OpenJDK: the patch adds no name and changes
+# one constant in TeaVM's own code, to the value the Javadoc states and the probes show.
+#
+# Applies to: github.com/konsoletyper/teavm tag 0.13.1 (b3a245b7). teavm-0007, teavm-0009 and teavm-0010 also touch
+# TDouble.java, in other lines; this applies with or without them.
+
+diff --git a/classlib/src/main/java/org/teavm/classlib/java/lang/TDouble.java b/classlib/src/main/java/org/teavm/classlib/java/lang/TDouble.java
+index e0b05e3..dcb575b 100644
+--- a/classlib/src/main/java/org/teavm/classlib/java/lang/TDouble.java
++++ b/classlib/src/main/java/org/teavm/classlib/java/lang/TDouble.java
+@@ -29,7 +29,9 @@ public class TDouble extends TNumber implements TComparable<TDouble> {
+     public static final double NEGATIVE_INFINITY = -POSITIVE_INFINITY;
+     public static final double NaN = 0 / 0.0;
+     public static final double MAX_VALUE = 0x1.FFFFFFFFFFFFFP+1023;
+-    public static final double MIN_NORMAL = -0x1.0P+1022;
++    // teavm-fork: this was negative and far too large. The Javadoc: MIN_NORMAL is the smallest positive normal
++    // double, 0x1.0p-1022.
++    public static final double MIN_NORMAL = 0x1.0p-1022;
+     public static final double MIN_VALUE = 0x0.0000000000001P-1022;
+     public static final int MAX_EXPONENT = 1023;
+     public static final int MIN_EXPONENT = -1022;

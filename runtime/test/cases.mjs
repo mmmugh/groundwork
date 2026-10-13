@@ -675,6 +675,7 @@ cases.push(
 cases.push(
   { id: "D11-round-halves", group: "numeric", src: "void main() { for (double d : new double[] { -2.5, -1.5, -0.5, 0.5, 1.5, 2.5 }) IO.println(Math.round(d)); }" },
   { id: "D11-float-min", group: "numeric", src: "void main() { IO.println(Float.MIN_VALUE); IO.println(Float.MIN_NORMAL); IO.println(Double.MIN_VALUE); }" },
+  { id: "D11-double-min-normal", group: "numeric", src: "void main() { IO.println(Double.MIN_NORMAL); IO.println(Double.doubleToLongBits(Double.MIN_NORMAL)); IO.println(Double.MIN_NORMAL > 0); IO.println(Math.getExponent(Double.MIN_NORMAL)); }" },
   { id: "D11-log10-powers", group: "numeric", src: "void main() { for (int n = -3; n <= 6; n++) IO.println(Math.log10(Math.pow(10, n))); }" },
 );
 
@@ -1231,6 +1232,214 @@ void main() {
     IO.println(Arrays.toString(Arrays.copyOfRange(boxed, 3, 5, String[].class)));
     Object[] mixed = {"a", 1};
     IO.println(Arrays.toString(Arrays.copyOfRange(mixed, 0, 1, String[].class)));
+}
+` },
+);
+
+// Engine wave 2, E6: a record's hashCode. On the pinned JDK it is 0 for a record with no components, and otherwise
+// 31 * h + (the next component's hash) from h = 0, in declaration order, each component hashed as its wrapper type's
+// hashCode (Integer.hashCode, Double.hashCode and the rest) or as Objects.hashCode for a reference (0 for null). The
+// fork started from 1 instead of 0, so every record's hash came out 31^n higher (961 for two components), and a
+// HashSet or HashMap of records iterated in another order. The first case prints hash codes for zero to four
+// components and every component type; the other two print what iterating hashed collections of records shows.
+cases.push(
+  { id: "E6-record-hash-codes", group: "E6", note: "no arrays and no plain classes as components: their hash is an identity hash",
+    src: R`import java.util.*;
+
+record None() {}
+record I(int a) {}
+record L(long a) {}
+record D(double a) {}
+record F(float a) {}
+record Z(boolean a) {}
+record C(char a) {}
+record B(byte a) {}
+record S(short a) {}
+record Str(String a) {}
+record Boxed(Integer a) {}
+record Lst(List<Integer> a) {}
+record Nest(I a) {}
+record Pair(int a, int b) {}
+record Student(String name, int score) {}
+record Point(double x, double y) {}
+record Triple(int a, int b, int c) {}
+record Quad(int a, int b, int c, int d) {}
+record Mixed(String a, long b, double c, boolean d) {}
+record Loud(int a) {
+    public int a() { IO.println("accessor called"); return a + 100; }
+}
+
+void main() {
+    IO.println("none " + new None().hashCode());
+    for (int v : new int[] {0, 1, -1, 42, Integer.MIN_VALUE, Integer.MAX_VALUE}) IO.println("int " + v + " " + new I(v).hashCode());
+    for (long v : new long[] {0, 1, -1, 1L << 32, (1L << 32) + 5, -5_000_000_000L, Long.MIN_VALUE, Long.MAX_VALUE}) IO.println("long " + v + " " + new L(v).hashCode());
+    for (double v : new double[] {0.0, -0.0, 1.5, -2.0, Double.NaN, Double.POSITIVE_INFINITY, Double.NEGATIVE_INFINITY, 0.1, Double.MIN_VALUE}) IO.println("double " + v + " " + new D(v).hashCode());
+    for (float v : new float[] {0.0f, -0.0f, 1.5f, -2.0f, Float.NaN, Float.POSITIVE_INFINITY, Float.NEGATIVE_INFINITY, 0.1f, Float.MIN_VALUE}) IO.println("float " + v + " " + new F(v).hashCode());
+    IO.println("boolean " + new Z(true).hashCode() + " " + new Z(false).hashCode());
+    IO.println("char " + new C('a').hashCode() + " " + new C('\0').hashCode() + " " + new C('\uffff').hashCode());
+    IO.println("byte " + new B((byte) 0).hashCode() + " " + new B((byte) -1).hashCode() + " " + new B((byte) 127).hashCode() + " " + new B((byte) -128).hashCode());
+    IO.println("short " + new S((short) 0).hashCode() + " " + new S((short) -1).hashCode() + " " + new S((short) 32767).hashCode() + " " + new S((short) -32768).hashCode());
+    IO.println("String " + new Str("Ada").hashCode() + " " + new Str("").hashCode() + " " + new Str(null).hashCode() + " " + new Str("Katherine Johnson").hashCode());
+    IO.println("Integer " + new Boxed(5).hashCode() + " " + new Boxed(null).hashCode() + " " + new Boxed(-7).hashCode());
+    IO.println("List " + new Lst(List.of(1, 2)).hashCode() + " " + new Lst(List.of()).hashCode() + " " + new Lst(null).hashCode());
+    IO.println("record " + new Nest(new I(9)).hashCode() + " " + new Nest(null).hashCode());
+    IO.println("two " + new Pair(1, 2).hashCode() + " " + new Pair(2, 1).hashCode() + " " + new Student("Ada", 88).hashCode() + " " + new Point(3, 4).hashCode());
+    IO.println("three " + new Triple(1, 2, 3).hashCode() + " " + new Triple(3, 2, 1).hashCode());
+    IO.println("four " + new Quad(1, 2, 3, 4).hashCode() + " " + new Quad(4, 3, 2, 1).hashCode() + " " + new Mixed("Grace Hopper", 9_000_000_000L, -0.5, true).hashCode() + " " + new Mixed(null, -1, Double.NaN, false).hashCode());
+    IO.println("equal records, equal hashes " + (new Student("Ada", 88).hashCode() == new Student("Ada", 88).hashCode()));
+    IO.println("overridden accessor " + new Loud(1).hashCode());
+}
+` },
+  { id: "E6-record-hash-set-order", group: "E6", note: "chapter 10's students in a HashSet: the iteration order follows hashCode",
+    src: R`import java.util.*;
+
+record Student(String name, int score) {}
+
+void main() {
+    Set<Student> set = new HashSet<>(List.of(new Student("Grace", 92), new Student("Ada", 88), new Student("Alan", 45), new Student("Katherine", 95), new Student("Edsger", 71)));
+    IO.println(set);
+    for (Student s : set) {
+        IO.println(s.name() + " " + s.score());
+    }
+    set.remove(new Student("Ada", 88));
+    set.add(new Student("Barbara", 80));
+    IO.println(set + " " + set.contains(new Student("Alan", 45)));
+}
+` },
+  { id: "E6-record-hash-map-order", group: "E6", note: "record keys in a HashMap, with int and with double components",
+    src: R`import java.util.*;
+
+record Cell(int row, int col) {}
+record Place(double lat, double lon) {}
+
+void main() {
+    Map<Cell, String> grid = new HashMap<>();
+    for (int r = 0; r < 4; r++) {
+        for (int c = 0; c < 3; c++) {
+            grid.put(new Cell(r, c), r + "," + c);
+        }
+    }
+    IO.println(grid.keySet());
+    Map<Place, String> places = new HashMap<>();
+    places.put(new Place(0, 0), "origin");
+    places.put(new Place(1.5, -2), "p");
+    places.put(new Place(3, 4), "q");
+    places.put(new Place(51.5, -0.13), "London");
+    IO.println(places);
+    IO.println(places.get(new Place(3, 4)) + " " + places.containsKey(new Place(1.5, -2)));
+    Map<Cell, Integer> counts = new HashMap<>();
+    for (int i = 0; i < 20; i++) {
+        counts.merge(new Cell(i % 3, i % 4), 1, Integer::sum);
+    }
+    IO.println(counts);
+}
+` },
+);
+
+// Engine wave 2, E7: a record's equals on a double or float component. On the pinned JDK it agrees with
+// Double.compare(a, b) == 0 (Float.compare for float) on every pair probed: -0.0 and 0.0 are not equal, NaN equals
+// NaN (any NaN, whatever its bits), as a Double or Float component's equals has it. The fork compared with ==, so it
+// had both the other way round. The first case prints equals for every pair of a set of values; the next two are
+// controls that agreed before (boxed Double and Float components, and every other component type); the last searches
+// a list and a set of records holding a double.
+cases.push(
+  { id: "E7-record-equals-double-float", group: "E7", note: "a row per value: T where the record with that value equals the record with each value in turn",
+    src: R`record Point(double x, double y) {}
+record Reading(float value) {}
+record Sample(double value, int count) {}
+
+void main() {
+    IO.println(new Point(-0.0, 0.0).equals(new Point(0.0, 0.0)) + " " + new Point(Double.NaN, 1).equals(new Point(Double.NaN, 1)));
+    double[] ds = {0.0, -0.0, 1.5, Double.NaN, Double.longBitsToDouble(0x7ff8000000000001L), Double.POSITIVE_INFINITY, Double.NEGATIVE_INFINITY, Double.MIN_VALUE, -Double.MIN_VALUE};
+    for (double a : ds) {
+        StringBuilder row = new StringBuilder("double " + a + ":");
+        for (double b : ds) {
+            row.append(' ').append(new Point(a, 1).equals(new Point(b, 1)) ? 'T' : 'f');
+        }
+        IO.println(row);
+    }
+    float[] fs = {0.0f, -0.0f, 1.5f, Float.NaN, Float.intBitsToFloat(0x7fc00001), Float.POSITIVE_INFINITY, Float.NEGATIVE_INFINITY, Float.MIN_VALUE, -Float.MIN_VALUE};
+    for (float a : fs) {
+        StringBuilder row = new StringBuilder("float " + a + ":");
+        for (float b : fs) {
+            row.append(' ').append(new Reading(a).equals(new Reading(b)) ? 'T' : 'f');
+        }
+        IO.println(row);
+    }
+    IO.println(new Sample(-0.0, 1).equals(new Sample(0.0, 1)) + " " + new Sample(Double.NaN, 1).equals(new Sample(Double.NaN, 1)) + " " + new Sample(Double.NaN, 1).equals(new Sample(Double.NaN, 2)) + " " + new Sample(0.1 + 0.2, 1).equals(new Sample(0.3, 1)));
+}
+` },
+  { id: "E7-record-equals-boxed", group: "E7", note: "control: Double and Float components compared with their own equals agreed before",
+    src: R`record BoxedDouble(Double a) {}
+record BoxedFloat(Float a) {}
+
+void main() {
+    Double[] ds = {0.0, -0.0, 1.5, Double.NaN, Double.longBitsToDouble(0x7ff8000000000001L), Double.POSITIVE_INFINITY, null};
+    for (Double a : ds) {
+        StringBuilder row = new StringBuilder("Double " + a + ":");
+        for (Double b : ds) {
+            row.append(' ').append(new BoxedDouble(a).equals(new BoxedDouble(b)) ? 'T' : 'f');
+        }
+        IO.println(row);
+    }
+    Float[] fs = {0.0f, -0.0f, 1.5f, Float.NaN, Float.intBitsToFloat(0x7fc00001), Float.NEGATIVE_INFINITY, null};
+    for (Float a : fs) {
+        StringBuilder row = new StringBuilder("Float " + a + ":");
+        for (Float b : fs) {
+            row.append(' ').append(new BoxedFloat(a).equals(new BoxedFloat(b)) ? 'T' : 'f');
+        }
+        IO.println(row);
+    }
+}
+` },
+  { id: "E7-record-equals-other-types", group: "E7", note: "control: every other component type, another record type, null, and an overridden accessor agreed before",
+    src: R`import java.util.*;
+
+record I(int a) {}
+record L(long a) {}
+record Z(boolean a) {}
+record C(char a) {}
+record B(byte a) {}
+record S(short a) {}
+record Str(String a) {}
+record Lst(List<Integer> a) {}
+record Nest(I a) {}
+record Other(int a) {}
+record Loud(int a) {
+    public int a() { IO.println("accessor called"); return a + 100; }
+}
+
+void main() {
+    IO.println("int " + new I(5).equals(new I(5)) + " " + new I(5).equals(new I(6)) + " " + new I(Integer.MIN_VALUE).equals(new I(Integer.MIN_VALUE)) + " " + new I(-1).equals(new I(1)));
+    IO.println("long " + new L(1L << 32).equals(new L(1L << 32)) + " " + new L(1L << 32).equals(new L(0)) + " " + new L(-1).equals(new L(0xffffffffL)) + " " + new L(5_000_000_000L).equals(new L(5_000_000_001L)));
+    IO.println("boolean " + new Z(true).equals(new Z(true)) + " " + new Z(true).equals(new Z(false)));
+    IO.println("char " + new C('a').equals(new C('a')) + " " + new C('a').equals(new C('b')));
+    IO.println("byte " + new B((byte) -1).equals(new B((byte) -1)) + " " + new B((byte) -1).equals(new B((byte) 127)));
+    IO.println("short " + new S((short) -32768).equals(new S((short) -32768)) + " " + new S((short) 1).equals(new S((short) 2)));
+    IO.println("String " + new Str("Ada").equals(new Str(new StringBuilder("Ad").append('a').toString())) + " " + new Str("Ada").equals(new Str("ada")) + " " + new Str(null).equals(new Str(null)) + " " + new Str(null).equals(new Str("x")) + " " + new Str("x").equals(new Str(null)));
+    IO.println("List " + new Lst(List.of(1, 2)).equals(new Lst(new ArrayList<>(List.of(1, 2)))) + " " + new Lst(List.of(1)).equals(new Lst(List.of(2))));
+    IO.println("record " + new Nest(new I(3)).equals(new Nest(new I(3))) + " " + new Nest(new I(3)).equals(new Nest(new I(4))) + " " + new Nest(null).equals(new Nest(null)));
+    I one = new I(1);
+    IO.println("other " + one.equals(new Other(1)) + " " + one.equals(null) + " " + one.equals("I[a=1]") + " " + one.equals(Integer.valueOf(1)) + " " + one.equals(one));
+    Loud x = new Loud(1);
+    IO.println("overridden accessor " + x.equals(new Loud(1)) + " " + x.equals(new Loud(2)) + " " + x);
+}
+` },
+  { id: "E7-record-search-with-double", group: "E7", note: "contains, indexOf and remove call equals; the set's size and contains do too",
+    src: R`import java.util.*;
+
+record Point(double x, double y) {}
+
+void main() {
+    List<Point> points = new ArrayList<>(List.of(new Point(0.0, 0.0), new Point(Double.NaN, 1), new Point(2, 3)));
+    IO.println(points.contains(new Point(-0.0, 0.0)) + " " + points.indexOf(new Point(Double.NaN, 1)) + " " + points.indexOf(new Point(2, 3)));
+    IO.println(points.remove(new Point(Double.NaN, 1)) + " " + points.size());
+    Set<Point> set = new HashSet<>();
+    set.add(new Point(Double.NaN, 1));
+    set.add(new Point(Double.NaN, 1));
+    set.add(new Point(0.0, 0.0));
+    set.add(new Point(-0.0, 0.0));
+    IO.println(set.size() + " " + set.contains(new Point(Double.NaN, 1)) + " " + set.contains(new Point(-0.0, 0.0)));
 }
 ` },
 );

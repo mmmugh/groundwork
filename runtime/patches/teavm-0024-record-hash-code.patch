@@ -1,0 +1,57 @@
+# Copyright 2026 Groundwork contributors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# Engine wave 2, E6. A record's hashCode differed from the pinned JDK's: record Student(String name, int score) gave
+# new Student("Ada", 88).hashCode() = 2,036,571 on the fork and 2,035,610 on the JDK, and record Point(double x,
+# double y) gave new Point(3, 4).hashCode() = 17,302,465 and 17,301,504, so a HashSet or HashMap of records iterated in
+# another order on the two (runtime/test/cases.mjs, the E6 cases).
+#   - The rule, from the pinned JDK run black box on 76 records of zero to four components: every primitive type as a
+#     component (-0.0, NaN, infinities, negative numbers and longs past 32 bits among the values), String, Integer, a
+#     List, another record and null. A record with no components hashes to 0. Otherwise its hash is h = 31 * h + c
+#     from h = 0, over the components in declaration order, where c is the component's own hash as its wrapper type
+#     gives it (Integer.hashCode, Long.hashCode, Double.hashCode, Boolean.hashCode and the rest) or as
+#     Objects.hashCode gives it for a reference (0 for null). That matched all 76; starting from 1 matched none, and
+#     taking the components in reverse order matched only the records of one component or none.
+#   - TeaVM emulates the ObjectMethods bootstrap that a record's equals, hashCode and toString call (javac emits an
+#     invokedynamic to it) in its classlib's ObjectMethodsSubstitutor, and its hashCode started from 1. Its hash of
+#     each component was already the JDK's: the same probe printed every component's own hash identically on both.
+#     So every record's hash was off by exactly 31 to the power of its number of components (961 for two).
+#   - Now it starts from 0. Nothing else changes: on both, a record's hashCode reads its fields and never calls an
+#     accessor the record overrides.
+#
+# Written from TeaVM's own source (classlib/src/main/java/org/teavm/classlib/impl/record/ObjectMethodsSubstitutor.java
+# and the bootstrap's registration in classlib/src/main/java/org/teavm/classlib/impl/JCLPlugin.java) and the pinned
+# JDK's observed output; no OpenJDK source was opened (clean room, D14). Written by a subagent (Claude Opus 5.5), a
+# language model whose training may include OpenJDK, so the patch was read for names or structure that look recalled
+# rather than derived: it adds no name and changes one constant in TeaVM's own code, to the value the probes show.
+#
+# Applies to: github.com/konsoletyper/teavm tag 0.13.1 (b3a245b7). The only other patch that touches
+# ObjectMethodsSubstitutor is teavm-0025, which changes other lines of it (equals); each applies with or without the
+# other.
+
+diff --git a/classlib/src/main/java/org/teavm/classlib/impl/record/ObjectMethodsSubstitutor.java b/classlib/src/main/java/org/teavm/classlib/impl/record/ObjectMethodsSubstitutor.java
+index d4ac694..e8b4c62 100644
+--- a/classlib/src/main/java/org/teavm/classlib/impl/record/ObjectMethodsSubstitutor.java
++++ b/classlib/src/main/java/org/teavm/classlib/impl/record/ObjectMethodsSubstitutor.java
+@@ -110,7 +110,9 @@ public class ObjectMethodsSubstitutor implements BootstrapMethodSubstitutor {
+     private ValueEmitter substituteHashCode(DynamicCallSite callSite, ProgramEmitter pe) {
+         ValueEmitter thisVar = callSite.getArguments().get(0);
+         String names = callSite.getBootstrapArguments().get(1).getString();
+-        ValueEmitter resultVar = pe.constant(1);
++        // teavm-fork: from 0, as on the pinned JDK. A record with no components hashes to 0, and each component in
++        // turn makes the hash 31 * (the hash so far) + (its own hash).
++        ValueEmitter resultVar = pe.constant(0);
+ 
+         int argIndex = 2;
+         int index = 0;
