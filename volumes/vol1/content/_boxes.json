@@ -461,5 +461,67 @@
   "ch12-recursion-and-problem-solving#2": {
     "raises": "java.lang.StackOverflowError",
     "why": "This recursion never reaches its base case, so it calls itself until Java runs out of room and stops the program. It crashes on purpose: the error is the lesson."
+  },
+  "99-appendices#1": {
+    "raises": "java.lang.ArithmeticException",
+    "why": "This program divides by the length of an empty array, which is 0, so it stops with an exception. It crashes on purpose: the stack trace is the lesson."
+  },
+  "99-appendices#2": {
+    "compileError": "reached end of file while parsing",
+    "why": "The closing brace of the if is missing, which javac refuses. The error message, and the line it names, are the lesson."
+  },
+  "99-appendices#7": {
+    "reference": true
+  },
+  "99-appendices#8": {
+    "reference": true
+  },
+  "99-appendices#9": {
+    "reference": true
+  },
+  "99-appendices#10": {
+    "reference": true
+  },
+  "99-appendices#11": {
+    "reference": true
+  },
+  "99-appendices#12": {
+    "reference": true
+  },
+  "99-appendices#13": {
+    "reference": true
+  },
+  "99-appendices#14": {
+    "reference": true
+  },
+  "99-appendices#15": {
+    "reference": true
+  },
+  "99-appendices#16": {
+    "reference": true
+  },
+  "99-appendices#17": {
+    "reference": true
+  },
+  "99-appendices#18": {
+    "reference": true
+  },
+  "99-appendices#19": {
+    "reference": true
+  },
+  "99-appendices#20": {
+    "reference": true
+  },
+  "99-appendices#21": {
+    "reference": true
+  },
+  "99-appendices#24": {
+    "stdin": [
+      "21"
+    ]
+  },
+  "99-appendices#30": {
+    "compileError": "not a statement",
+    "why": "A value on a line of its own is not an instruction, so javac refuses the program. The error message is the lesson."
   }
 }
