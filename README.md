@@ -57,7 +57,7 @@ course layout and box declaration rules `_boxes.json` and `_checks.json` enforce
 chapters before it teach is still derived from all their boxes. A plain `--check` runs everything, and is what CI and
 the Pages build run. Every `--check` ends with each gate's time,
 `gate times: audit <s> s, vocabulary <s> s, quizzes <s> s, fork gate <s> s, proofs <s> s; all gates <s> s`: the number
-to watch against the Pages build job's 30 minutes.
+to watch against the Pages build job's 75 minutes.
 
 ## Reading the course locally
 

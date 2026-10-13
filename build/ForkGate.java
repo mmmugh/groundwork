@@ -34,7 +34,9 @@ import java.util.regex.Pattern;
 final class ForkGate {
   private ForkGate() {}
 
-  private static final Duration DEADLINE = Duration.ofMinutes(30);
+  // Each gate's own stop, inside the Pages build job's 75 minutes (.github/workflows/pages.yml): at twelve chapters the
+  // proof gate took 735.8 s on the Mac and passed 30 minutes on GitHub's runner, about 2.5 times slower.
+  private static final Duration DEADLINE = Duration.ofMinutes(60);
   private static final Pattern VERSION = Pattern.compile("v?(\\d+)\\.");
   private static final String NEEDS_NODE = "the fork gate needs Node 25 or later (D-P2-1)";
 
@@ -82,7 +84,7 @@ final class ForkGate {
     } catch (IOException e) {
       throw new BuildError("running " + gate + ": " + e.getMessage());
     }
-    if (r.timedOut()) return List.of(gate + " did not finish within 30 minutes");
+    if (r.timedOut()) return List.of(gate + " did not finish within " + DEADLINE.toMinutes() + " minutes");
     return problemsFrom(r.output(), r.exitCode());
   }
 

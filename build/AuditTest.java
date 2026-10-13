@@ -224,7 +224,7 @@ final class AuditTest {
     T.eq(1, r.exit(), "a name no page has fails: " + r.out());
     T.check(r.out().contains("--only ch09: no page is named ch09 or starts ch09-"), r.out());
   }
-  // The Pages job has 30 minutes for its setup and every gate (.github/workflows/pages.yml), so --check ends with each
+  // The Pages job has 75 minutes for its setup and every gate (.github/workflows/pages.yml), so --check ends with each
   // gate's time and their sum, for the plan to watch as chapters arrive: on a failing run as on a passing one.
   static void testCheckEndsWithEachGatesTime() throws Exception {
     // Under --no-fork-gate-for-tests neither the fork gate nor the proof runs, so neither is timed (the proof gate's count

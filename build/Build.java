@@ -148,7 +148,7 @@ public class Build {
           return 0;
         }
         Jdk.checkPinned();
-        // Each gate's time, for the line --check ends with: the Pages job's 30 minutes (.github/workflows/pages.yml) must
+        // Each gate's time, for the line --check ends with: the Pages job's 75 minutes (.github/workflows/pages.yml) must
         // hold its setup and every gate, so the plan watches these as chapters arrive.
         Map<String, Long> times = new LinkedHashMap<>();
         long start = System.nanoTime(), t = start;
