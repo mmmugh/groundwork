@@ -21,6 +21,9 @@
 //   leaves nothing of it behind (C-2, T-1); a JDK an earlier run verified against today's pin is not downloaded again,
 //   and one whose VERIFIED records another hash, or none, is never trusted;
 // - setup.sh --dry-run prints the commands, runs none, and says so;
+// - on GitHub's Mac runner (Apple silicon) setup.sh fetches the Mac's pinned JDK, as on Linux, and the fetches run it from
+//   Contents/Home; on a Mac outside GitHub Actions, or an Intel Mac, it refuses and runs nothing (D126); ci/pins.env's Mac
+//   pin is runtime/pins.env's;
 // - a DRY_RUN in the environment does not turn a suite into a no-op that passes (T-3);
 // - everything.sh runs the two hook tests, as its header says (B4);
 // - weekly.sh <engine> runs the acceptance in that engine: on its fixture volume, then its log check, then on the course;
@@ -35,7 +38,8 @@
 //   own commit's diff, the root commit's included; a secret of only blank or comment lines, which leak-scan would skip,
 //   fails the scan, since nothing personal would be scanned;
 // - every action a workflow uses is pinned to a full commit SHA with its version; no workflow has a trigger that runs on
-//   a fork's behalf with the secret; quick.yml runs on pushes to every branch, so a release's tag starts no run.
+//   a fork's behalf with the secret; quick.yml runs on pushes to every branch, so a release's tag starts no run; weekly.yml
+//   runs WebKit on a Mac and Chromium and Firefox on Linux, and only a Linux job in the capped scope (D113, D126).
 //   node ci/test.mjs
 import crypto from "node:crypto";
 import fs from "node:fs";
@@ -72,29 +76,37 @@ const TGZ = path.join(WORK, "jdk.tar.gz");
 const made = spawnSync("tar", ["-czf", TGZ, "-C", path.join(WORK, "jdk-fixture"), JDK], { encoding: "utf8" });
 if (made.status !== 0) { console.log(`could not make the fixture tarball: ${made.stderr}`); process.exit(1); }
 const PIN = sha256(TGZ), WRONG = "0".repeat(64);
+// The Mac's fixture JDK: jdk-25.0.4.1+1/Contents/Home/bin/java, as Temurin's Mac tarball lays it out.
+write(path.join(WORK, "jdk-fixture-mac", JDK, "Contents/Home/bin/java"), `#!/bin/sh\n${RECORD}\n`, 0o755);
+const MAC_TGZ = path.join(WORK, "jdk-mac.tar.gz");
+const madeMac = spawnSync("tar", ["-czf", MAC_TGZ, "-C", path.join(WORK, "jdk-fixture-mac"), JDK], { encoding: "utf8" });
+if (madeMac.status !== 0) { console.log(`could not make the Mac fixture tarball: ${madeMac.stderr}`); process.exit(1); }
+const MAC_PIN = sha256(MAC_TGZ);
 
 // A copy of the scripts at the root of a directory of its own (lib.sh goes to the root it finds from its own path), with
 // a pins.env pointing at the fixture tarball and the given pin, and a stand-in for the scratchpad's fetch.
-function root(name, pin) {
+function root(name, pin, macPin = MAC_PIN) {
   const r = path.join(WORK, name);
   for (const f of ["lib.sh", "setup.sh", "quick.sh", "everything.sh", "weekly.sh"]) write(path.join(r, "ci", f), fs.readFileSync(path.join(REPO, "ci", f)), 0o755);
-  write(path.join(r, "ci/pins.env"), `TEMURIN_LINUX_X64_URL=file://${TGZ}\nTEMURIN_LINUX_X64_SHA256=${pin}\n`);
+  write(path.join(r, "ci/pins.env"), `TEMURIN_LINUX_X64_URL=file://${TGZ}\nTEMURIN_LINUX_X64_SHA256=${pin}\n`
+    + `TEMURIN_MAC_AARCH64_URL=file://${MAC_TGZ}\nTEMURIN_MAC_AARCH64_SHA256=${macPin}\n`);
   write(path.join(r, "runtime/ristretto/fetch-release.sh"), "exit 0\n");
   return r;
 }
 const jdk = (r) => ({ dir: path.join(r, "runtime/.work/jdk25", JDK), tgz: path.join(r, "runtime/.work/jdk25/jdk.tar.gz"),
   verified: path.join(r, "runtime/.work/jdk25/VERIFIED") });
 const left = (r) => Object.fromEntries(Object.entries(jdk(r)).map(([k, f]) => [k, exists(f)]));
-// Runs ci/<script> in root r: uname says os, python3 and node only record their calls, curl records then runs the real
-// one. The environment is this process's without what lib.sh would read from it, plus env.
-function run(r, script, args = [], { os = "Linux", env = {} } = {}) {
+// Runs ci/<script> in root r: uname says os (and, with -m, arch), python3 and node only record their calls, curl records
+// then runs the real one. The environment is this process's without what lib.sh and setup.sh would read from it (a run
+// of this test on GitHub has GITHUB_ACTIONS set), plus env.
+function run(r, script, args = [], { os = "Linux", arch = os === "Darwin" ? "arm64" : "x86_64", env = {} } = {}) {
   const bin = path.join(r, ".stand-ins"), log = path.join(r, "ran.log");
-  write(path.join(bin, "uname"), `#!/bin/sh\necho ${os}\n`, 0o755);
+  write(path.join(bin, "uname"), `#!/bin/sh\nif [ "$1" = -m ]; then echo ${arch}; else echo ${os}; fi\n`, 0o755);
   write(path.join(bin, "curl"), `#!/bin/sh\n${RECORD}\nexec "${REAL_CURL}" "$@"\n`, 0o755);
   for (const name of ["python3", "node"]) write(path.join(bin, name), `#!/bin/sh\n${RECORD}\n`, 0o755);
   fs.writeFileSync(log, "");
   const e = { ...process.env, PATH: `${bin}:${process.env.PATH}`, CI_TEST_LOG: log };
-  for (const k of ["JF_JAVA_HOME", "JF_DIST", "CI_LOG_DIR", "DRY_RUN", "LEAK_PATTERNS_LOCAL", "LEAKS_FORK_PR"]) delete e[k];
+  for (const k of ["JF_JAVA_HOME", "JF_DIST", "CI_LOG_DIR", "DRY_RUN", "LEAK_PATTERNS_LOCAL", "LEAKS_FORK_PR", "GITHUB_ACTIONS"]) delete e[k];
   const p = spawnSync("bash", [path.join(r, "ci", script), ...args], { cwd: r, env: { ...e, ...env }, encoding: "utf8" });
   const ran = fs.readFileSync(log, "utf8");
   return { status: p.status, signal: p.signal, out: p.stdout + p.stderr, ran, javaRuns: ran.split("\n").filter((l) => l.startsWith("java ")).length };
@@ -137,6 +149,42 @@ o = run(r, "setup.sh");
 check("a JDK with no VERIFIED and a download that fails its check: exit 1, no java of either ran, and neither is left",
   o.status === 1 && !o.ran.includes("stale java") && o.javaRuns === 0 && Object.values(left(r)).every((x) => !x),
   { status: o.status, ran: o.ran, left: left(r) });
+
+// D126: GitHub's Mac runner (Darwin, arm64, GITHUB_ACTIONS=true) gets the Mac's pinned JDK, checked as Linux's is, and the
+// fetches run it from Contents/Home: lib.sh resolved the JDK before it was unpacked, when only Linux's layout could be
+// assumed, so setup.sh resolves it again.
+const MAC_RUNNER = { os: "Darwin", env: { GITHUB_ACTIONS: "true" } };
+r = root("mac-runner", PIN);
+o = run(r, "setup.sh", [], MAC_RUNNER);
+check("on GitHub's Mac runner, setup.sh downloads the Mac's pinned JDK, and the runtime and variant fetches run its "
+  + "Contents/Home java", o.status === 0 && o.ran.includes(`curl -fsSL -o runtime/.work/jdk25/jdk.tar.gz file://${MAC_TGZ}`)
+    && o.javaRuns === 2, o);
+check("and VERIFIED records the Mac download's SHA-256 and file name, as runtime/build.sh writes it",
+  fs.readFileSync(jdk(r).verified, "utf8") === `${MAC_PIN}  jdk-mac.tar.gz\n`, left(r));
+o = run(r, "setup.sh", [], MAC_RUNNER);
+check("a second run there finds that JDK verified and downloads nothing", o.status === 0 && !o.ran.includes("curl ") && o.javaRuns === 2, o);
+r = root("mac-runner-mismatch", PIN, WRONG);
+o = run(r, "setup.sh", [], MAC_RUNNER);
+check("on the Mac runner, a download that fails the Mac pin's check: exit 1 naming jdk-check, no java ran, nothing left",
+  o.status === 1 && o.out.includes("FAILED: jdk-check exit 1") && o.javaRuns === 0 && Object.values(left(r)).every((x) => !x),
+  { out: o.out, left: left(r) });
+// An author's Mac keeps runtime/build.sh's JDK and its own runtimes: setup.sh refuses there, before any command.
+r = root("mac-author", PIN);
+o = run(r, "setup.sh", ["webkit"], { os: "Darwin" });
+check("on a Mac outside GitHub Actions, setup.sh exits 2 saying to use runtime/build.sh, and runs nothing",
+  o.status === 2 && o.out.includes("on a Mac use runtime/build.sh") && o.ran === "" && !exists(path.join(r, "runtime/.work")), o);
+r = root("mac-intel", PIN);
+o = run(r, "setup.sh", [], { ...MAC_RUNNER, arch: "x86_64" });
+check("on an Intel Mac runner, which no pin fits, setup.sh exits 2 and runs nothing",
+  o.status === 2 && o.out.includes("Apple silicon (arm64) only") && o.ran === "" && !exists(path.join(r, "runtime/.work")), o);
+// ci/pins.env copies the Mac's pin from runtime/pins.env (the boxes' build input), so the two must not drift apart.
+const pinsOf = (f) => Object.fromEntries(fs.readFileSync(path.join(REPO, f), "utf8").split("\n")
+  .map((l) => /^([A-Z0-9_]+)="?([^"]*)"?$/.exec(l)).filter(Boolean).map((m) => [m[1], m[2]]));
+const ciPins = pinsOf("ci/pins.env"), rtPins = pinsOf("runtime/pins.env");
+check("ci/pins.env's Mac JDK is runtime/pins.env's: the same URL and the same SHA-256",
+  ciPins.TEMURIN_MAC_AARCH64_SHA256 === rtPins.JDK_SHA256 && rtPins.JDK_SHA256?.length === 64
+    && ciPins.TEMURIN_MAC_AARCH64_URL === rtPins.JDK_URL?.replace("$JDK_FILE", rtPins.JDK_FILE),
+  { ci: [ciPins.TEMURIN_MAC_AARCH64_URL, ciPins.TEMURIN_MAC_AARCH64_SHA256], runtime: [rtPins.JDK_URL, rtPins.JDK_FILE, rtPins.JDK_SHA256] });
 
 // --dry-run runs nothing and says so, rather than "every command passed".
 r = root("dry-run", PIN);
@@ -341,5 +389,18 @@ check("quick.yml's leaks job sets LEAKS_FORK_PR beside the secret: 1 on a pull r
   leaksJob.some((l) => l.trim() === "LEAKS_FORK_PR: ${{ github.event.pull_request.head.repo.fork && '1' || '' }}")
     && leaksJob.some((l) => l.trim() === "LEAK_PATTERNS_LOCAL: ${{ secrets.LEAK_PATTERNS_LOCAL }}"), leaksJob);
 
+// D126: WebKit's weekly job runs on a Mac, where Playwright's WebKit is Apple's port; Chromium's and Firefox's on Linux.
+// The capped scope (D113) is systemd's, so only a Linux job may run in it, and every job runs weekly.sh one way or the other.
+const weeklyYml = fs.readFileSync(path.join(WF, "weekly.yml"), "utf8").split("\n");
+const browsersJob = under(under(weeklyYml, "jobs", 0), "browsers", 2), jobText = browsersJob.join("\n");
+check("weekly.yml's browsers job runs WebKit on a Mac runner and Chromium and Firefox on Linux, by its matrix",
+  browsersJob.some((l) => l.trim() === "runs-on: ${{ matrix.os }}")
+    && ["- { engine: chromium, os: ubuntu-24.04 }", "- { engine: webkit, os: macos-15 }", "- { engine: firefox, os: ubuntu-24.04 }"]
+      .every((m) => browsersJob.some((l) => l.trim() === m)), browsersJob);
+check("and runs weekly.sh in the capped systemd scope only on Linux, and directly only on a Mac",
+  /- if: runner\.os == 'Linux'\n\s+run: >-\n\s+sudo systemd-run [^\n]*\n[^\n]*\n\s+bash ci\/weekly\.sh \$\{\{ matrix\.engine \}\}/.test(jobText)
+    && /- if: runner\.os == 'macOS'\n\s+run: bash ci\/weekly\.sh \$\{\{ matrix\.engine \}\}/.test(jobText)
+    && (jobText.match(/ci\/weekly\.sh/g) ?? []).length === 2, browsersJob);
+
 console.log(results.every(Boolean) ? "\nthe ci scripts keep their promises" : `\n${results.filter((x) => !x).length} failed`);
-process.exit(results.every(Boolean) && results.length === 29 ? 0 : 1);
+process.exit(results.every(Boolean) && results.length === 38 ? 0 : 1);

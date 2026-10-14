@@ -17,7 +17,8 @@ J=runtime/.work/jdk25/jdk-25.0.4.1+1/Contents/Home/bin/java
 ```
 
 (built by `runtime/build.sh`). That is the Mac's layout. On Linux, `bash ci/setup.sh` unpacks the same release for
-linux x64 without `Contents/Home`: `J=runtime/.work/jdk25/jdk-25.0.4.1+1/bin/java`. The `ci/` scripts find it as
+linux x64 without `Contents/Home`: `J=runtime/.work/jdk25/jdk-25.0.4.1+1/bin/java` (on GitHub's Mac runner, where the
+weekly WebKit job runs, it unpacks the Mac's release, in the Mac's layout). The `ci/` scripts find it as
 `ci/lib.sh` does: `JF_JAVA_HOME` if set, then the Mac's layout, then Linux's.
 
 ```
@@ -120,21 +121,23 @@ elsewhere it says that check was skipped.
 ## Continuous integration
 
 Two workflows under `.github/workflows/` are thin: every step calls a script under `ci/`, which runs the same command
-list on a Mac and on a Linux runner, but for the few steps that run on one of them only (below). They run on GitHub
-Actions. A third workflow, `pages.yml`, builds the site from a fresh checkout and deploys it to GitHub Pages on every
-push to main and when the author runs it (D121); its build runs the publishing guard, and every gate once a volume
-exists.
+list on a Mac and on a runner, but for the few steps that run on one of them only (below). They run on GitHub
+Actions, on Linux runners, but for the weekly WebKit job, which runs on GitHub's Mac runner: Playwright's WebKit on
+Linux is a port no reader uses (D126). A third workflow, `pages.yml`, builds the site from a fresh checkout and
+deploys it to GitHub Pages on every push to main and when the author runs it (D121); its build runs the publishing
+guard, and every gate once a volume exists.
 
 ```
 bash ci/quick.sh node|chromium|leaks             # what runs on every push
 bash ci/weekly.sh node|chromium|webkit|firefox   # the whole suite, split for a runner (Mondays)
 bash ci/everything.sh                            # the whole suite on a Mac, about an hour
-bash ci/setup.sh --dry-run chromium              # prints what a Linux runner installs, running nothing
+bash ci/setup.sh --dry-run chromium              # prints what a runner of this machine's kind installs, running nothing
 node ci/test.mjs                                 # the ci scripts' own promises, on copies of them with stand-ins
 ```
 
 Each exits 0 when every command passed and 1 naming every command that failed. `ci/setup.sh` without `--dry-run` runs
-only on Linux, and a JDK download that fails its SHA-256 check stops it there, with nothing of it left behind or run.
+only on a runner, Linux or GitHub's Mac runner (on an author's Mac it refuses), and a JDK download that fails its
+SHA-256 check stops it there, with nothing of it left behind or run.
 A few steps run on Linux only: on a Linux runner `quick.sh leaks` also scans the whole history, with gitleaks and with
 the project's own scanner, which needs the repository secret `LEAK_PATTERNS_LOCAL` and fails saying so without it (on
 a Mac it runs only the two hook tests and says the history scans run on CI), and each list that starts the real jshell

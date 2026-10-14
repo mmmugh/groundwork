@@ -62,7 +62,8 @@ finish() {
 }
 
 # RealJShell must not write preferences: a fresh Linux runner has no ~/.java/.userPrefs, so one means an entry ran un-isolated.
-# (The Mac's check is the plist hash in ci/everything.sh.)
+# (The Mac's check is the plist hash in ci/everything.sh. On GitHub's Mac runner, the weekly WebKit job's jshell-check has
+# no check of its own (D126); the same RealJShell is held to it by the Linux node job and by everything.sh.)
 no_user_prefs() { test ! -e "$HOME/.java/.userPrefs"; }
 user_prefs_step() { [ "$(uname)" = Linux ] && step "$1" no_user_prefs; return 0; }
 

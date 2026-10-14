@@ -655,6 +655,14 @@ before the public repository's first commit, which stays private too (D96; D17's
   allowances do not shrink: CI still runs Playwright's Firefox, and slower machines exist. The other Firefox figures
   (the first entry, `/reset`) are Playwright's and now say so. Ruled by the controller from the give-back session's
   handoff, for the author's veto.
+- D126 (2026-10-14) THE WEEKLY WEBKIT JOB RUNS ON A MAC: the weekly run had been red twice on one WebKit check, the next
+  Run after a canceled one (no output within its 5 seconds), which WebKit on the author's Mac passed every time in a
+  probe of 80 runs. The author judged WebKit on Linux an unrealistic test: Playwright's WebKit there is a port no reader
+  uses, while readers' WebKit is Safari, on a Mac, an iPhone or an iPad, and Linux's port had already needed its own
+  rules for memory (D113). So `weekly.yml` runs its WebKit job on GitHub's Mac runner (`macos-15`, Apple silicon, free
+  for a public repository), and its Chromium and Firefox jobs stay on Linux, where readers use them. `ci/setup.sh`
+  installs the Mac's pinned JDK there (runtime/pins.env's, copied to ci/pins.env and held equal by ci/test.mjs) and still
+  refuses an author's Mac. Playwright's WebKit on a Mac is close to Safari but is not Safari, and no CI tests an iPhone.
 
 ## R1-R4: the design review's defaults (2026-09-27)
 

@@ -315,13 +315,16 @@ publish it.
   maintainer runs the full scan before merging. `pages.yml` is a third workflow, run on every push to main and by hand
   (D121): its build runs the publishing guard, and every gate once a volume exists. Every Monday
   `weekly.yml` runs the whole suite: the Node job with the front end's breaks, and every browser test in Chromium,
-  WebKit and Firefox, one engine per job. Two checks run only on the Mac, through `ci/everything.sh`:
+  WebKit and Firefox, one engine per job. WebKit's job runs on GitHub's Mac runner, because Playwright's WebKit on Linux
+  is a port no reader uses (D126); the others run on Linux. Two checks run only on the author's Mac, through
+  `ci/everything.sh`:
   `check-observations`, which reads the git-ignored corpus that only the real jshell regenerates, and the hash of the
   Java preferences plist before and after the run (the real jshell must not write it). And a few run only on Linux: the
   leaks job's two history scans (gitleaks and the project's own scanner, which needs the secret; on a Mac `quick.sh
   leaks` runs only the hook tests), the check after each list that starts the real jshell that it wrote no
-  `~/.java/.userPrefs` (a fresh runner has none), and `ci/setup.sh`'s installs, whose JDK download must pass its SHA-256
-  check before anything unpacks or runs it. CI never rebuilds the runtime: it fetches the published releases, and the
+  `~/.java/.userPrefs` (a fresh runner has none). `ci/setup.sh`'s installs run on a runner only, Linux or the Mac runner
+  (on an author's Mac it refuses), and their JDK download must pass its SHA-256 check before anything unpacks or runs
+  it. CI never rebuilds the runtime: it fetches the published releases, and the
   CI-only variant built without patch 0009 for the fork gate, and verifies their checksums.
 - `pages.yml` deploys the site to https://mmmugh.github.io/groundwork/ (the course under `vol1/`, D122)
   on every push to main, each push on the author's go (D121): a fresh checkout's build, uploaded as a Pages artifact; no Jekyll runs, so nothing needs `.nojekyll` (D98).
