@@ -663,6 +663,19 @@ before the public repository's first commit, which stays private too (D96; D17's
   for a public repository), and its Chromium and Firefox jobs stay on Linux, where readers use them. `ci/setup.sh`
   installs the Mac's pinned JDK there (runtime/pins.env's, copied to ci/pins.env and held equal by ci/test.mjs) and still
   refuses an author's Mac. Playwright's WebKit on a Mac is close to Safari but is not Safari, and no CI tests an iPhone.
+- D127 (2026-10-14) THE BROWSER TESTS TIME THE PAGE, NOT THE MACHINE: the first weekly run on GitHub's Mac runner (3
+  cores, 7 GB) passed the check D126 moved WebKit for, and every check of the course, and failed four checks that timed
+  the machine or filled its memory. The aborted run counted its time from when its worker was ready, which on that
+  runner came late (71 ms of a 300 ms wait); `web/test/runner.mjs` now aborts 300 ms after the program's first line
+  arrives and times the end from the abort. Run pressed again and Reset were timed from before Playwright sent the
+  click (4.6 and 2.6 s there); Playwright's click first waits for the button to hold still over several frames, which a
+  busy slow machine draws slowly (the author's Mac held to its efficiency cores: about 400 ms to arrive, 4 to 9 ms
+  without that wait, and the page terminated the worker within 1 ms of the click), so `web/test/page.mjs` clicks
+  without that wait and times from the click's arrival in the page, and a run that ended at its deadline before the
+  click arrived fails the check. The 20-second memory program lost the page on that runner, where on the author's Mac (96 GB) it runs
+  to its deadline, so on a Mac either passes (`MAY_LOSE_THE_PAGE`), and a lost page fails as a check instead of stopping
+  the test halfway (26 of its 51 checks had never run). A course box stops at 5 seconds, and `page.mjs`'s memory box was
+  stopped with its page alive on that runner; DESIGN.md section 2 says what the runner showed.
 
 ## R1-R4: the design review's defaults (2026-09-27)
 

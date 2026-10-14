@@ -137,11 +137,15 @@ for (const engine of only ? [only] : Object.keys(ENGINES)) {
   // recorded running this program to the deadline, a timeout. Either way the page lives on and the next Run works.
   // An engine in CRASHES_THE_PAGE loses the whole page instead (D41), and WebKit loses it when the program follows
   // other runaway runs (D43), so this program runs in a page of its own, after this session. Both lists are per
-  // platform where the engine differs (D113); GROWS_TO_THE_DEADLINE was measured on the Mac.
+  // platform where the engine differs (D113); GROWS_TO_THE_DEADLINE was measured on the author's Mac (96 GB).
   const GROWS_TO_THE_DEADLINE = process.platform === "darwin" ? [
     "webkit", // WebKit 2359: no error by the 20 s deadline (about 24,500 arrays in, in a probe that counted them)
     "firefox", // Firefox 1543: the same (about 19,200 arrays in)
   ] : [];
+  // D127. On a Mac with little memory WebKit loses the page instead: on GitHub's Mac runner (7 GB) the page crashed.
+  // Which one a Mac does depends on its memory, so either passes there. A course box stops at 5 s, and
+  // web/test/page.mjs's memory box was stopped with its page alive on that runner too.
+  const MAY_LOSE_THE_PAGE = process.platform === "darwin" ? ["webkit"] : [];
   const CRASHES_THE_PAGE = [
     // D41. Chromium 153 (headless shell 1243): the page crashed about 925 ms in, three times out of three, and the
     // next Run in that page failed. Playwright's page.reload() of the crashed target failed too, a limit of the
@@ -169,17 +173,24 @@ for (const engine of only ? [only] : Object.keys(ENGINES)) {
   check(`${engine}: one seed, the same numbers`, a.status === "ok" && a.stdout === b.stdout, [a.stdout, b.stdout]);
   o = await run("void main() { int x = ; }");
   check(`${engine}: a compile error comes back with its line`, o.status === "compile-error" && o.compile.diagnostics.some((d) => d.line === 1), brief(o));
-  // Compiled first, so the abort lands while the program runs (not during the compile) and only the runner's abort
-  // listener can end it; ms counts from the run's start.
+  // Compiled first, and aborted 300 ms after the program's first line arrives, so the abort lands while the program
+  // runs (not during the compile, nor during the wait for its worker, C-3) and only the runner's abort listener can end
+  // it. Timed in the page from the abort itself: the run's own ms counts from when its worker was ready, which on a
+  // slow machine comes late (GitHub's Mac runner: 71 ms of a 300 ms wait timed from the call, D127).
   o = await within(20000, t.page.evaluate(async () => {
-    const c = await window.jf.compile('void main() { while (true) {} }');
+    const c = await window.jf.compile('void main() { IO.println("go"); while (true) {} }');
     if (!c.ok) return { status: "compile-failed", compile: c };
     const ac = new AbortController();
-    const running = window.jf.run(c.wasm, { deadlineMs: 5000, signal: ac.signal });
-    setTimeout(() => ac.abort(), 300);
-    return running;
+    let abortedAt = null, armed = false;
+    const onOut = () => {
+      if (!armed) { armed = true; setTimeout(() => { abortedAt = performance.now(); ac.abort(); }, 300); }
+    };
+    const r = await window.jf.run(c.wasm, { deadlineMs: 5000, signal: ac.signal, onOut });
+    return { ...r, endedAfterAbort: abortedAt == null ? null : Math.round(performance.now() - abortedAt) };
   }));
-  check(`${engine}: an aborted run ends at once as canceled`, o.status === "canceled" && o.ms >= 250 && o.ms < 1500, { ...brief(o), ms: o.ms });
+  check(`${engine}: an aborted run ends at once as canceled`,
+    o.status === "canceled" && o.stdout === "go\n" && Number.isFinite(o.endedAfterAbort) && o.endedAfterAbort >= 0 && o.endedAfterAbort < 1000,
+    { ...brief(o), ms: o.ms, endedAfterAbort: o.endedAfterAbort });
   await next("canceled run");
   o = await within(90000, t.page.evaluate(async () => {
     const r = new window.BrowserRunner(new URL("./", location.href), { compileDeadlineMs: 1 });
@@ -196,8 +207,10 @@ for (const engine of only ? [only] : Object.keys(ENGINES)) {
 
   // The memory program, in a page of its own (D41, D43).
   const c = await open(engine, dir);
+  const grewFrom = Date.now();
   const g = await within(35000, c.page.evaluate((s) => window.jf.compileAndRun(s, { deadlineMs: 20000 }), GROW)
     .catch((e) => ({ status: "threw", threw: String(e) })));
+  const lost = g.status === "threw" && c.errors.includes("the page crashed");
   if (CRASHES_THE_PAGE.includes(engine)) {
     // Pinned, so a browser that stops crashing is noticed: then the engine leaves CRASHES_THE_PAGE, and DESIGN.md
     // section 2 loses its note (D41).
@@ -205,9 +218,15 @@ for (const engine of only ? [only] : Object.keys(ENGINES)) {
       g.status === "threw" && c.errors.includes("the page crashed"), { g, errors: c.errors });
   } else {
     check(`${engine}: memory used up bit by bit is reported as the JDK reports it`,
-      g.stderr?.includes("java.lang.OutOfMemoryError") || (GROWS_TO_THE_DEADLINE.includes(engine) && g.status === "timeout"), brief(g));
-    const n = await within(20000, c.page.evaluate(() => window.jf.compileAndRun('void main() { IO.println("next"); }')));
-    check(`${engine}: memory used up: the next Run works`, n.stdout === "next\n", n);
+      g.stderr?.includes("java.lang.OutOfMemoryError") || (GROWS_TO_THE_DEADLINE.includes(engine) && g.status === "timeout")
+        || (MAY_LOSE_THE_PAGE.includes(engine) && lost),
+      { ...brief(g), lost, errors: c.errors, seconds: Math.round((Date.now() - grewFrom) / 1000) });
+    // A lost page runs nothing more, so its next Run is not tried; a fresh page's next Run is the main session's.
+    if (!lost) {
+      const n = await within(20000, c.page.evaluate(() => window.jf.compileAndRun('void main() { IO.println("next"); }'))
+        .catch((e) => ({ status: "threw", threw: String(e) })));
+      check(`${engine}: memory used up: the next Run works`, n.stdout === "next\n", n);
+    }
   }
   await c.close();
 

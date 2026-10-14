@@ -55,6 +55,9 @@ const WATCH_RUNS = () => {
       return super.terminate();
     }
   };
+  // And when each click reached the page, before any handler of the page's own (D127).
+  window.jfClicks = [];
+  document.addEventListener("click", () => window.jfClicks.push(performance.now()), true);
 };
 // How an element's text lays out: its lines of text, the lines they take on screen (the distinct tops of the text's
 // boxes, so an inline element is measured too), whether it scrolls sideways, and the page's own width.
@@ -180,29 +183,36 @@ for (const engine of only ? [only] : Object.keys(ENGINES)) {
   await click(9, "Run"); await settled(9);
   check(`${engine}: a prompt printed before a hang stays on screen`, (await text(9)).startsWith("Guess: ") && (await text(9)).includes("Stopped:"), await text(9));
   // Run pressed again, or Reset, while box 3's endless loop runs: its worker is terminated at once, not at the 5 s
-  // deadline. Returns how long after the click the page terminated the worker of the run the first click started.
+  // deadline. Returns how long after the click reached the page the page terminated the worker of the run the first
+  // click started; negative if the run had already ended, at its deadline, before the click arrived. Timed from the
+  // click's arrival, not from before it was sent, and with no wait for the button to hold still (force): both waits
+  // are the machine's. Playwright's wait counts frames, which a busy slow machine draws slowly: on the author's Mac
+  // held to its efficiency cores (taskpolicy -b) a click took about 400 ms to arrive, 4 to 9 ms with force, and the
+  // page terminated the worker within 1 ms of it; on GitHub's Mac runner the old run's worker was terminated 4.6 and
+  // 2.6 s after the click was sent, likely at its deadline (D127). The wait for "running" polls by time for the same
+  // reason. The button is the one the reader sees: the box is running and offers it.
   const stopsAt = async (n, name) => {
     const k = await t.page.evaluate(() => window.jfRuns.length);
     await click(n, "Run");
     await t.page.waitForFunction(([id, k]) => document.querySelector(`.box[data-box="${id}"]`).dataset.state === "running"
-      && window.jfRuns.length > k, [`ch01-run#${n}`, k]); // the run's worker has the program: it is spinning
-    const at = await t.page.evaluate(() => performance.now());
-    await click(n, name);
+      && window.jfRuns.length > k, [`ch01-run#${n}`, k], { polling: 50 }); // the run's worker has the program: it is spinning
+    const c = await t.page.evaluate(() => window.jfClicks.length);
+    await box(n).getByRole("button", { name, exact: true }).click({ force: true });
     await t.page.waitForFunction((k) => window.jfRuns[k].terminated != null, k, { timeout: 10000 });
-    return t.page.evaluate(([k, at]) => window.jfRuns[k].terminated - at, [k, at]);
+    return t.page.evaluate(([k, c]) => Math.round(window.jfRuns[k].terminated - window.jfClicks[c]), [k, c]);
   };
   const lagRun = await stopsAt(3, "Run"); await settled(3);
   const twice = await text(3);
   check(`${engine}: Run pressed again stops the old run; its output never lands in the new one`,
     twice.split("start").length === 2 && twice.split("Stopped:").length === 2, twice);
-  check(`${engine}: Run pressed again terminates the old run's worker at once, not at its deadline`, lagRun < 1000, lagRun);
+  check(`${engine}: Run pressed again terminates the old run's worker at once, not at its deadline`, lagRun >= 0 && lagRun < 1000, lagRun);
   await box(3).locator("textarea.code").fill('void main() {\n    IO.println("edited");\n    while (true) {}\n}\n');
   const lagReset = await stopsAt(3, "Reset");
   await t.page.waitForTimeout(6000); // an absence: past the deadline the stopped run would have reached
   check(`${engine}: Reset during a run stops it, and nothing of it lands afterward`,
     (await box(3).locator(".run").count() === 0 || (await text(3)) === "")
       && (await box(3).locator("textarea.code").inputValue()).includes('"start"'), await box(3).innerText());
-  check(`${engine}: Reset during a run terminates its worker at once, not at its deadline`, lagReset < 1000, lagReset);
+  check(`${engine}: Reset during a run terminates its worker at once, not at its deadline`, lagReset >= 0 && lagReset < 1000, lagReset);
   await box(1).locator("textarea.code").fill("void main() {\n    IO.println(x);\n}\n");
   await click(1, "Run"); await settled(1);
   check(`${engine}: a compile error reads as javac prints it`,
