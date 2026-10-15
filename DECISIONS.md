@@ -676,6 +676,12 @@ before the public repository's first commit, which stays private too (D96; D17's
   to its deadline, so on a Mac either passes (`MAY_LOSE_THE_PAGE`), and a lost page fails as a check instead of stopping
   the test halfway (26 of its 51 checks had never run). A course box stops at 5 seconds, and `page.mjs`'s memory box was
   stopped with its page alive on that runner; DESIGN.md section 2 says what the runner showed.
+- D128 (2026-10-15) THE WEEKLY JOBS GET 180 MINUTES: the first green weekly run (on D127's commit) ran its Firefox
+  job for 116 of its 120 minutes and its node job for 113. Firefox had taken 69 minutes the run before, on the same
+  runner image, and every one of its steps was 1.5 to 2 times slower, the steps D127 did not touch too, so the runner
+  was slow, not the tests; but the next slow runner would stop a job halfway and turn the run red for nothing. Both
+  weekly jobs get 180 minutes, still far below GitHub's 360, so a run that hangs is still stopped. The quick and Pages
+  limits stay. Ruled by the controller on the author's yes.
 
 ## R1-R4: the design review's defaults (2026-09-27)
 
