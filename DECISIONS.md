@@ -682,6 +682,14 @@ before the public repository's first commit, which stays private too (D96; D17's
   was slow, not the tests; but the next slow runner would stop a job halfway and turn the run red for nothing. Both
   weekly jobs get 180 minutes, still far below GitHub's 360, so a run that hangs is still stopped. The quick and Pages
   limits stay. Ruled by the controller on the author's yes.
+- D129 (2026-10-19) THE COURSE'S MARK IS ;}: the site had no icon, so a browser's tab showed a blank page and its
+  request for one drew a 404. Of the controller's drawings the author chose a semicolon and a closing brace on a ground
+  line, the last two characters of nearly every Java method, in the site's accent green over its ink. The author's
+  first idea, `};`, read as a frowning face once drawn, and Java puts no semicolon after a method's or a class's brace.
+  No coffee cup: Java's cup is Oracle's logo (D77). `web/favicon.svg` carries the light and the dark colors of
+  `app.css`; `web/apple-touch-icon.png` is the same mark at 180 px on the paper ground, for an iPhone or iPad's home
+  screen. Both publish by name (`Pages.WEB_FILES`), and every page, the index and each volume's downloads page link them
+  by relative paths.
 
 ## R1-R4: the design review's defaults (2026-09-27)
 

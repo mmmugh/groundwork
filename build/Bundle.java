@@ -88,7 +88,7 @@ final class Bundle {
 
     String html = "<!doctype html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n"
         + "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n<title>"
-        + escape(v.title()) + " - downloads</title>\n<link rel=\"stylesheet\" href=\"../app.css\">\n</head>\n<body>\n<main>\n"
+        + escape(v.title()) + " - downloads</title>\n<link rel=\"stylesheet\" href=\"../app.css\">\n" + Pages.iconLinks("../") + "</head>\n<body>\n<main>\n"
         + body + "\n</main>\n</body>\n</html>\n";
     writeFile(volDir.resolve("bundle.html"), html);
   }

@@ -243,6 +243,24 @@ final class PagesTest {
     T.eq(1, r.exit(), "a listed script that is missing stops the build");
     T.check(r.out().contains("app.js"), "and names it: " + r.out());
   }
+  // D129: the course's mark is published and every kind of page links it by a relative path that resolves to it, from
+  // the site's root and from a volume's folder, so a tab and a home screen show it under Pages' /groundwork/ prefix.
+  static void testEveryPageLinksTheCoursesMarkAndItIsPublished() throws Exception {
+    Path p = Fixtures.project("pages-icons");
+    T.eq(0, Fixtures.build(p).exit(), "build");
+    Path site = p.resolve("site");
+    for (String f : List.of("favicon.svg", "apple-touch-icon.png"))
+      T.check(Files.isRegularFile(site.resolve(f)) && Files.size(site.resolve(f)) > 0, f + " is published");
+    for (String page : List.of("index.html", "vol-fixture/ch01-first-programs.html", "vol-fixture/bundle.html")) {
+      String html = Files.readString(site.resolve(page));
+      Path dir = site.resolve(page).getParent();
+      for (var m : java.util.regex.Pattern.compile("<link rel=\"(icon|apple-touch-icon)\" href=\"([^\"]+)\"").matcher(html).results()
+          .toList()) {
+        T.check(Files.isRegularFile(dir.resolve(m.group(2)).normalize()), page + "'s " + m.group(1) + " link resolves: " + m.group(2));
+      }
+      T.check(html.contains("rel=\"icon\"") && html.contains("rel=\"apple-touch-icon\""), page + " links both icons");
+    }
+  }
   // D103: with no volume the public index must say why it is empty, never show a bare title; and it must never call a
   // chapter unwritten once one is published. Its one link is relative, so it resolves under Pages' /groundwork/ prefix.
   static void testAnIndexWithNoVolumeSaysTheFirstChapterIsBeingWritten() throws Exception {

@@ -42,7 +42,7 @@ final class Pages {
   private static final Pattern LEADING_COMMENT = Pattern.compile("(?s)\\A<!doctype html>\\n<!--(.*?)-->\\n");
   private static final String APACHE_MARKER = "Licensed under the Apache License";
 
-  /** Renders every current volume's pages, writes site/boxes.json and site/index.html, and copies web/app.css. Build.run
+  /** Renders every current volume's pages, writes site/boxes.json and site/index.html, and copies WEB_FILES. Build.run
    *  has already emptied site/ (Publish.empty), so a volume that no longer exists is simply not written. project is the
    *  volumes/site/web root. */
   static void writeSite(List<Volume> volumes, Map<Volume, Map<Page, List<Box>>> boxes, Path project) throws BuildError {
@@ -65,11 +65,23 @@ final class Pages {
 
     writeFile(site.resolve("boxes.json"), Json.write(entries));
     writeIndex(site, volumes, titles);
-    try {
-      Files.copy(web.resolve("app.css"), site.resolve("app.css"), StandardCopyOption.REPLACE_EXISTING);
-    } catch (IOException e) {
-      throw new BuildError(web.resolve("app.css") + ": " + e.getMessage());
+    for (String name : WEB_FILES) {
+      try {
+        Files.copy(web.resolve(name), site.resolve(name), StandardCopyOption.REPLACE_EXISTING);
+      } catch (IOException e) {
+        throw new BuildError(web.resolve(name) + ": " + e.getMessage());
+      }
     }
+  }
+
+  /** The files under web/ every page links besides its scripts: the stylesheet and the course's mark (D129), the SVG
+   *  for a browser tab and the PNG an iPhone or iPad puts on its home screen. */
+  static final List<String> WEB_FILES = List.of("app.css", "favicon.svg", "apple-touch-icon.png");
+
+  /** The head lines that link the course's mark, for a page at the site's root ("") or one level down ("../"). */
+  static String iconLinks(String up) {
+    return "<link rel=\"icon\" href=\"" + up + "favicon.svg\" type=\"image/svg+xml\">\n"
+        + "<link rel=\"apple-touch-icon\" href=\"" + up + "apple-touch-icon.png\">\n";
   }
 
   /** The page's own scripts, as paths under web/ (and under site/, where they publish at the same path). Publishing
@@ -394,7 +406,7 @@ final class Pages {
     }
     String html = "<!doctype html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n"
         + "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n"
-        + "<title>Groundwork</title>\n<link rel=\"stylesheet\" href=\"app.css\">\n</head>\n<body>\n<main>\n"
+        + "<title>Groundwork</title>\n<link rel=\"stylesheet\" href=\"app.css\">\n" + iconLinks("") + "</head>\n<body>\n<main>\n"
         + body + "\n</main>\n</body>\n</html>\n";
     writeFile(site.resolve("index.html"), html);
   }
